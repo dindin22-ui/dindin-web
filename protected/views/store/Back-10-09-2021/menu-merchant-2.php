@@ -1,0 +1,455 @@
+<script type="text/javascript">
+<!--
+if (screen.width >= 699) {
+// document.location = "redirect.html";
+}
+//-->
+</script>
+
+<style>
+@media only screen and (max-width: 750px){
+
+.menu-2 a.dsktop{
+        display: block !important;
+}
+}
+@media only screen and (min-width: 320px) and (max-width: 1024px){
+  
+}
+@media only screen and (min-width: 320px) and (max-width: 749px){
+    .mobile_menuMerchant{
+        display: block;
+    }
+    .desktop_menuMerchant{
+        display: none;
+    }
+    .draggable{
+        padding: 0px 0px !important;
+    }
+    .xs_merchantCat{
+        display: block;
+        margin-bottom: 10px;
+        color:#fff;
+    }
+    .mobile_menuMerchant .panel-body {
+        padding: 2px 10px;
+    }
+    .xs_merchantDesc{
+        line-height: 17px !important;
+        color:#fff!important;
+        margin-bottom: 0px;
+    }
+    .mobile_menuMerchant .section-label a.section-label-a span{
+        background: transparent;
+        color:#fff;
+        font-size: 18px;
+        text-transform: uppercase;
+        padding-right: 32px;
+    }
+     .mobile_menuMerchant .section-label a.section-label-a{
+        padding-bottom: 0px;
+     }
+     .mobile_menuMerchant .section-label a.section-label-a:before{
+           content: "❮";
+            position: absolute;
+            right: 10px;
+            font-size: 24px;
+            color: #84448a;
+            /* top: 5px; */
+            height: 25px;
+            padding: 2.5px 3.5px;
+            width: 25px;
+            text-align: center;
+            line-height: 20px;
+            background: white;
+            border-radius: 50%;
+            }
+    .mobile_menuMerchant .section-label a.collapsed:before{
+        content: "❯";
+        position: absolute;
+        right: 10px;
+        font-size: 24px;
+        color: #ff6339;
+        /* top: 5px; */
+        height: 25px;
+        padding: 2.5px 3.5px;
+        width: 25px;
+        text-align: center;
+        line-height: 20px;
+        background: white;
+        border-radius: 50%;
+    }
+	.panel-default {
+    border-color: white;
+	}
+    .mobile_menuMerchant .section-label a.section-label-a:before:hover{
+        cursor: pointer;
+    }
+    .mobile_menuMerchant .panel-heading{
+        position: relative;
+        background: #ff6339;
+        color:#fff;
+        border-radius: 10px;
+    }
+    .mobile_menuMerchant .section-label a.section-label-a b{
+        border-bottom: none!important;
+    }
+    .mobile_menuMerchant .panel-default{
+        margin-bottom: 5px;
+    }
+    .mobile_menuMerchant .panel-group {
+        background: #fff!important;
+    }
+    .xs_itemHead{
+        color: #964c4c;
+        font-family: "Montserrat",sans-serif;
+        font-weight: bolder;
+        font-size: 16px;
+        margin-bottom: 5px!important;
+    }
+    .mobile_menuMerchant .food-description{
+        min-height: auto!important;
+        color: #000;
+    }
+    .mobile_menuMerchant .box-grey{
+        border:none!important;
+        margin-bottom: 0px;
+        margin-top: 10px;
+    }
+    .xs_p0{
+        padding: 0px;
+    }
+    .xs_m0{
+        margin: 0px;
+    }
+    .mobile_menuMerchant .food-thumbnail{
+     width: 165px!important;
+     float: right;
+    }
+    .mobile_menuMerchant h5{
+        margin: 0px;
+    }
+    .xs_menuBtn {
+    display: block !important;
+    text-align: left !important;
+    font-weight: bold !important;
+    color: black !important;
+    font-family: "Montserrat",sans-serif;
+    }
+    .xs_p_slider .slide_title{
+        margin-top: 10px!important;
+        display: block;  
+        position: relative;
+        top:10px;
+    }
+    .xs_p_slider .orange-button{
+    background: #ea3893;
+    color: #fff;
+    width: 100%;
+    border:none;
+    }
+    .xs_p_slider .Slideitem .box-grey{
+        padding: 10px!important;
+    }
+    .mobile_menuMerchant img{
+   /*     width:20px!important;
+        height: 24px!important;*/
+        position: relative;
+        bottom: 3px;
+    }
+    .Slideitem{
+        /*width: 300px!important;*/
+    }
+        .slick-list{padding:0 25% 0 0!important;width: auto!important;min-width: auto!important;}
+        .chepBox{
+                position: relative;
+    top: 0px;
+    width: 138%;
+    z-index: 9999999!Important;
+        }
+}
+@media only screen and (min-width: 750px) and (max-width: 3000px){
+    .mobile_menuMerchant{
+        display: none;
+    }
+    .desktop_menuMerchant{
+        display: block;
+    }
+    .xs_padding_0{
+        padding:0px;
+    }
+    .xs_margin_0{
+        margin:0px;
+    }
+
+}
+
+</style>
+<div class="mobile_menuMerchant">
+    
+    <div class="multiple-items xs_p_slider">
+        <?php //  dump($menu);
+//die('mannnn');
+        //echo "i m here zeeshan"; 
+        if(is_array($menu) && count($menu)>=1):
+
+            ?>
+<?php foreach ($menu as $val): // dump($val);
+    
+?>
+    <?php $x=0?>
+<?php if (is_array($val['item']) && count($val['item'])>=1):?>
+<?php foreach ($val['item'] as $val_item):?>
+
+<div class="multiple-items xs_p_slider">
+          
+      </div>
+          <?php endforeach;?>
+<?php else :?>
+
+<?php endif;
+    
+?>
+
+
+<?php endforeach;?>
+
+<?php else :?>
+<p class="text-danger"><?php echo t("This restaurant has not published their menu yet.")?></p>
+<?php endif;?>
+    </div>
+
+
+
+      <div class="panel-group" id="menuMerchant_collapse">
+
+<?php if(is_array($menu) && count($menu)>=1):
+//    dump($menu);
+    ?>
+<?php foreach ($menu as $val): 
+    $hour = date('H');
+//    $currentTime = (new DateTime($hour.':00'))->modify('+1 day');
+//    $startTime = new DateTime($val['start_time'].':00');
+//    $endTime = (new DateTime($val['end_time'].':00'))->modify('+1 day');
+//    
+//echo $currentTime. ' '. $startTime. ' '.$endTime.'<br/>';
+  $currentTime = strtotime($hour.':00');
+$startTime = strtotime($val['start_time'].':00');
+$endTime = strtotime($val['end_time'].':00');
+echo date('Y-m-d H:i:s',$currentTime).' '.date('Y-m-d H:i:s',$startTime).' '.date('Y-m-d H:i:s',$endTime).'<br/>';
+if (
+        (
+        $startTime < $endTime &&
+        $currentTime >= $startTime &&
+        $currentTime <= $endTime
+        ) ||
+        (
+        $startTime > $endTime && (
+        $currentTime >= $startTime ||
+        $currentTime <= $endTime
+        )
+        )
+) {
+//    if($hour >= $val['start_time'] && $hour <= $val['end_time']){
+        
+    
+    ?>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h4 class="panel-title">
+<div class="section-label menu-cat cat-<?php echo $val['category_id']?>h">
+<a data-toggle="collapse" data-parent="#menuMerchant_collapse" href="#collapse<?php echo $val['category_id']?>" class="section-label-a collapsed">
+<span class="bold xs_merchantCat">
+<?php echo qTranslate($val['category_name'],'category_name',$val)?>
+</span>
+<b></b>
+<?php if (!empty($val['category_description'])):?>
+<p class="small xs_merchantDesc"><?php echo $val['category_description']?></p>
+<?php endif;?>
+<?php echo Widgets::displaySpicyIconNew($val['dish'],"dish-category")?>
+</a> 
+</h4>
+</div> 
+
+</div>
+<div class="row menu-2 border">
+<div id="collapse<?php echo $val['category_id']?>" class="panel-collapse collapse">
+        <div class="panel-body">
+<?php $x=0?>
+<?php if (is_array($val['item']) && count($val['item'])>=1):?>
+<?php foreach ($val['item'] as $val_item):?>
+
+<?php 
+$atts='';
+if ( $val_item['single_item']==2){
+$atts.='data-price="'.$val_item['single_details']['price'].'"';
+$atts.=" ";
+$atts.='data-size="'.$val_item['single_details']['size'].'"';
+}
+?> 
+
+<div class="col-md-6 border" style="padding-left:10px;padding-right:10px;">
+<div class="box-grey">
+
+<div class=" xs_p0">
+    
+	
+	<a href="javascript:;" 
+class="mbile rounded3 menu-item <?php echo $val_item['not_available']==2?"item_not_available":''?>"
+rel="<?php echo $val_item['item_id']?>"
+data-single="<?php echo $val_item['single_item']?>" 
+<?php echo $atts;?>
+data-category_id="<?php echo $val['category_id']?>"
+>
+    <img src="<?php echo FunctionsV3::getFoodDefaultImage($val_item['photo'],false)?>" width="100%">
+   
+    <p class="bold top10 xs_itemHead"><?php echo qTranslate($val_item['item_name'],'item_name',$val_item)?></p>
+    <p class="small food-description read-more">
+    <?php echo qTranslate($val_item['item_description'],'item_description',$val_item)?>
+    </p>
+    <?php 
+if (strlen($val_item['item_description'])<59){
+//echo '<div class="dummy-link"></div>';
+}
+?>
+
+<?php if ( $disabled_addcart==""):?>
+<div class="center top10 food-price-wrap">
+<p class="xs_menuBtn">
+<?php echo FunctionsV3::getItemFirstPrice($val_item['prices'],$val_item['discount']) ?></p>
+</a>
+
+
+
+</div>
+<?php endif;?>
+
+</div>
+
+<hr>
+<!-- <div class="col-xs-4 " style="padding-right: 0px;"> -->
+    <!-- <div class="food-thumbnail" 
+    style="background:url();"> 
+    </div> -->
+   
+<!-- </div> -->
+
+
+
+
+<div class="clearfix"></div>
+</div> <!--box-grey-->
+</div> <!--col-->
+
+<?php endforeach;?>
+</div>
+</div>
+<?php else :?>
+<div class="col-md-6 border">
+<p class="small text-danger"><?php echo t("no item found on this category")?></p>
+</div>
+<?php endif;?>
+
+
+</div> <!--row-->
+    <?php     } 
+    endforeach;?>
+
+<?php else :?>
+<p class="text-danger"><?php echo t("This restaurant has not published their menu yet.")?></p>
+<?php endif;?>
+</div>
+</div>
+
+
+
+<div class="desktop_menuMerchant">
+    <?php if(is_array($menu) && count($menu)>=1):?>
+<?php foreach ($menu as $val): //dump($val);?>
+<div class="section-label menu-cat cat-<?php echo $val['category_id']?>">
+    <a class="section-label-a">
+      <span class="bold">
+      <?php echo qTranslate($val['category_name'],'category_name',$val)?>
+      </span>
+      <b></b>
+    </a>     
+</div>    
+<?php if (!empty($val['category_description'])):?>
+<p class="small"><?php echo $val['category_description']?></p>
+<?php endif;?>
+<?php echo Widgets::displaySpicyIconNew($val['dish'],"dish-category")?>
+
+<div class="row menu-2 border">
+
+<?php $x=0?>
+<?php if (is_array($val['item']) && count($val['item'])>=1):?>
+<?php foreach ($val['item'] as $val_item):?>
+
+<?php 
+$atts='';
+if ( $val_item['single_item']==2){
+      $atts.='data-price="'.$val_item['single_details']['price'].'"';
+      $atts.=" ";
+      $atts.='data-size="'.$val_item['single_details']['size'].'"';
+}
+?> 
+
+<div class="col-md-6 border" style="padding-left:10px;padding-right:10px;">
+   <div class="box-grey">
+     <div class="food-thumbnail" 
+        style="background:url(<?php echo FunctionsV3::getFoodDefaultImage($val_item['photo'],false)?>);">       
+     </div>
+     <p class="bold top10"><?php echo qTranslate($val_item['item_name'],'item_name',$val_item)?></p>
+     <p class="small food-description read-more">
+     <?php echo qTranslate($val_item['item_description'],'item_description',$val_item)?>
+     </p>
+     <?php 
+     if (strlen($val_item['item_description'])<59){
+        echo '<div class="dummy-link"></div>';
+     }
+     ?>
+     
+     <?php if ( $disabled_addcart==""):?>
+     <div class="center top10 food-price-wrap">
+     <a href="javascript:;" 
+     class="dsktop orange-button inline rounded3 menu-item <?php echo $val_item['not_available']==2?"item_not_available":''?>"
+     rel="<?php echo $val_item['item_id']?>"
+     data-single="<?php echo $val_item['single_item']?>" 
+     <?php echo $atts;?>
+     data-category_id="<?php echo $val['category_id']?>"
+      >
+     <?php echo FunctionsV3::getItemFirstPrice($val_item['prices'],$val_item['discount']) ?>
+     </a>
+     
+     <a href="javascript:;" 
+     class="mbile orange-button inline rounded3 menu-item <?php echo $val_item['not_available']==2?"item_not_available":''?>"
+     rel="<?php echo $val_item['item_id']?>"
+     data-single="<?php echo $val_item['single_item']?>" 
+     <?php echo $atts;?>
+     data-category_id="<?php echo $val['category_id']?>"
+      >
+     <?php echo FunctionsV3::getItemFirstPrice($val_item['prices'],$val_item['discount']) ?>
+     </a>
+    
+     </div>
+     <?php endif;?>
+     
+   </div> <!--box-grey-->
+</div> <!--col-->
+<?php endforeach;?>
+<?php else :?>
+<div class="col-md-6 border">
+<p class="small text-danger"><?php echo t("no item found on this category")?></p>
+</div>
+<?php endif;?>
+
+
+</div> <!--row-->
+<?php endforeach;?>
+
+<?php else :?>
+<p class="text-danger"><?php echo t("This restaurant has not published their menu yet.")?></p>
+<?php endif;?>
+</div>
+
+

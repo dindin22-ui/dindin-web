@@ -1,0 +1,19 @@
+{
+	"description": "Dindin",
+	"name": "YII/framework",
+	"type": "project",
+	"homepage": "https://dindin.site",
+	"license": "MIT",
+	"require": {
+		"php": ">=7.3.6",
+		"google/apiclient": "^2.7",
+		"smalot/pdfparser": "^0.18.1",
+		"spatie/pdf-to-text": "^1.4"
+	},
+	"suggest": {
+		"paragonie/random_compat": "Provides better randomness in PHP 5.x"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "4.* || 5.*"
+	}
+}

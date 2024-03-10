@@ -1,0 +1,413 @@
+<?php
+$this->renderPartial('/front/banner-receipt', array(
+    'h1' => t("Payment"),
+    'sub_text' => t("")
+));
+
+$this->renderPartial('/front/order-progress-bar', array(
+    'step' => 4,
+    'show_bar' => true
+));
+
+$baseUrl = Yii::app()->baseUrl;
+$cs = Yii::app()->getClientScript();
+
+
+
+//$cs->registerScriptFile($baseUrl . "/assets/vendor/jquery.creditCardValidator.js"
+//        , CClientScript::POS_END);
+//
+//$cs->registerScriptFile($baseUrl . "/assets/vendor/jquery.formance.min.js"
+//        , CClientScript::POS_END);
+
+$error = '';
+$success = '';
+$amount_to_pay = 0;
+$payment_description = Yii::t("default", 'Payment to merchant');
+$payment_ref = Yii::app()->functions->generateRandomKey(6) . "-" . Yii::app()->functions->getLastIncrement('{{order}}');
+
+$data_get = $_GET;
+$data_post = $_POST;
+
+$merchant_default_country = getOptionA('admin_country_set');
+
+if ($data = Yii::app()->functions->getOrder($_GET['id'])) {
+
+    $client_id = $data['client_id'];
+    $merchant_id = isset($data['merchant_id']) ? $data['merchant_id'] : '';
+    $default_order_status = Yii::app()->functions->getOption("default_order_status", $merchant_id);
+    $client_info = Yii::app()->functions->getClientInfo($client_id);
+    if ($credentials = StripeWrapper::getCredentials($merchant_id)) {
+        $secret = $credentials['secret_key'];
+        $endpoint_secret = $credentials['webhook_secret'];
+        if (isset($_POST['token'])) {
+            $response = $this->chargeAmountFromCard();
+            die(2);
+        }
+    } else
+        $error = "invalid stripe credentials";
+} else
+    $error = Yii::t("default", "Sorry but we cannot find what your are looking for.");
+?>
+
+<!--PRELOADER-->
+<div class="main-preloader" id="smain-preloader">
+    <div class="inner">
+
+        <div id="merchant_text" style="color:#FFF;font-weight: bold;font-size: 20px;text-align: center" class="text">
+            Processing, please wait...
+        </div>
+        <div id="merchant_text" style="color:#FFF;font-weight: bold;font-size: 16px;text-align: center" class="text">
+            Do not select your browser's back
+        </div>
+        <div id="merchant_text" style="color:#FFF;font-weight: bold;font-size: 16px;text-align: center" class="text">
+            button or refresh this page.
+        </div>
+        <?php if ($default_order_status == 'Pending') {
+            ?>
+        <div id="merchant_text" style="color:#FFF;font-weight: bold;font-size: 20px;text-align: center" class="text">
+            Please wait for Merchant's Approval. </div>
+        <?php }
+        ?>
+        <div class="ploader"></div>
+        <?php if ($default_order_status == 'Pending') {
+            ?>
+        <div style="color:#fff;font-weight: bold;font-size: 40px;text-align: center" id="seconds_remaining">120</div>
+        <?php
+        }
+        ?>
+    </div>
+</div>
+<!--PRELOADER-->
+<div class="sections section-grey2 section-orangeform">
+    <div class="container">
+        <div class="row top30">
+            <div class="inner">
+                <h1><?php echo t("Pay using Stripe Payment") ?></h1>
+                <div class="box-grey rounded">
+                    <table class="table">
+                        <tr>
+                        <tr>
+                            <td><?php echo t("Description") ?></td>
+                            <td><?php echo $payment_description ?></td>
+                        </tr>
+                        <?php if ($fee > 0.001): ?>
+                        <tr>
+                            <td><?php echo t("Card Fee") ?></td>
+                            <td><?php echo FunctionsV3::prettyPrice($fee) ?></td>
+                        </tr>
+
+                        <tr>
+                            <td><?php echo t("Amount") ?></td>
+                            <td><?php echo FunctionsV3::prettyPrice(($amount / 100) - $fee) ?></td>
+                        </tr>
+
+                        <tr>
+                            <td><?php echo t("Total") ?></td>
+                            <td><?php echo FunctionsV3::prettyPrice(($amount) / 100) ?></td>
+                        </tr>
+
+                        <?php else : ?>
+
+                        <tr>
+                            <td><?php echo t("Total") ?></td>
+                            <td><?php echo FunctionsV3::prettyPrice($amount / 100) ?></td>
+                        </tr>
+
+
+                        <?php endif; ?>
+                        <tr style="display: none;">
+                            <td colspan="2">
+                                <button class="btn paynow_stripe"><?php echo t("Pay Now") ?></button>
+                            </td>
+                        </tr>
+                    </table>
+
+
+                    <div id="error-message" class="validation" style="display: block;color: red;font-size: 14px;font-weight: bold;"></div>
+                    <?php if (!empty($error)): ?>
+                    <p class="text-danger"><?php echo $error; ?></p>
+                    <?php endif; ?>
+                    <div id="error-message" class="validation"></div>
+                    <?php
+                    echo CHtml::beginForm('', 'post',
+                            array(
+                                'id' => 'forms-normal',
+                                'class' => "forms",
+                    ));
+                    ?>
+
+                    <div class="row top10">
+                        <div class="col-md-3"><?php echo t("Amount") ?></div>
+                        <div class="col-md-8">
+                            <?php
+                            echo CHtml::textField('amount_show',
+                                    number_format($amount / 100, 2)
+                                    , array(
+                                'class' => 'grey-fields full-width',
+                                'disabled' => true
+                            ))
+                            ?>
+                        </div>
+                    </div>
+                    <div class="row top10">
+                        <div class="container-fluid d-flex justify-content-center">
+                            <div class="col-sm-12 col-md-12">
+                                <div class="card">
+                                    <div class="card-body" style="height: 350px">
+                                        <div class="form-group"> <label for="cc-number" class="control-label">CARD NUMBER</label> <input id="cc-number" type="tel" class="input-lg form-control cc-number" autocomplete="cc-number" placeholder="•••• •••• •••• ••••" required> </div>
+                                        <div class="row">
+                                            <div class="col-md-6 col-sm-6 col-xs-6">
+                                                <div class="form-group"> <label for="cc-exp" class="control-label">CARD EXPIRY</label> <input id="cc-exp" type="tel" class="input-lg form-control cc-exp" autocomplete="cc-exp" placeholder="•• / ••" required> </div>
+                                            </div>
+                                            <div class="col-md-6 col-sm-6 col-xs-6">
+                                                <div class="form-group"> <label for="cc-cvc" class="control-label">CARD CVC</label> <input id="cc-cvc" type="tel" class="input-lg form-control cc-cvc" autocomplete="off" placeholder="••••" required> </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group"> <label for="numeric" class="control-label">CARD HOLDER NAME</label> <input type="text" class="input-lg form-control cc-name"> </div>
+<!--                                        <input id="submit-btn" type="button" onClick="stripePay();"-->
+<!--                                               value="--><?php //echo Yii::t("default", "Pay Now") ?><!--" class="black-button inline medium">-->
+                                        <div class="form-group"> <input value="Pay Now"id="submit-btn" type="button" onClick="stripePay();" class="btn btn-success btn-lg form-control" style="background: #f75d34;border: 1px solid #f75d34;height: 50px;padding: 10px"> </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name='item_name' value="<?php echo $payment_description ?>" />
+                    <input type='hidden' name='currency_code' value='USD'>
+                    <input type='hidden' name='amount' value='<?php echo $amount; ?>' />
+                    <input type='hidden' name='status' id='status'
+                        value='<?php echo strtolower($default_order_status); ?>' />
+                    <input type='hidden' name='default_status' id='default_status'
+                        value='<?php echo strtolower($default_order_status); ?>' />
+                    <input type='hidden' name='order_id' id='order_id' value='<?php echo $_GET['id']; ?>' />
+                    <input type='hidden' name='token' id='token' value='' />
+                    <input type='hidden' name='counter' id='counter' value='120' />
+
+
+                    <!--</form> -->
+                    <?php echo CHtml::endForm(); ?>
+
+                    <?php //endif;  ?>
+
+                    <div class="top25">
+                        <a href="<?php echo Yii::app()->createUrl('/store/paymentoption') ?>">
+                            <i class="ion-ios-arrow-thin-left"></i>
+                            <?php echo Yii::t("default", "Click here to change payment option") ?></a>
+                    </div>
+
+                </div>
+                <form id="reject_form" action="<?php echo Yii::app()->createUrl('/store/reject') ?>" method="get">
+                    <input type="hidden" name="id" value="<?php echo $_GET['id'] ?>" />
+                </form>
+                <form id="accept_form" action="<?php echo Yii::app()->createUrl('/store/receipt') ?>" method="get">
+                    <input type="hidden" name="id" value="<?php echo $_GET['id'] ?>" />
+                </form>
+            <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
+            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.bundle.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.payment/3.0.0/jquery.payment.min.js"></script>
+
+            <script>
+                var sec = 120;
+                var time_travel = null;
+                //set your publishable key
+                Stripe.setPublishableKey("<?php echo $credentials['publish_key']; ?>");
+                $(function($) {
+                    $('[data-numeric]').payment('restrictNumeric');
+                    $('.cc-number').payment('formatCardNumber');
+                    $('.cc-exp').payment('formatCardExpiry');
+                    $('.cc-cvc').payment('formatCardCVC');
+                    $.fn.toggleInputError = function (erred) {
+                        this.parent('.form-group').toggleClass('has-error', erred);
+                        return this;
+                    };
+                }( jQuery ));
+                function cardValidation() {
+                    var valid = true;
+                    var cc_exp = $('.cc-exp').val();
+                    var month = '';
+                    var year = '';
+                    if(cc_exp.trim() != ''){
+                        const cc_exp_arr = cc_exp.split("/");
+                        var month = cc_exp_arr[0];
+                        var year = cc_exp_arr[1];
+                    }
+                    var name = $('.cc-name').val() ;
+
+                    //var email = '<?php //echo $client_info['email_address']; ?>//';
+                    var cardNumber = $('.cc-number').val();
+                    var month = month.trim();//$('#expiration_month').val();
+                    var year = year.trim();//$('#expiration_yr').val();
+                    var cvc = $('.cc-cvc').val();
+
+                    //
+                    $("#error-message").html("").hide();
+                    //
+                    if (name.trim() == "") {
+                       valid = false;
+                    }
+                    // if (email.trim() == "") {
+                    //    valid = false;
+                    // }
+                    if (cardNumber.trim() == "") {
+                       valid = false;
+                    }
+
+                    if (month.trim() == "") {
+                       valid = false;
+                    }
+                    if (year.trim() == "") {
+                       valid = false;
+                    }
+                    if (cvc.trim() == "") {
+                       valid = false;
+                    }
+
+                    if (valid == false) {
+                       $("#error-message").html("All Fields are required").show();
+                    }
+                    // var cardType = $.payment.cardType($('.cc-number').val());
+                    // $('.cc-number').toggleInputError(!$.payment.validateCardNumber($('.cc-number').val()));
+                    // $('.cc-exp').toggleInputError(!$.payment.validateCardExpiry($('.cc-exp').payment('cardExpiryVal')));
+                    // $('.cc-cvc').toggleInputError(!$.payment.validateCardCVC($('.cc-cvc').val(), cardType));
+                    // $('.cc-brand').text(cardType);
+                    // $('#error-message').removeClass('text-danger text-success');
+                    // $('#error-message').addClass($('.has-error').length ? 'text-danger' : 'text-success');
+                    return valid;
+                }
+
+                //callback to handle the response from stripe
+                function stripeResponseHandler(status, response) {
+                    $('#seconds_remaining').css('display', 'none');
+                    if (response.error) {
+                        //enable the submit button
+                        //                                        $("#submit-btn").show();
+                        alert(response.error.message);
+                        $("#smain-preloader").css("display", "none");
+                        //display the errors on the form
+                        $("#error-message").html(response.error.message).show();
+                    } else {
+                        //get token id
+                        var token = response['id'];
+                        //insert the token into the form
+                        $('#token').val(token);
+
+                        //                                        window.stop();
+                        //                                        $('#accept_form').submit();
+                        //                                        $("#smain-preloader").css("display", "none");
+                        //submit form to the server
+                        $('#status').val('paid');
+                        $("#forms-normal").submit();
+                        return false;
+                    }
+                }
+
+                function stripePay() {
+                    if ($('#status').val() == 'pending') {
+                        $("#smain-preloader").css("display", "block");
+                        var valid = cardValidation();
+
+                        if (valid == true) {
+                            var feedback = $.ajax({
+                                type: "POST",
+                                data: $('#forms-normal').serialize(),
+                                url: "<?php echo Yii::app()->createUrl('/store/SendCurrentStatus/') ?>",
+                                async: false
+                            });
+                            $('#status').val('waiting');
+                        }
+                        setTimeout(function() {
+                            sec = sec - 1;
+                            $('#seconds_remaining').html(sec);
+                            stripePay();
+                        }, 1000);
+                    } else if ($('#status').val() == 'waiting') {
+                        setTimeout(function() {
+                            if (sec > 0) {
+                                var sec_check = sec;
+                                if (sec_check % 10 == 0) {
+                                    var status = $.ajax({
+                                        type: "GET",
+                                        url: "<?php echo Yii::app()->createUrl('/store/checkCurrentStatus?order_id=' . $_GET['id']) ?>",
+                                        async: false
+                                    }).responseText;
+
+                                    if (status == 'pending') {
+                                        $('#status').val('waiting');
+                                    } else {
+                                        $('#status').val(status);
+                                    }
+                                }
+                                sec = sec - 1;
+                                $('#seconds_remaining').html(sec);
+                                stripePay();
+                                sec_check = sec;
+                                if (sec_check % 10 == 0) {
+                                    //                                                    stripePay();
+                                }
+                            } else {
+                                $("#smain-preloader").css("display", "none");
+                                $('#reject_form').submit();
+                            }
+                        }, 3000);
+                    } else if ($('#status').val() == 'accepted' || $('#status').val() == 'Accepted') {
+                        if ($('#smain-preloader').css('display') == 'none') {
+                            $("#smain-preloader").css("display", "block");
+                        }
+                        var valid = cardValidation();
+                        if (valid == true) {
+                            if ($('#default_status').val() == 'pending') {
+                                $('#merchant_text').html(
+                                    'Your order has been approved, please wait a few more seconds, your payment is being processed'
+                                );
+                                $('#seconds_remaining').css('display', 'none');
+                            }
+                            if ($('#status').val() != 'paid') {
+                                //                                                e.preventDefault();
+                                var cc_exp = $('.cc-exp').val();
+                                var month = '';
+                                var year = '';
+                                if(cc_exp.trim() != ''){
+                                    const cc_exp_arr = cc_exp.split("/");
+                                    var month = cc_exp_arr[0];
+                                    var year = cc_exp_arr[1];
+                                }
+                                var month = month.trim();//$('#expiration_month').val();
+                                var year = year.trim();//$('#expiration_yr').val();
+                                Stripe.createToken({
+                                    number: $('.cc-number').val(),
+                                    cvc: $('.cc-cvc').val(),
+                                    exp_month: month,// $('#expiration_month').val(),
+                                    exp_year: year, // $('#expiration_yr').val()
+                                }, stripeResponseHandler);
+                            } else {
+                                console.log('Test Paid');
+                                $('#seconds_remaining').css('display', 'none');
+                                $('#seconds_remaining').css('display', 'none');
+                                //                                                $("#smain-preloader").css("display", "none");
+                                $('#accept_form').submit();
+                                return false;
+                            }
+
+                            //submit from callback
+                        }
+                    } else if ($('#status').val() == 'paid') {
+                        //                                        $("#smain-preloader").css("display", "none");
+                        $('#accept_form').submit();
+                        return false;
+                    } else {
+                        $('#reject_form').submit();
+                        return false;
+                    }
+                }
+
+                function waiting_status() {
+
+                }
+                </script>
+            </div>
+        </div>
+    </div>
+</div>
