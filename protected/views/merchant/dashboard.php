@@ -1,6 +1,30 @@
-
-<?php if ( Yii::app()->functions->hasMerchantAccess("DashBoard")):?>
-
+<?php if ( Yii::app()->functions->hasMerchantAccess("DashBoard")):
+$merchant_id = Yii::app()->functions->getMerchantID();
+$store_start_date=getOption($merchant_id,'store_start_date');   
+$store_close_date=getOption($merchant_id,'store_close_date');  
+$time = time();
+?>
+<div style="clear: both;">
+    <?php
+    $resum_style="";
+    $pause_style="";
+    $resum_style_block = "";
+    if($time < $store_close_date && $time > $store_start_date){	
+        $resum_style="display:inline-block;"; 
+        $pause_style = "display:none;";
+        $resum_style_block = "display:block;";
+    }else{
+        $pause_style ="display:inline-block;"; 
+        $resum_style = "display:none;";
+        $resum_style_block = "display:none;";
+    }  
+    ?>
+    <a style="<?php echo $pause_style; ?>" class="uk-button pause-order" href="javascript:">Pause Orders </a>
+    <a  style="<?php echo $resum_style; ?>" data-id="<?php echo $merchant_id; ?>" class="uk-button resume-order" href="javascript:">Resume Orders </a>
+    <h4 style="<?php echo $resum_style_block; ?>" data-id="<?php echo $merchant_id; ?>" class="resume-order-note">
+        The merchant will reopen on <?php echo date('m-d-Y',$store_close_date); ?> at <?php echo date('H:i a',$store_close_date); ?>
+</h4>
+</div>x
 
 
 <form id="frm_table_list" method="POST" class="report uk-form uk-form-horizontal merchant-dashboard" >

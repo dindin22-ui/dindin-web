@@ -234,29 +234,7 @@ class AjaxController extends CController
     }
     
     //previous working function
-    
-//     public function actionsavesettings_social()
-//     {
-        
-//         //test
-//     	Yii::app()->functions->updateOptionAdmin('mobile2_enabled_fblogin',
-// 		isset($this->data['mobile2_enabled_fblogin'])?$this->data['mobile2_enabled_fblogin']:''
-// 		);
-		
-// 		Yii::app()->functions->updateOptionAdmin('mobile2_enabled_googlogin',
-// 		isset($this->data['mobile2_enabled_googlogin'])?$this->data['mobile2_enabled_googlogin']:''
-// 		);
-		
-//     	$this->code=1;
-// 	    $this->msg=$this->t("settings saved");
-// 		$this->jsonResponse();	
-//     }
-
-//end previous working function
-
-//Test function
-
- public function actionsavesettings_social()
+	public function actionsavesettings_social()
     {
         
         //test
@@ -267,60 +245,6 @@ class AjaxController extends CController
 		Yii::app()->functions->updateOptionAdmin('mobile2_enabled_googlogin',
 		isset($this->data['mobile2_enabled_googlogin'])?$this->data['mobile2_enabled_googlogin']:''
 		);
-		
-		//here adding the fb app id for both
-			Yii::app()->functions->updateOptionAdmin('mobileapp2_fb_id_both',
-		isset($this->data['mobileapp2_fb_id_both'])?$this->data['mobileapp2_fb_id_both']:''
-		);
-		//
-		
-			//here adding the fb app secret for both
-			Yii::app()->functions->updateOptionAdmin('mobileapp2_fb_app_secret_both',
-		isset($this->data['mobileapp2_fb_app_secret_both'])?$this->data['mobileapp2_fb_app_secret_both']:''
-		);
-		//
-		
-		
-		//here adding the Google app id for the ios
-		
-				Yii::app()->functions->updateOptionAdmin('mobileapp2_Google_client_id_ios',
-		isset($this->data['mobileapp2_Google_client_id_ios'])?$this->data['mobileapp2_Google_client_id_ios']:''
-		);
-		
-		//end
-		
-			//here adding the Google app secret for the ios
-		
-				Yii::app()->functions->updateOptionAdmin('mobileapp2_Google_client_secret_ios',
-		isset($this->data['mobileapp2_Google_client_secret_ios'])?$this->data['mobileapp2_Google_client_secret_ios']:''
-		);
-		
-		//end
-		
-		//here adding the Google app id for the Android
-		
-			
-				Yii::app()->functions->updateOptionAdmin('mobileapp2_Google_client_id_android',
-		isset($this->data['mobileapp2_Google_client_id_android'])?$this->data['mobileapp2_Google_client_id_android']:''
-		);
-		
-		
-		//end
-		
-			//here adding the Google app secret for the Android
-		
-			
-				Yii::app()->functions->updateOptionAdmin('mobileapp2_Google_client_secret_android',
-		isset($this->data['mobileapp2_Google_client_secret_android'])?$this->data['mobileapp2_Google_client_secret_android']:''
-		);
-		
-		
-		//end
-		
-		
-		
-		
-		
 		
     	$this->code=1;
 	    $this->msg=$this->t("settings saved");
@@ -626,6 +550,18 @@ class AjaxController extends CController
     	echo json_encode($data);
     }
     
+
+    public function actiondelete_broadcast(){
+        $broadcast_id = isset($this->data['broadcast_id'])?$this->data['broadcast_id']:'';
+    	if($broadcast_id>=1){
+    // 		mobileWrapper::deleteBroadCostPushLogs($broadcast_id);
+    		mobileWrapper::deleteBroadCost($broadcast_id);
+    		$this->code = 1;
+    		$this->msg = mt("Successful");
+    	} else $this->msg = mt("Invalid Broadcast id");
+    	$this->jsonResponse();
+    }
+
     public function actionbroadcast_list()
     {
     	$db=new DbExt();
@@ -655,7 +591,7 @@ class AjaxController extends CController
 		  //  dump($stmt);
 		}
 		
-		if($res=$db->rst($stmt)){			
+		if($res=$db->rst_special($stmt)){	
 			$total_records=0;						
 			$stmtc="SELECT FOUND_ROWS() as total_records";
 			if ( $resc=$db->rst($stmtc)){									
@@ -673,7 +609,13 @@ class AjaxController extends CController
 				$link=Yii::app()->createUrl(APP_FOLDER."/index/broadcast_details",array(
 				  'bid'=>$val['broadcast_id']
 				));
-				$actions='<a href="'.$link.'" >'.mobileWrapper::t("view details").'</a>';
+				
+				$link_cancel=Yii::app()->createUrl(APP_FOLDER."/index/broadcast_cacel",array(
+				  'bid'=>$val['broadcast_id']
+				));
+				$actions='<a class="btn btn-default" href="'.$link.'" >'.mobileWrapper::t("view details").'</a>';
+				$actions.='<a href="javascript:;" class="delete_broadcast btn btn-danger" data-broadcast_id="'.$val['broadcast_id'].'" >Cancel</a>';
+				// $actions .='&nbsp&nbsp<a href="'.$link_cancel.'" >'.mobileWrapper::t("Cancel").'</a>';
 								
 				$cols_data = array();
 				foreach ($cols as $key_cols=> $cols_val) {						   
@@ -723,37 +665,8 @@ class AjaxController extends CController
 		} ); ';	
     }
     
-    //comitting the live functio
-    // public function actionsave_broadcast()
-    // {   
-    // 	$params = array(
-    // 	   'push_title'=>$this->data['push_title'],
-    // 	   'push_message'=>$this->data['push_message'],
-    // 	   'device_platform'=>$this->data['device_platform'],
-    // 	   'date_created'=>FunctionsV3::dateNow(),
-    // 	   'ip_address'=>$_SERVER['REMOTE_ADDR']
-    	   
-    // 	);
-    	
-    // 	$db=new DbExt();
-    // 	if ($db->insertData("{{mobile2_broadcast}}",$params)){
-    	    
-    // 		$this->code = 1;
-    // 		$this->msg = mt("Successful");
-
-    // 	    FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl("mobileappv2/cron/processbroadcast"));
-    	
-    		
-    // 		FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl("mobileappv2/cron/processpush"));
-    		
-    		
-    // 	} else $this->msg = mt("Failed cannot insert records");
-    // 	$this->jsonResponse();
-    // }
     
-    //end
-    
-     public function actionsave_broadcast()
+    public function actionsave_broadcast()
     {   
     	$params = array(
     	   'push_title'=>$this->data['push_title'],
@@ -761,6 +674,7 @@ class AjaxController extends CController
     	   'device_platform'=>$this->data['device_platform'],
     	   'address'=>$this->data['address'],
     	   'radius'=>$this->data['radius'],
+    	   'merchant_id'=>$this->data['merchant'],
     	   'schedule_notifications'=>$this->data['schedule_notifications'] !== '' ? date('Y-m-d H:i:s',strtotime($this->data['schedule_notifications'])):date('Y-m-d H:i:s'),
     	   'date_created'=>FunctionsV3::dateNow(),
     	   'ip_address'=>$_SERVER['REMOTE_ADDR']
@@ -768,7 +682,7 @@ class AjaxController extends CController
     	);
     	
     	$db=new DbExt();
-    	if ($db->insertData("{{mobile2_broadcast}}",$params)){
+    	if ($db->insertSpecialData("{{mobile2_broadcast}}",$params)){
     	    
     		$this->code = 1;
     		$this->msg = mt("Successful");
@@ -819,10 +733,10 @@ class AjaxController extends CController
 		if(isset($this->data['debug'])){
 		    dump($stmt);
 		}
-		if($res=$db->rst($stmt)){
+		if($res=$db->rst_special($stmt)){
 			$total_records=0;						
 			$stmtc="SELECT FOUND_ROWS() as total_records";
-			if ( $resc=$db->rst($stmtc)){									
+			if ( $resc=$db->rst_special($stmtc)){									
 				$total_records=$resc[0]['total_records'];
 			}			
 			$feed_data['draw']=$this->data['draw'];
@@ -1015,66 +929,12 @@ class AjaxController extends CController
     	$this->jsonResponse();
     }
     
-    // public function actionsend_push()
-    // {    
+	public function actionsend_push()
+    {   
         
-    // //  date_default_timezone_set( 'America/Los_Angeles' );
-    // //     echo FunctionsV3::dateNow();
-    //     //  echo date_default_timezone_get();
-    // //   echo date('Y-m-d H:i:s');
-       
-    // //     exit('oo');
-    // 	$id = isset($this->data['id'])?$this->data['id']:'';    
-    	
-    // 	if($id>=1){
-    // 		if ($res = mobileWrapper::getDeviceByID($id)){ 
-    		    
-    // 			$params = array(
-    // 			  'push_type'=>'campaign',
-    // 			  'client_id'=>$res['client_id'],
-    // 			  'client_name'=>$res['full_name'],
-    // 			  'device_platform'=>trim($res['device_platform']),
-    // 			  'device_id'=>trim($res['device_id']),
-    // 			  'device_uiid'=>trim($res['device_uiid']),
-    // 			  'push_title'=>trim($this->data['push_title']),
-    // 			  'push_message'=>trim($this->data['push_message']),
-    // 			  'date_created'=>FunctionsV3::dateNow(),
-    // 			  'ip_address'=>$_SERVER['REMOTE_ADDR']
-    // 			);
-    			
-    			
-    // 			$db=new DbExt();
-    // 			if($db->insertData("{{mobile2_push_logs}}",$params)){
-    			    
-    // 			    //We Closed the below Function because We Are Hitting Crone through  cPanel////
-    			    
-    // 				FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl(APP_FOLDER."/cron/processpush"));
-    				
-    // 				$this->code = 1;
-    // 				$this->msg = mt("Request has been sent");
-    				
-    // 			} else $this->msg = mt("failed cannot insert records");
-    // 		} else $this->msg = mt("Record not found");
-    // 	} else $this->msg = mt("Invalid id");
-    // 	$this->jsonResponse();
-    // }
-    
-    //here is test function
-       public function actionsend_push()
-    {    
-        
-    //  date_default_timezone_set( 'America/Los_Angeles' );
-    //     echo FunctionsV3::dateNow();
-        //  echo date_default_timezone_get();
-    //   echo date('Y-m-d H:i:s');
-       
-    //     exit('oo');
-    	$id = isset($this->data['id'])?$this->data['id']:'';   
-    	
-    	
-    	
+    	$id = isset($this->data['id'])?$this->data['id']:'';    
     	if($id>=1){
-    		if ($res = mobileWrapper::getDeviceByID($id)){ 
+    		if ($res = mobileWrapper::getDeviceByID($id)){    			
     			$params = array(
     			  'push_type'=>'campaign',
     			  'client_id'=>$res['client_id'],
@@ -1088,12 +948,14 @@ class AjaxController extends CController
     			  'ip_address'=>$_SERVER['REMOTE_ADDR']
     			);
     			
+    			
     			$db=new DbExt();
     			if($db->insertData("{{mobile2_push_logs}}",$params)){
     			    
     			    //We Closed the below Function because We Are Hitting Crone through  cPanel////
     			    
-    			 	FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl(APP_FOLDER."/cron/processpush"));
+    				FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl(APP_FOLDER."/cron/processpush"));
+    				
     				$this->code = 1;
     				$this->msg = mt("Request has been sent");
     				

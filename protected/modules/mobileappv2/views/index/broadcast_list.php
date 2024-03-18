@@ -87,6 +87,24 @@
 		echo CHtml::textField('address','',array('class'=>"form-control",'required'=>false ));
 		?>
 		</div> 
+		
+		<div class="form-group">
+		<label><?php echo mt("Send merchant")?></label>
+		<?php 
+		echo CHtml::dropDownList('merchant','',FunctionsV3::merchantListBroadCost(),array(
+		  'class'=>"form-control",
+		  'required'=>false
+		));
+		?>
+		</div> 
+		
+		<div class="form-group">
+		<label><?php echo mt("Address")?></label>
+		<?php 
+		echo CHtml::textField('address','',array('class'=>"form-control",'required'=>false ));
+		?>
+		</div> 
+		
 
 		<div class="form-group">
 		<label><?php echo mt("Radius")?></label>

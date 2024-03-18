@@ -441,6 +441,7 @@ if (!class_exists('AjaxAdmin')) {
             }
             $this->otableNodata();
         }
+
         public function resumeTakingOrder() {
             if (!isset($this->data['row_id'])) {
                 $this->msg = Yii::t("default", "Missing parameters");
@@ -478,6 +479,7 @@ if (!class_exists('AjaxAdmin')) {
                 return;	
     		}
         }
+        
         public function rowDelete() {
 
             $p = new CHtmlPurifier();
@@ -496,6 +498,7 @@ if (!class_exists('AjaxAdmin')) {
                 }
             }
 
+            
             if ($this->data['tbl'] == "category") {
                 if (FunctionsV3::getCategoryInItem($this->data['row_id'])) {
                     $this->msg = t("Cannot delete this record it has reference to other tables");
@@ -1536,7 +1539,11 @@ if (!class_exists('AjaxAdmin')) {
                 $this->msg = Yii::t("default", "ERROR: cannot update");
         }
 
-		
+        public function pauseOrdersImmediately(){
+            $this->code = 1;
+            $this->msg = Yii::t("default", "Settings saved.");
+        }
+
         public function merchantSettings() {
 
             /** reverse back to 24 hour format if format is 12 hour */
@@ -1778,6 +1785,10 @@ if (!class_exists('AjaxAdmin')) {
             Yii::app()->functions->updateOption("order_asap",
                             isset($this->data['order_asap']) ? $this->data['order_asap'] : '3'
                             , $merchant_id);
+                            
+            Yii::app()->functions->updateOption("merchant_time_interval",
+                    isset($this->data['merchant_time_interval']) ? $this->data['merchant_time_interval'] : '15'
+                    , $merchant_id);
 
             Yii::app()->functions->updateOption("order_sms_code_waiting",
                     isset($this->data['order_sms_code_waiting']) ? $this->data['order_sms_code_waiting'] : ''
@@ -1853,304 +1864,7 @@ if (!class_exists('AjaxAdmin')) {
             $this->code = 1;
             $this->msg = Yii::t("default", "Settings saved.");
         }
-		
-        public function merchantSettings_back() {
-
-            /** reverse back to 24 hour format if format is 12 hour */
-            if (Yii::app()->functions->getOptionAdmin("website_time_picker_format") == "12") {
-                if (is_array($this->data['stores_open_starts'])) {
-                    foreach ($this->data['stores_open_starts'] as $key => $val) {
-                        //dump($key."=>".$val);
-                        $this->data['stores_open_starts'][$key] = timeFormat($val);
-                    }
-                }
-
-                if (is_array($this->data['stores_open_ends'])) {
-                    foreach ($this->data['stores_open_ends'] as $key => $val) {
-                        //dump($key."=>".$val);
-                        $this->data['stores_open_ends'][$key] = timeFormat($val);
-                    }
-                }
-            }
-
-            /* dump(json_encode($this->data['stores_open_starts']));
-              dump($this->data);
-              die(); */
-
-            $merchant_id = Yii::app()->functions->getMerchantID();
-
-            $params = array(
-                'delivery_charges' => is_numeric($this->data['merchant_delivery_charges']) ? $this->data['merchant_delivery_charges'] : 0,
-                'minimum_order' => is_numeric($this->data['merchant_minimum_order']) ? $this->data['merchant_minimum_order'] : 0,
-                'delivery_minimum_order' => is_numeric($this->data['merchant_minimum_order']) ? $this->data['merchant_minimum_order'] : 0,
-                'delivery_maximum_order' => is_numeric($this->data['merchant_maximum_order']) ? $this->data['merchant_maximum_order'] : 0,
-                'pickup_minimum_order' => is_numeric($this->data['merchant_minimum_order_pickup']) ? $this->data['merchant_minimum_order_pickup'] : 0,
-                'pickup_maximum_order' => is_numeric($this->data['merchant_maximum_order_pickup']) ? $this->data['merchant_maximum_order_pickup'] : 0,
-                'logo' => isset($this->data['photo']) ? $this->data['photo'] : ''
-            );
-            //dump($params);
-            $db = new DbExt();
-            $db->updateData("{{merchant}}", $params, 'merchant_id', $merchant_id);
-            unset($db);
-
-            /* Yii::app()->functions->updateOption("merchant_currency",
-              isset($this->data['merchant_currency'])?$this->data['merchant_currency']:''
-              ,$merchant_id); */
-
-            /* Yii::app()->functions->updateOption("merchant_decimal",
-              isset($this->data['merchant_decimal'])?$this->data['merchant_decimal']:''
-              ,$merchant_id); */
-
-            /* Yii::app()->functions->updateOption("merchant_use_separators",
-              isset($this->data['merchant_use_separators'])?$this->data['merchant_use_separators']:''
-              ,$merchant_id); */
-
-            Yii::app()->functions->updateOption("merchant_minimum_order",
-                    isset($this->data['merchant_minimum_order']) ? $this->data['merchant_minimum_order'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_tax",
-                    isset($this->data['merchant_tax']) ? $this->data['merchant_tax'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_delivery_charges",
-                    isset($this->data['merchant_delivery_charges']) ? $this->data['merchant_delivery_charges'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("stores_open_day",
-                    isset($this->data['stores_open_day']) ? json_encode($this->data['stores_open_day']) : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("stores_open_starts",
-                    isset($this->data['stores_open_starts']) ? json_encode($this->data['stores_open_starts']) : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("stores_open_ends",
-                    isset($this->data['stores_open_ends']) ? json_encode($this->data['stores_open_ends']) : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("stores_open_custom_text",
-                    isset($this->data['stores_open_custom_text']) ? json_encode($this->data['stores_open_custom_text']) : ''
-                    , $merchant_id);
-
-            //if (isset($this->data['photo'])){
-            Yii::app()->functions->updateOption("merchant_photo",
-                    isset($this->data['photo']) ? $this->data['photo'] : ''
-                    , $merchant_id);
-            //}
-
-
-            Yii::app()->functions->updateOption("merchant_delivery_estimation",
-                    isset($this->data['merchant_delivery_estimation']) ? $this->data['merchant_delivery_estimation'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_delivery_miles",
-                    isset($this->data['merchant_delivery_miles']) ? $this->data['merchant_delivery_miles'] : ''
-                    , $merchant_id);
-
-            /* Yii::app()->functions->updateOption("merchant_delivery_charges_type",
-              isset($this->data['merchant_delivery_charges_type'])?$this->data['merchant_delivery_charges_type']:''
-              ,$merchant_id); */
-
-            Yii::app()->functions->updateOption("merchant_photo_bg",
-                    isset($this->data['photo2']) ? $this->data['photo2'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_disabled_cod",
-                    isset($this->data['merchant_disabled_cod']) ? $this->data['merchant_disabled_cod'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_disabled_ccr",
-                    isset($this->data['merchant_disabled_ccr']) ? $this->data['merchant_disabled_ccr'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_extenal",
-                    isset($this->data['merchant_extenal']) ? $this->data['merchant_extenal'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_enabled_voucher",
-                    isset($this->data['merchant_enabled_voucher']) ? $this->data['merchant_enabled_voucher'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_distance_type",
-                    isset($this->data['merchant_distance_type']) ? $this->data['merchant_distance_type'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_timezone",
-                    isset($this->data['merchant_timezone']) ? $this->data['merchant_timezone'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_close_msg",
-                    isset($this->data['merchant_close_msg']) ? $this->data['merchant_close_msg'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_preorder",
-                    isset($this->data['merchant_preorder']) ? $this->data['merchant_preorder'] : ''
-                    , $merchant_id);
-
-            /* Yii::app()->functions->updateOption("merchant_table_booking",
-              isset($this->data['merchant_table_booking'])?$this->data['merchant_table_booking']:''
-              ,$merchant_id); */
-
-            Yii::app()->functions->updateOption("merchant_maximum_order",
-                    isset($this->data['merchant_maximum_order']) ? $this->data['merchant_maximum_order'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_packaging_charge",
-                    isset($this->data['merchant_packaging_charge']) ? $this->data['merchant_packaging_charge'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_close_msg_holiday",
-                    isset($this->data['merchant_close_msg_holiday']) ? $this->data['merchant_close_msg_holiday'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_holiday",
-                    isset($this->data['merchant_holiday']) ? json_encode($this->data['merchant_holiday']) : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_activated_menu",
-                    isset($this->data['merchant_activated_menu']) ? $this->data['merchant_activated_menu'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("spicydish",
-                    isset($this->data['spicydish']) ? $this->data['spicydish'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_required_delivery_time",
-                    isset($this->data['merchant_required_delivery_time']) ? $this->data['merchant_required_delivery_time'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_close_store",
-                    isset($this->data['merchant_close_store']) ? $this->data['merchant_close_store'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_packaging_increment",
-                    isset($this->data['merchant_packaging_increment']) ? $this->data['merchant_packaging_increment'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_show_time",
-                    isset($this->data['merchant_show_time']) ? $this->data['merchant_show_time'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_enabled_tip",
-                    isset($this->data['merchant_enabled_tip']) ? $this->data['merchant_enabled_tip'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_tip_default",
-                    isset($this->data['merchant_tip_default']) ? $this->data['merchant_tip_default'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_minimum_order_pickup",
-                    isset($this->data['merchant_minimum_order_pickup']) ? $this->data['merchant_minimum_order_pickup'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_maximum_order_pickup",
-                    isset($this->data['merchant_maximum_order_pickup']) ? $this->data['merchant_maximum_order_pickup'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_disabled_ordering",
-                    isset($this->data['merchant_disabled_ordering']) ? $this->data['merchant_disabled_ordering'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_tax_charges",
-                    isset($this->data['merchant_tax_charges']) ? $this->data['merchant_tax_charges'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("stores_open_pm_start",
-                    isset($this->data['stores_open_pm_start']) ? json_encode($this->data['stores_open_pm_start']) : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("stores_open_pm_ends",
-                    isset($this->data['stores_open_pm_ends']) ? json_encode($this->data['stores_open_pm_ends']) : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("food_option_not_available",
-                    isset($this->data['food_option_not_available']) ? $this->data['food_option_not_available'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("order_verification",
-                    isset($this->data['order_verification']) ? $this->data['order_verification'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("order_asap",
-                            isset($this->data['order_asap']) ? $this->data['order_asap'] : '3'
-                            , $merchant_id);
-
-            Yii::app()->functions->updateOption("order_sms_code_waiting",
-                    isset($this->data['order_sms_code_waiting']) ? $this->data['order_sms_code_waiting'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("disabled_food_gallery",
-                    isset($this->data['disabled_food_gallery']) ? $this->data['disabled_food_gallery'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_apply_tax",
-                    isset($this->data['merchant_apply_tax']) ? $this->data['merchant_apply_tax'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("printing_receipt_width",
-                    isset($this->data['printing_receipt_width']) ? $this->data['printing_receipt_width'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("printing_receipt_size",
-                    isset($this->data['printing_receipt_size']) ? $this->data['printing_receipt_size'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("free_delivery_above_price",
-                    isset($this->data['free_delivery_above_price']) ? $this->data['free_delivery_above_price'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_minimum_order_dinein",
-                    isset($this->data['merchant_minimum_order_dinein']) ? $this->data['merchant_minimum_order_dinein'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_maximum_order_dinein",
-                    isset($this->data['merchant_maximum_order_dinein']) ? $this->data['merchant_maximum_order_dinein'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("food_viewing_private",
-                    isset($this->data['food_viewing_private']) ? $this->data['food_viewing_private'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_tax_number",
-                    isset($this->data['merchant_tax_number']) ? $this->data['merchant_tax_number'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_packaging_wise",
-                    isset($this->data['merchant_packaging_wise']) ? $this->data['merchant_packaging_wise'] : ''
-                    , $merchant_id);
-
-            Yii::app()->functions->updateOption("merchant_show_category_image",
-                    isset($this->data['merchant_show_category_image']) ? $this->data['merchant_show_category_image'] : ''
-                    , $merchant_id);
-
-            if (FunctionsV3::enabledExtraCharges()) {
-                Yii::app()->functions->updateOption("extra_charge_start_time",
-                        isset($this->data['extra_charge_start_time']) ? json_encode($this->data['extra_charge_start_time']) : ''
-                        , $merchant_id);
-
-                Yii::app()->functions->updateOption("extra_charge_end_time",
-                        isset($this->data['extra_charge_end_time']) ? json_encode($this->data['extra_charge_end_time']) : ''
-                        , $merchant_id);
-
-                Yii::app()->functions->updateOption("extra_charge_fee",
-                        isset($this->data['extra_charge_fee']) ? json_encode($this->data['extra_charge_fee']) : ''
-                        , $merchant_id);
-
-                Yii::app()->functions->updateOption("extra_charge_notification",
-                        isset($this->data['extra_charge_notification']) ? $this->data['extra_charge_notification'] : ''
-                        , $merchant_id);
-            }
-
-
-            Yii::app()->functions->updateOption("merchant_two_flavor_option",
-                    isset($this->data['merchant_two_flavor_option']) ? $this->data['merchant_two_flavor_option'] : ''
-                    , $merchant_id);
-
-            $this->code = 1;
-            $this->msg = Yii::t("default", "Settings saved.");
-        }
-
+        
         public function AlertSettings() {
             $merchant_id = Yii::app()->functions->getMerchantID();
 
@@ -3016,6 +2730,124 @@ if (!class_exists('AjaxAdmin')) {
             $this->msg = "";
         }
 
+        public function saveDeliveryOptions(){
+            /** check if time is non 24 hour format */
+             define('YII_ENABLE_ERROR_HANDLER', true);
+            $_SESSION['kr_delivery_options']['delivery_start_date'] = date('Y-m-d');
+            $_SESSION['kr_delivery_options']['delivery_start_time'] = date('G:i');
+            if($this->data['delivery_time'] == 'ASAP'){
+                $this->data['delivery_asap'] =  1;
+                $this->data['delivery_time'] = date('G:i',strtotime('+5 minutes')); 
+            }
+            
+            if (yii::app()->functions->getOptionAdmin('website_time_picker_format') == "12") {
+                if ($this->data['delivery_time'] == 'null') {
+                    $this->data['delivery_time'] = date("G:i");
+                } else {
+                    if (!empty($this->data['delivery_time'])) {
+                        $this->data['delivery_time'] = date("G:i", strtotime($this->data['delivery_time']));
+                    }
+                }
+            } else {
+                if ($this->data['delivery_time'] == 'null') {
+                    $this->data['delivery_time'] = date("G:i");
+                }
+            }
+
+
+            /*             * check if customer chooose past time */
+            if (isset($this->data['delivery_time'])) {
+                if (!empty($this->data['delivery_time'])) {
+                    $time_1 = date('Y-m-d g:i:s a');
+                    $time_2 = $this->data['delivery_date'] . " " . $this->data['delivery_time'];
+                    $time_2 = date("Y-m-d g:i:s a", strtotime($time_2));
+                    $time_diff = Yii::app()->functions->dateDifference($time_2, $time_1);
+                    //dump($time_diff);
+                    if (is_array($time_diff) && count($time_diff) >= 1) {
+                        if ($time_diff['hours'] > 0) {
+                            $this->msg = t("Sorry but you have selected time that already past");
+                            return;
+                        }
+                        if ($time_diff['minutes'] > 0) {
+                            $this->msg = t("Sorry but you have selected time that already past");
+                            return;
+                        }
+                    }
+                }
+            }
+            $_SESSION['kr_delivery_options']['delivery_type'] = $this->data['delivery_type'];
+            $_SESSION['kr_delivery_options']['delivery_date'] = $this->data['delivery_date'];
+            $_SESSION['kr_delivery_options']['delivery_time'] = $this->data['delivery_time'];
+            $_SESSION['kr_delivery_options']['delivery_asap'] = $this->data['delivery_asap'] == "undefined" ? "" : 1;
+            if($this->data['delivery_type'] == 'delivery'){
+                $_SESSION['kr_search_address']  = $_SESSION['kr_delivery_options']['street_address'] = $this->data['address'];
+                if ($lat_res=Yii::app()->functions->geodecodeAddress($this->data['address'])){
+                    $lat=$lat_res['lat'];
+                    $lng=$lat_res['long'];
+                    $address = FunctionsV3::latToAdress($lat,$lng);
+                    $this->data['street'] = $address['address'];
+                    $_SESSION['kr_delivery_options']['city'] = $this->data['city'] = $address['city'];
+                    $_SESSION['kr_delivery_options']['state'] = $this->data['state'] = $address['state'];
+                    $_SESSION['kr_delivery_options']['zipcode'] = $this->data['zipcode'] = $address['zip'];
+                 }
+            }
+            $time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
+            $full_booking_time = $this->data['delivery_date'] . " " . $time;
+            $full_booking_day = strtolower(date("D", strtotime($full_booking_time)));
+            $booking_time = date('h:i A', strtotime($full_booking_time));
+            if (empty($time)) {
+                $booking_time = '';
+            }
+
+            $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
+            if (!Yii::app()->functions->isMerchantOpenTimes($merchant_id, $full_booking_day, $booking_time)) {
+                $date_close = date("F,d l Y h:ia", strtotime($full_booking_time));
+                $date_close = Yii::app()->functions->translateDate($date_close);
+                $this->msg = t("Sorry but we are closed on") . " " . $date_close;
+                $this->msg .= "<br/>";
+                $this->msg .= t("Please check merchant opening hours");
+                return;
+            }
+
+            /* CHECK IF DATE IS HOLIDAY */
+            if (!empty($this->data['delivery_date'])) {
+                if ($res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id)) {
+                    if (in_array($this->data['delivery_date'], $res_holiday)) {
+                        $this->msg = Yii::t("default", "were close on [date]", array(
+                                    '[date]' => $this->data['delivery_date']
+                        ));
+
+                        $close_msg = getOption($merchant_id, 'merchant_close_msg_holiday');
+                        if (!empty($close_msg)) {
+                            $this->msg = Yii::t("default", $close_msg, array(
+                                        '[date]' => $this->data['delivery_date']
+                            ));
+                        }
+                        return;
+                    }
+                }
+            }
+            
+            $merchant = FunctionsV3::getMerchantInfo($merchant_id);
+            if(isset($_SESSION['doordash_drive']) && $this->data['delivery_type'] == 'delivery' && $merchant['service'] == 8) {
+                $delivery_time = $_SESSION['kr_delivery_options']['delivery_date'] . "T" . $_SESSION['kr_delivery_options']['delivery_time'] . ":28Z";
+                $sub_total = $_SESSION['kmrs_subtotal'];
+                // $result = FunctionsV3::estimateDoordashCharges($delivery_time, $sub_total, $merchant_id, $this->data);
+                // if ($result['code'] == 2) {
+                //     if($result['msg'] == ''){
+                //         $this->msg = 'Outside';
+                //         $this->code = 3;
+                //     }else{
+                //         $this->msg = t($result['msg']);
+                //         $this->code = 2;
+                //     }
+                //     return;
+                // }
+            }
+            $this->code = 1;
+            $this->details = Yii::app()->createUrl('/menu-'.$merchant['restaurant_slug']);
+        }
+        
         public function setDeliveryOptions() {
             /** check if time is non 24 hour format */
             $_SESSION['kr_delivery_options']['delivery_start_date'] = date('Y-m-d');
@@ -3024,6 +2856,7 @@ if (!class_exists('AjaxAdmin')) {
                 $this->data['delivery_asap'] =  1;
                 $this->data['delivery_time'] = date('G:i',strtotime('+5 minutes')); 
             }
+            
             if (yii::app()->functions->getOptionAdmin('website_time_picker_format') == "12") {
                 if ($this->data['delivery_time'] == 'null') {
                     $this->data['delivery_time'] = date("G:i");
@@ -3098,28 +2931,16 @@ if (!class_exists('AjaxAdmin')) {
             if (!empty($this->data['delivery_date'])) {
                 if ($res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id)) {
                     if (in_array($this->data['delivery_date'], $res_holiday)) {
-                        /*$this->msg = Yii::t("default", "were close on [date]", array(
-                                    '[date]' => $this->data['delivery_date']
-                        ));
-
-                        $close_msg = getOption($merchant_id, 'merchant_close_msg_holiday');
-                        if (!empty($close_msg)) {
-                            $this->msg = Yii::t("default", $close_msg, array(
-                                        '[date]' => $this->data['delivery_date']
-                            ));
-                        }
-                        return;*/
-						
-						$now=date('Y-m-d');
+                        $now=date('Y-m-d');
                         if (false !== $key = array_search($now, $res_holiday)) {
             				$m_holiday_from=Yii::app()->functions->getMerchantHolidayTimeFrom($merchant_id);
             				$m_holiday_to=Yii::app()->functions->getMerchantHolidayTimeTo($merchant_id);
-            				$start_time = date("Y-m-d H:i",strtotime($now." ".$m_holiday_from[$key]));
-            				$end_time = date("Y-m-d H:i",strtotime($now." ".$m_holiday_to[$key]));
+            				$start_time = date("Y-m-d h:i A",strtotime($now." ".$m_holiday_from[$key]));
+            				$end_time = date("Y-m-d h:i A",strtotime($now." ".$m_holiday_to[$key]));
             			// 	echo date("Y-m-d h:i A"); 
             			// 	echo "<br/>".$now." ".$m_holiday_from[$key];
             			// 	echo "<br/>".$now." ".$m_holiday_to[$key];
-            				$now_time = date("Y-m-d H:i");
+            				$now_time = date("Y-m-d h:i A");
             				if($now_time >= $start_time && $now_time <= $end_time ){
             					$is_merchant_open=true;
             				}else{
@@ -3142,7 +2963,7 @@ if (!class_exists('AjaxAdmin')) {
                     }
                 }
             }
-
+            
             $merchant = FunctionsV3::getMerchantInfo($merchant_id);
             if(isset($_SESSION['doordash_drive']) && $this->data['delivery_type'] == 'delivery' && $merchant['service'] == 8) {
                 $delivery_time = $_SESSION['kr_delivery_options']['delivery_date'] . "T" . $_SESSION['kr_delivery_options']['delivery_time'] . ":28Z";
@@ -3469,7 +3290,8 @@ if (!class_exists('AjaxAdmin')) {
         }
 
         public function placeOrder() {
-
+            // echo 'welcome';
+            // exit;
             $p = new CHtmlPurifier();
 
 
@@ -3603,6 +3425,9 @@ if (!class_exists('AjaxAdmin')) {
                 /* check if email address is blocked */
                 if (FunctionsK::emailBlockedCheck($this->data['email_address'])) {
                     $this->msg = t("Sorry but your email address is blocked by website admin");
+                    $this->details = array(
+                        'payment_link' => Yii::app()->createUrl("/checkout/")
+                    );
                     return;
                 }
 
@@ -3763,6 +3588,20 @@ if (!class_exists('AjaxAdmin')) {
 
                     $raw = Yii::app()->functions->details['raw'];
                     //dump($raw);
+                    //check if order is pickup and ASAP 
+                    //change 12-29-2023
+                    // echo $_SESSION['kr_delivery_options']['delivery_time'];
+                    // exit;
+			        $merchant_enabled_auto_confirm_prep_time = getOption($this->data['merchant_id'],'merchant_enabled_auto_confirm_prep_time');
+	                $merchant_auto_prep_time = getOption($this->data['merchant_id'],'merchant_auto_prep_time'); 
+	                
+    		        if( ($merchant_enabled_auto_confirm_prep_time != '' && $merchant_enabled_auto_confirm_prep_time == 1) && ($merchant_auto_prep_time != '') && 
+    		            ( isset($_SESSION['kr_delivery_options']['delivery_asap'])  && $_SESSION['kr_delivery_options']['delivery_asap']==1 ) ){
+    		                
+    		              //$_SESSION['kr_delivery_options']['delivery_time'];
+    		              $_SESSION['kr_delivery_options']['delivery_time'] = date("h:i:s", strtotime("+". $merchant_auto_prep_time ." min",  strtotime( date("Y-m-d h:i:s") )  ));
+    		              //$this->UpdateStatusPrepTime( $order_id, 0, $merchant_auto_prep_time ); 
+    		        } 
 
                     if (is_array($raw) && count($raw) >= 1) {
                         $params = array(
@@ -3842,7 +3681,7 @@ if (!class_exists('AjaxAdmin')) {
                         /* Commission */
                         //   print_r($this->data); 
                         //   echo "<pre>"; print_r(Yii::app()->functions->isMerchantCommission($this->data['merchant_id']));
-                        //      $anyFee = Yii::app()->functions->getMerchantAnyFee($this->data['merchant_id']); 
+                            //  $anyFee = Yii::app()->functions->getMerchantAnyFee($this->data['merchant_id']); 
                         //      print_r($anyFee); 
                         //      exit('here');               
                         if (Yii::app()->functions->isMerchantCommission($this->data['merchant_id'])) {
@@ -4682,6 +4521,10 @@ if (!class_exists('AjaxAdmin')) {
                     die();
                 }
 
+                public function pauseOrder(){
+                    require_once 'pause-order.php';
+                    die();
+                }
                 public function addToOrder() {
                     if (isset($this->data['order_id'])) {
                         if ($res = Yii::app()->functions->getOrder($this->data['order_id'])) {
@@ -4827,8 +4670,7 @@ if (!class_exists('AjaxAdmin')) {
                     die();
                     //  return $res[0]; 
                 }
-				
-				
+
                 public function salesReport() {
                     $and = '';
                     if (isset($this->data['start_date']) && isset($this->data['end_date'])) {
@@ -4925,120 +4767,6 @@ if (!class_exists('AjaxAdmin')) {
                                 // $totalMinusFeeComm = $totalMinusFeeComm-$val['cart_tip_value'];
                             }
                             $totalMinusFeeComm = $val['total_w_tax'] - $total_commission;// $val['total_commission'];
-                            /* $date=prettyDate($val['date_created'],true);
-                              $date=Yii::app()->functions->translateDate($date); */
-                            $date = FormatDateTime($val['date_created']);
-
-                            $feed_data['aaData'][] = array(
-                                $val['order_id'],
-                                stripslashes($val['client_name']),
-                                $val['contact_phone'],
-                                $val['item'],
-                                t($val['trans_type']),
-                                //strtoupper(Yii::t("default",$val['payment_type'])),
-                                FunctionsV3::prettyPaymentType('payment_order', $val['payment_type'], $val['order_id'], $val['trans_type']),
-                                prettyFormat($val['sub_total'], $merchant_id),
-                                prettyFormat($val['taxable_total'], $merchant_id),
-                                prettyFormat($val['cart_tip_value'], $merchant_id),
-                                prettyFormat($val['packaging'], $merchant_id),
-                                prettyFormat($val['total_w_tax'], $merchant_id),
-                                "<span class=\"tag " . $val['status'] . "\">" . t($val['status']) . "</span>",
-                                prettyFormat($totalMinusFeeComm, $merchant_id),
-                                t($val['request_from']),
-                                $date,
-                                $action
-                            );
-                        }
-                        $this->otableOutput($feed_data);
-                    }
-                    $this->otableNodata();
-                }
-                public function salesReport2() {
-                    $and = '';
-                    if (isset($this->data['start_date']) && isset($this->data['end_date'])) {
-                        if (!empty($this->data['start_date']) && !empty($this->data['end_date'])) {
-                            $and = " AND date_created BETWEEN  " . FunctionsV3::q($this->data['start_date'] . " 00:00:00") . " AND 
-                        " . FunctionsV3::q($this->data['end_date'] . " 23:59:00") . "
-                 ";
-                        }
-                    }
-
-                    $order_status_id = '';
-                    $or = '';
-                    if (isset($this->data['stats_id'])) {
-                        if (is_array($this->data['stats_id']) && count($this->data['stats_id']) >= 1) {
-                            foreach ($this->data['stats_id'] as $stats_id) {
-                                $order_status_id .= "'$stats_id',";
-                            }
-                            if (!empty($order_status_id)) {
-                                $order_status_id = substr($order_status_id, 0, -1);
-                            }
-                        }
-                    }
-
-                    if (!empty($order_status_id)) {
-                        $and .= " AND status IN ($order_status_id)";
-                    }
-
-
-                    //dump($and);           
-
-                    $DbExt = new DbExt;
-                    $merchant_id = Yii::app()->functions->getMerchantID();
-                    $doordash_fee = Yii::app()->functions->getMerchantDoordashFee($merchant_id);
-
-                    $stmt = "SELECT a.*,
-            (
-            select concat(first_name,' ',last_name)
-            from
-            {{client}}
-            where
-            client_id=a.client_id
-            ) as client_name,
-            
-            (
-            select contact_phone
-            from
-            {{order_delivery_address}}
-            where 
-            order_id = a.order_id
-            ) as contact_phone,
-            
-            (
-            select group_concat(item_name)
-            from
-            {{order_details}}
-            where
-            order_id=a.order_id
-            ) as item
-            
-            FROM
-            {{order}} a
-            WHERE
-            merchant_id=" . FunctionsV3::q($merchant_id) . "
-            AND status NOT IN ('" . initialStatus() . "')
-            $and
-            ORDER BY order_id DESC
-            LIMIT 0,2000
-            ";
-//                    dump($this->data);
-                    //dump($stmt);
-
-                    $_SESSION['kr_export_stmt'] = $stmt;
-
-                    if ($res = $DbExt->rst($stmt)) {
-                        foreach ($res as $val) {
-                            $action = "<a data-id=\"" . $val['order_id'] . "\" class=\"edit-order\" href=\"javascript:\">" . Yii::t("default", "Edit") . "</a>";
-                            $action .= "<a data-id=\"" . $val['order_id'] . "\" class=\"view-receipt\" href=\"javascript:\">" . Yii::t("default", "View") . "</a>";
-
-                            $action .= "<a data-id=\"" . $val['order_id'] . "\" class=\"view-order-history\" href=\"javascript:\">" . Yii::t("default", "History") . "</a>";
-
-                            $totalMinusFeeComm = $val['total_w_tax'] - $val['total_commission'];
-                            // $totalMinusFeeComm = $val['total_w_tax'] - $val['packaging'];
-                            if($val['doordash_drive_pickup_date'] != ''){
-                                $totalMinusFeeComm = $totalMinusFeeComm-$doordash_fee;
-                                $totalMinusFeeComm = $totalMinusFeeComm-$val['cart_tip_value'];
-                            }
                             /* $date=prettyDate($val['date_created'],true);
                               $date=Yii::app()->functions->translateDate($date); */
                             $date = FormatDateTime($val['date_created']);
@@ -5410,6 +5138,11 @@ if (!class_exists('AjaxAdmin')) {
 
             $DbExt = new DbExt;
             $merchant_id = Yii::app()->functions->getMerchantID();
+            $hour = date('H')+1;
+            if($hour > 25){
+                $hour = 0;
+            }
+            $hour = (int)$hour;
             $stmt = "SELECT a.*,
             (
             select concat(first_name,' ',last_name)
@@ -5514,8 +5247,7 @@ if (!class_exists('AjaxAdmin')) {
             $this->code = 1;
             $this->msg = Yii::t("default", "Settings saved.");
         }
-		
-		
+
         public function download($from = '' , $to = ''){
             $status = $this->data['status'];
             $from = $this->data['from'] ;
@@ -5668,147 +5400,7 @@ if (!class_exists('AjaxAdmin')) {
                 }
             }
         }
-		/**
-		** Remove After Testing
-		**/
-        public function download2($from = '' , $to = ''){
-            $status = $this->data['status'];
-            $from = $this->data['from'] ;
-           
-            $to = $this->data['to'] ;
-            
-            if($from == '' || $to == ''){
-                $date = " ";
-            }else{
-                
-                $fd = explode('-',  $from ); 
-                $from = $fd[2].'-'.$fd[0].'-'. $fd[1]. ' 00:00:00'; 
-                
-                $td = explode('-',  $to ); 
-                $to = $td[2].'-'.$td[0].'-'. $td[1]. ' 23:59:00';                   
-                
-                $date = " AND a.date_created BETWEEN  '".$from."'  
-                AND  '".$to."' ";
-            }
-            
-            if($status != 'null'){
-                $status = "status IN ('".$this->data['status']."')";
-            }else{
-                $status = "status NOT IN ('initial_order')";
-            }
-            
-            $merchant_id = Yii::app()->functions->getMerchantID();
-            $sql = "SELECT a.*,m.*,
-                ( select concat(first_name,' ',last_name) from {{client}} where client_id=a.client_id ) as client_name,
-                ( select contact_phone from {{order_delivery_address}} where order_id = a.order_id ) as contact_phone,
-                ( select group_concat(item_name) from {{order_details}} where order_id=a.order_id ) as item
-                FROM {{order}} a
-                JOIN {{merchant}} m
-                ON
-                a.merchant_id = m.merchant_id
-                WHERE a.merchant_id='".$merchant_id."' AND a.".$status . " ".$date.
-                
-                "ORDER BY a.order_id DESC
-                LIMIT 0,2000 ";    
-            if (!empty($_SESSION['kr_export_stmt'])) {
-                $db_ext = new DbExt();
 
-                $alldata = array(); 
-                $total_tips = 0; $total_w_tax = 0; $total_commission = 0; $totalMinusFeeComm = 0; 
-                $restaurant_name =  '';  $street ='';  $city =''; $state =''; $postal_code ='';  $is_commission =''; $any_fee ='';  $postal_code = ''; 
-                
-                switch ($this->data['rpt']) {
-
-                    case 'sales-report':
-                        if ($res = $db_ext->rst($sql)) {
-                            
-                                $csvdata = array();
-                                $datas = array();
-                                foreach ($res as $val) 
-                                    {
-                                        $total_tips = $total_tips + $val['cart_tip_value'];
-                                        $total_w_tax = $total_w_tax + $val['total_w_tax'];                                
-                                        $total_commission = $total_commission + $val['total_commission'];                                
-                                        $totalMinusFeeCommRaw =$val['total_w_tax'] - $val['total_commission'];                                
-                                        $totalMinusFeeComm = $totalMinusFeeComm + $totalMinusFeeCommRaw;                                
-                                        
-                                        $merchant_id = $val['merchant_id']; 
-                                        $restaurant_name =  $val['restaurant_name']; 
-                                        $street = $val['street']; 
-                                        $city = $val['city']; 
-                                        $state = $val['state']; 
-                                        $postal_code = $val['post_code']; 
-                                        $is_commission = $val['is_commission']; 
-                                        $any_fee = $val['any_fee']; 
-                                    }
-                                $alldata["merchant_id"]  = $merchant_id;
-                                $alldata['restaurant_name'] = $restaurant_name;
-                                $alldata['street'] = $street; 
-                                $alldata['city'] = $city;
-                                $alldata['state'] = $state;
-                                $alldata['is_commission'] = $is_commission;
-                                $alldata['any_fee'] = $any_fee; 
-                                $alldata['postal_code'] = $postal_code; 
-
-                                $alldata['orders'] = count($res); 
-                                $alldata['total_tips'] = prettyFormat($total_tips, $merchant_id);
-                                $alldata['total_w_tax'] = prettyFormat($total_w_tax, $merchant_id);
-                                $alldata['total_commission'] = prettyFormat($total_commission, $merchant_id); 
-                                $alldata['totalMinusFeeComm'] = prettyFormat($totalMinusFeeComm, $merchant_id);  
-                                if($from == '' || $to == '' ){
-                                    $alldata['from'] = 'All ';
-                                    $alldata['to'] = 'Records';
-                                    
-                                }else{
-                                    $alldata['from'] = date('m/d/Y', strtotime($from)). '-'. ' ';
-                                    $alldata['to'] = date('m/d/Y', strtotime($to)); 
-                                }
-                                
-                                
-                            }
-                        else{
-                                $sql = "SELECT * FROM {{merchant}}  WHERE merchant_id='".$merchant_id."'";
-                                $res = $db_ext->rst($sql); 
-                                $res = $res[0];       
-                                $alldata["merchant_id"]  = $res['merchant_id'];
-                                $alldata['restaurant_name'] = $res['restaurant_name'] ;
-                                $alldata['street'] = $res['street'] ; 
-                                $alldata['city'] = $res['city'] ;
-                                $alldata['state'] = $res['state'] ;
-                                $alldata['is_commission'] = $res['is_commission'] ;
-                                $alldata['any_fee'] = $res['any_fee'] ; 
-                                $alldata['postal_code'] = $res['postal_code']; 
-
-                                $alldata['orders'] = 0; 
-                                $alldata['total_tips'] = $total_tips;
-                                $alldata['total_w_tax'] = $total_w_tax;
-                                $alldata['total_commission'] = $total_commission;
-                                $alldata['totalMinusFeeComm'] = $totalMinusFeeComm;
-                                if($from == '' || $to == '' ){
-                                    $alldata['from'] = 'All ';
-                                    $alldata['to'] = 'Records';
-                                    
-                                }else{
-                                    $alldata['from'] = date('m/d/Y', strtotime($from)). '-'. ' ';
-                                    $alldata['to'] = date('m/d/Y', strtotime($to)); 
-                                }                             
-                        }                            
-                        $dompdf = new Dompdf();
-                        $alldata['logo_url'] = "http://" . $_SERVER['HTTP_HOST'] . Yii::app()->request->baseUrl . "/assets/images/logo2.png";
-                        $html = Yii::app()->controller->renderPartial('/admin/pdf',array('alldata'=> $alldata),true);
-                        $dompdf->load_html($html);
-                        $dompdf->set_option('isRemoteEnabled', true);
-                        $dompdf->render();
-                        $dompdf->stream("report.pdf");
-                        exit;
-                        break;
-                    default:
-                        break;                                            
-                }
-            }
-        }
-		
-		
         public function export() {
             $merchant_id = Yii::app()->functions->getMerchantID();
             $db_ext = new DbExt();
@@ -6102,577 +5694,6 @@ if (!class_exists('AjaxAdmin')) {
                                     normalPrettyPrice($val['total_order']),
                                     normalPrettyPrice($total_commission_row),
                                     normalPrettyPrice( $val['total_order'] - $total_commission_row )
-                                );
-                            }
-                        }
-                        $header = array(
-                            t("ID"),
-                            t("Merchant Name"),
-                            t("Total Price"),
-                            t("Commission Price"),
-                            t("Total - Commission")
-                        );
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "rptmerchantcommissiondetails":
-
-                        $total_order = 0;
-                        $total_commission = 0;
-
-                        if ($res = $db_ext->rst($_SESSION['kr_export_stmt'])) {
-                            foreach ($res as $val) {
-                                $date = prettyDate($val['date_created'], true);
-                                $date = Yii::app()->functions->translateDate($date);
-
-                                $total_order = $total_order + $val['total_order'];
-                                $total_commission = $total_commission + $val['total_commission'];
-
-                                $data[] = array(
-                                    $val['order_id'],
-                                    normalPrettyPrice($val['total_w_tax']),
-                                    normalPrettyPrice($val['percent_commision']),
-                                    normalPrettyPrice($val['total_commission']),
-                                    $date
-                                );
-                            }
-                        }
-                        $header = array(
-                            t("Reference #"),
-                            t("Total Price"),
-                            t("Commission (%)"),
-                            t("Commission price"),
-                            t("Date")
-                        );
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "rptmerchantstatement":
-
-                        if ($res = $db_ext->rst($_SESSION['kr_export_stmt'])) {
-                            foreach ($res as $val) {
-                                $date = prettyDate($val['date_created'], true);
-                                $date = Yii::app()->functions->translateDate($date);
-
-                                $total = $val['total_w_tax'];
-                                if ($val['commision_ontop'] == 1) {
-                                    $total = $val['sub_total'];
-                                }
-
-                                $total_commission = $val['total_commission'];
-                                $amount = $total - $total_commission;
-
-                                $data[] = array(
-                                    $val['order_id'],
-                                    strtoupper($val['payment_type']),
-                                    normalPrettyPrice($total),
-                                    normalPrettyPrice($val['percent_commision']),
-                                    normalPrettyPrice($total_commission),
-                                    normalPrettyPrice($amount),
-                                    $date
-                                );
-                            }
-                        }
-                        $header = array(
-                            t("Reference #"),
-                            t("Payment Type"),
-                            t("Total Price"),
-                            t("Commission (%)"),
-                            t("Commission"),
-                            t("Net Amount"),
-                            t("Date")
-                        );
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-
-                        exit;
-                        break;
-
-                    case "rptmerchantsalesummary":
-
-                        $has_date_range = false;
-                        if (isset($_SESSION['rpt_date_range'])) {
-                            if (is_array($_SESSION['rpt_date_range'])) {
-                                $has_date_range = true;
-                            }
-                        }
-                        if ($res = $db_ext->rst($_SESSION['kr_export_stmt'])) {
-                            foreach ($res as $val) {
-                                if ($has_date_range == true) {
-                                    $data[] = array(
-                                        $val['restaurant_name'],
-                                        normalPrettyPrice($val['total_sales'] + 0),
-                                        normalPrettyPrice($val['total_commission'] + 0),
-                                        normalPrettyPrice($val['total_earnings'] + 0),
-                                        $_SESSION['rpt_date_range']['start_date'],
-                                        $_SESSION['rpt_date_range']['end_date'],
-                                    );
-                                } else {
-                                    $data[] = array(
-                                        $val['restaurant_name'],
-                                        normalPrettyPrice($val['total_sales'] + 0),
-                                        normalPrettyPrice($val['total_commission'] + 0),
-                                        normalPrettyPrice($val['total_earnings'] + 0),
-                                    );
-                                }
-                            }
-                        }
-                        $header = array(
-                            t("Merchant Name"),
-                            t("Total Sales"),
-                            t("Total Commission"),
-                            t("Merchant Earnings"),
-                                //t("Approved No. Of Guests")
-                        );
-                        if ($has_date_range == true) {
-                            $header[] = t("Start Date");
-                            $header[] = t("End Date");
-                        }
-
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-
-                        exit;
-                        break;
-
-                    case "booking-summary-report":
-
-                        $has_date_range = false;
-                        if (isset($_SESSION['rpt_date_range'])) {
-                            if (is_array($_SESSION['rpt_date_range'])) {
-                                $has_date_range = true;
-                            }
-                        }
-
-                        if ($res = $db_ext->rst($_SESSION['kr_export_stmt'])) {
-                            foreach ($res as $val) {
-                                if ($has_date_range == true) {
-                                    $data[] = array(
-                                        $val['total_approved'] + 0,
-                                        $val['total_denied'] + 0,
-                                        $val['total_pending'] + 0,
-                                        $_SESSION['rpt_date_range']['start_date'],
-                                        $_SESSION['rpt_date_range']['end_date'],
-                                    );
-                                } else {
-                                    $data[] = array(
-                                        $val['total_approved'] + 0,
-                                        $val['total_denied'] + 0,
-                                        $val['total_pending'] + 0
-                                    );
-                                }
-                            }
-                        }
-                        $header = array(
-                            t("Total Approved"),
-                            t("Total Denied"),
-                            t("Total Pending")
-                        );
-
-                        if ($has_date_range == true) {
-                            $header[] = t("Start Date");
-                            $header[] = t("End Date");
-                        }
-
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "merchanBbookingSummaryReport":
-
-                        $has_date_range = false;
-                        if (isset($_SESSION['rpt_date_range'])) {
-                            if (is_array($_SESSION['rpt_date_range'])) {
-                                $has_date_range = true;
-                            }
-                        }
-
-                        if ($res = $db_ext->rst($_SESSION['kr_export_stmt'])) {
-                            foreach ($res as $val) {
-                                if ($has_date_range == true) {
-                                    $data[] = array(
-                                        ucwords($val['merchant_name']),
-                                        $val['total_approved'] + 0,
-                                        $val['total_denied'] + 0,
-                                        $val['total_pending'] + 0,
-                                        $_SESSION['rpt_date_range']['start_date'],
-                                        $_SESSION['rpt_date_range']['end_date'],
-                                    );
-                                } else {
-                                    $data[] = array(
-                                        ucwords($val['merchant_name']),
-                                        $val['total_approved'] + 0,
-                                        $val['total_denied'] + 0,
-                                        $val['total_pending'] + 0
-                                    );
-                                }
-                            }
-                        }
-                        $header = array(
-                            t("Merchant Name"),
-                            t("Total Approved"),
-                            t("Total Denied"),
-                            t("Total Pending")
-                        );
-                        if ($has_date_range == true) {
-                            $header[] = t("Start Date");
-                            $header[] = t("End Date");
-                        }
-
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "rpt_incomingwithdrawal":
-
-                        if ($res = $db_ext->rst($_SESSION['kr_export_stmt'])) {
-                            foreach ($res as $val) {
-                                $date = date('M d,Y G:i:s', strtotime($val['date_created']));
-                                $date = Yii::app()->functions->translateDate($date);
-
-                                $date_created = displayDate($val['date_created']);
-                                $date_to_process = displayDate($val['date_to_process']);
-
-                                $method = t("Paypal to") . " " . $val['account'];
-                                if ($val['payment_method'] == "bank") {
-                                    $method = t("Bank to") . " " . $val['bank_account_number'];
-                                }
-
-                                $data[] = array(
-                                    $val['withdrawal_id'],
-                                    $val['merchant_name'],
-                                    $method,
-                                    normalPrettyPrice($val['amount']),
-                                    normalPrettyPrice($val['current_balance']),
-                                    $val['status'],
-                                    $date_created,
-                                    $date_to_process,
-                                );
-                            }
-                        }
-                        $header = array(
-                            t("ID"),
-                            t("Merchant Name"),
-                            t("Payment Method"),
-                            t("Amount"),
-                            t("From Balance"),
-                            t("Status"),
-                            t("Date Of Request"),
-                            t("Date to process")
-                        );
-
-
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-                    default:
-                        break;
-                }
-            } else
-                echo Yii::t("default", "Error: Something went wrong. please try again.");
-        }
-		/***
-		** Remove After Testing
-		**/
-        public function export2() {
-            $merchant_id = Yii::app()->functions->getMerchantID();
-            $db_ext = new DbExt();
-            if (!empty($_SESSION['kr_export_stmt'])) {
-                $stmt = $_SESSION['kr_export_stmt'];
-                $pos = strpos($stmt, "LIMIT");
-                $stmt = substr($stmt, 0, $pos);
-                switch ($this->data['rpt']) {
-                    case 'sales-report':
-                        if ($res = $db_ext->rst($stmt)) {
-                            $csvdata = array();
-                            $datas = array();
-                            foreach ($res as $val) {
-                                $totalMinusFeeComm = $val['total_w_tax'] - $val['total_commission'];
-                                $item = '';
-                                $date = date('m-d-Y G:i:s', strtotime($val['date_created']));
-                                $latestdata[] = array(
-                                    $val['order_id'],
-                                    $val['client_name'],
-                                    $val['item'],
-                                    $val['trans_type'],
-                                    $val['payment_type'],
-                                    prettyFormat($val['sub_total'], $merchant_id),
-                                    prettyFormat($val['tax'], $merchant_id),
-                                    $val['cart_tip_value'],
-                                    t($val['packaging']),
-                                    prettyFormat($val['total_w_tax'], $merchant_id),
-                                    prettyFormat($totalMinusFeeComm, $merchant_id),
-                                    $val['status'],
-                                    $date
-                                );
-                            }
-                            unset($data);
-                            $data = $latestdata;
-                        }
-
-                        if (is_array($data) && count($data) >= 1) {
-                            $csvdata = array();
-                            $datas = array();
-                            foreach ($data as $val) {
-                                foreach ($val as $key => $vals) {
-                                    $datas[] = $vals;
-                                }
-                                $csvdata[] = $datas;
-                                unset($datas);
-                            }
-                        }
-
-                        $header = array(
-                            Yii::t("default", "Ref#"),
-                            Yii::t("default", "Client Name"),
-                            Yii::t("default", "Item"),
-                            Yii::t("default", "Trans Type"),
-                            Yii::t("default", "Payment Type"),
-                            Yii::t("default", "Total"),
-                            Yii::t("default", "Tax"),
-                            Yii::t("default", "Tip"),
-                            Yii::t("default", "Convenience Fee"),
-                            Yii::t("default", "Total W/Tax"),
-                            Yii::t("default", "Total - Fee W/Comm"),
-                            Yii::t("default", "Status"),
-                            Yii::t("default", "Date"));
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($csvdata);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "sales-summary-report":
-                        $has_date_range = false;
-                        if (isset($_SESSION['rpt_date_range'])) {
-                            if (is_array($_SESSION['rpt_date_range'])) {
-                                $has_date_range = true;
-                            }
-                        }
-
-                        if ($res = $db_ext->rst($stmt)) {
-                            foreach ($res as $val) {
-                                $total_amt = '';
-                                if ($has_date_range == true) {
-                                    $data[] = array(
-                                        $val['item_id'],
-                                        $val['item_name'],
-                                        $val['size'],
-                                        prettyFormat($val['discounted_price'], $merchant_id),
-                                        prettyFormat($val['total_qty'], $merchant_id),
-                                        prettyFormat($val['total_qty'] * $val['discounted_price'], $merchant_id),
-                                        $_SESSION['rpt_date_range']['start_date'],
-                                        $_SESSION['rpt_date_range']['end_date'],
-                                    );
-                                } else {
-                                    $data[] = array(
-                                        $val['item_id'],
-                                        $val['item_name'],
-                                        $val['size'],
-                                        prettyFormat($val['discounted_price'], $merchant_id),
-                                        prettyFormat($val['total_qty'], $merchant_id),
-                                        prettyFormat($val['total_qty'] * $val['discounted_price'], $merchant_id)
-                                    );
-                                }
-                            }
-                        }
-                        $header = array(
-                            Yii::t("default", "Item"),
-                            Yii::t("default", "Item Name"),
-                            Yii::t("default", "Size"),
-                            Yii::t("default", "Item Price"),
-                            Yii::t("default", "Total Qty"),
-                            Yii::t("default", "Total Amount")
-                        );
-                        if ($has_date_range == true) {
-                            $header[] = t("Start Date");
-                            $header[] = t("End Date");
-                        }
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "rptSalesMerchant":
-                        if ($res = $db_ext->rst($stmt)) {
-                            foreach ($res as $val) {
-                                $data[] = array(
-                                    $val['merchant_id'],
-                                    $val['restaurant_name'],
-                                    $val['contact_name'],
-                                    $val['contact_phone'] . " / " . $val['contact_email'],
-                                    $val['street'] . " " . $val['city'] . " " . $val['state'] . " " . $val['country_code'] . " " . $val['post_code'],
-                                    ucwords($val['package_name']),
-                                    $val['status'],
-                                    Yii::app()->functions->prettyDate($val['date_created'], true)
-                                );
-                            }
-                        }
-                        $header = array(
-                            Yii::t("default", "MerchantID"),
-                            Yii::t("default", "MerchantName"),
-                            Yii::t("default", "ContactName"),
-                            Yii::t("default", "Contact"),
-                            Yii::t("default", "Address"),
-                            Yii::t("default", "Package"),
-                            Yii::t("default", "Status"),
-                            Yii::t("default", "Date")
-                        );
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-                        break;
-
-                    case 'rptAdminSalesMerchant':
-                        if ($res = $db_ext->rst($stmt)) {
-                            foreach ($res as $val) {
-                                $date = prettyDate($val['date_created'], true);
-                                $date = Yii::app()->functions->translateDate($date);
-
-                                $item = FunctionsV3::translateFoodItemByOrderId($val['order_id']);
-
-                                $data[] = array(
-                                    $val['order_id'],
-                                    stripslashes($val['restaurant_name']),
-                                    ucwords($val['client_name']),
-                                    $val['contact_phone'],
-                                    $item,
-                                    ucwords(Yii::t("default", $val['trans_type'])),
-                                    strtoupper(Yii::t("default", $val['payment_type'])),
-                                    standardPrettyFormat($val['sub_total'], $merchant_id),
-                                    standardPrettyFormat($val['tax'], $merchant_id),
-                                    standardPrettyFormat($val['total_w_tax'], $merchant_id),
-                                    ucwords($val['status']),
-                                    ucwords($val['request_from']),
-                                    $date,
-                                );
-                            }
-                        }
-
-                        $header = array(
-                            Yii::t("default", "Ref#"),
-                            Yii::t("default", "Merchant Name"),
-                            Yii::t("default", "Name"),
-                            Yii::t("default", "Contact#"),
-                            Yii::t("default", "Item"),
-                            Yii::t("default", "TransType"),
-                            Yii::t("default", "Payment Type"),
-                            Yii::t("default", "Total"),
-                            Yii::t("default", "Tax"),
-                            Yii::t("default", "Total W/Tax"),
-                            Yii::t("default", "Status"),
-                            Yii::t("default", "Platform"),
-                            Yii::t("default", "Date")
-                        );
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "rptCustomerList":
-                        
-                        // echo "<pre>"; print_r($_SESSION['kr_export_stmt']); exit('here'); 
-                        $StaticQ ='SELECT SQL_CALC_FOUND_ROWS  * FROM {{client}}';
-                        if ($res = $db_ext->rst($StaticQ)) {
-                            
-                            
-                            
-                            foreach ($res as $val) {
-                                $data[] = array(
-                                    $val['email_address'],
-                                    $val['first_name'],
-                                    $val['last_name']
-                                );
-                            }
-                        }
-                        $header = array(
-                            t("Email"),
-                            t("firstname"),
-                            t("lastname"),
-                        );
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "rptSubriberList":
-                        if ($res = $db_ext->rst($_SESSION['kr_export_stmt'])) {
-                            foreach ($res as $val) {
-                                $date = prettyDate($val['date_created'], true);
-                                $date = Yii::app()->functions->translateDate($date);
-                                $data[] = array(
-                                    $val['id'],
-                                    $val['email_address'],
-                                    $date,
-                                    $val['ip_address']
-                                );
-                            }
-                        }
-                        $header = array(
-                            t("ID"), t("Email address"), t("Date Created"), t("I.P Address")
-                        );
-                        $filename = $this->data['rpt'] . '-' . date('c') . '.csv';
-                        $excel = new ExcelFormat($filename);
-                        $excel->addHeaders($header);
-                        $excel->setData($data);
-                        $excel->prepareExcel();
-                        exit;
-                        break;
-
-                    case "rptmerchantcommission":
-                        if ($res = $db_ext->rst($_SESSION['kr_export_stmt'])) {
-                            foreach ($res as $val) {
-                                $date = prettyDate($val['date_created'], true);
-                                $date = Yii::app()->functions->translateDate($date);
-                                $data[] = array(
-                                    $val['merchant_id'],
-                                    $val['merchant_name'],
-                                    normalPrettyPrice($val['total_order']),
-                                    normalPrettyPrice($val['total_commission']),
-                                    normalPrettyPrice( $val['total_order'] - $val['total_commission'] )
                                 );
                             }
                         }
@@ -7317,6 +6338,9 @@ if (!class_exists('AjaxAdmin')) {
             Yii::app()->functions->updateOptionAdmin("website_receipt_logo",
                     isset($this->data['website_receipt_logo']) ? $this->data['website_receipt_logo'] : '' );
 
+            Yii::app()->functions->updateOptionAdmin("non_confirmed_order_emails",
+                    isset($this->data['non_confirmed_order_emails']) ? $this->data['non_confirmed_order_emails'] : '' );
+
             Yii::app()->functions->updateOptionAdmin("disabled_cart_sticky",
                     isset($this->data['disabled_cart_sticky']) ? $this->data['disabled_cart_sticky'] : '' );
 
@@ -7347,9 +6371,6 @@ if (!class_exists('AjaxAdmin')) {
             Yii::app()->functions->updateOptionAdmin("view_map_default_zoom",
                     isset($this->data['view_map_default_zoom']) ? $this->data['view_map_default_zoom'] : '' );
 
-            Yii::app()->functions->updateOptionAdmin("non_confirmed_order_emails",
-                    isset($this->data['non_confirmed_order_emails']) ? $this->data['non_confirmed_order_emails'] : '' );
-                    
             Yii::app()->functions->updateOptionAdmin("view_map_default_zoom_s",
                     isset($this->data['view_map_default_zoom_s']) ? $this->data['view_map_default_zoom_s'] : '' );
 
@@ -8818,12 +7839,23 @@ if (!class_exists('AjaxAdmin')) {
 
             if (isset($this->data['app_status'])) {
                 $clientid = $this->data['clientId'];
-                // if ($this->data['app_status'] == 1) {
-                    
-                // }
-                $params = array(
+                if ($this->data['app_status'] == 1) {
+                     $params = array(
                     'email_notification' => $this->data['app_status'],
-                );
+                    'unsubscribed' => '0',
+                    );
+                }
+                else
+                {
+                     $params = array(
+                    'email_notification' => $this->data['app_status'],
+                    'unsubscribed' => '1',
+                    );
+                }
+                // $params = array(
+                //     'email_notification' => $this->data['app_status'],
+                //     'unsubscribed' => '0',
+                // );
                // print_r($params); exit('ppp');
                 if ($this->updateData("{{client}}", $params, 'client_id', $clientid)) {
                     $this->code = 1;

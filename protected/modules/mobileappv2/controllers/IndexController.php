@@ -233,6 +233,19 @@ class IndexController extends CController
 		));
 	}
 	
+	public function broadcast_cacel()
+	{
+		$bid = isset($_GET['bid'])?$_GET['bid']:'';
+		
+		if($bid>=1){
+    		mobileWrapper::deleteBroadCostPushLogs($bid);
+    		mobileWrapper::deleteBroadCost($bid);
+    	}
+    	
+		$this->pageTitle = mobileWrapper::t("Broadcast");
+		$this->render('broadcast_list');
+	}
+	
 	public function actionorder_trigger()
 	{
 		$this->pageTitle = mt("Order Trigger Notification");

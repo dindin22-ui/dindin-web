@@ -177,6 +177,38 @@ class mobileWrapper
 		}
 		return false;
 	}
+
+	public static function deleteBroadCostPushLogs($bid='')
+	{
+		$db = new DbExt(); 
+		if($bid>=1){	
+			$stmt="DELETE FROM
+			{{mobile2_push_logs}}
+			WHERE
+			broadcast_id=".FunctionsV3::q($bid)."
+			";	
+			$db->qry($stmt);
+			return true;
+		}
+		return false;
+	}
+	
+	public static function deleteBroadCost($bid='')
+	{
+		$db = new DbExt(); 
+		if($bid>=1){	
+			$stmt="DELETE FROM
+			{{mobile2_broadcast}}
+			WHERE
+			broadcast_id=".FunctionsV3::q($bid)."
+			";	
+			$db->qry($stmt);
+			return true;
+		}
+		return false;
+	}
+	
+
 	
 	public static function prettyBadge($status='')
 	{
@@ -305,7 +337,7 @@ class mobileWrapper
     	return false;
     }    	
             
-    public static function loginByEmail($email='', $password='')
+	public static function loginByEmail($email='', $password='')
     {
     	if(!empty($email) && !empty($password)){
 	    	$db = new  DbExt();
@@ -320,30 +352,12 @@ class mobileWrapper
 		    if($res = $db->rst($stmt)){
 		    	$res = $res[0];
 		    	if(empty($res['token'])){
-		    	   
 		    		$token = mobileWrapper::generateUniqueToken(15,$res['client_id']);
 	    	        $db->updateData("{{client}}",array(
 	    	          'token'=>$token,
 	    	          'social_strategy'=>"mobileapp2",
 	    	          'last_login'=>FunctionsV3::dateNow()
 	    	        ),'client_id',$res['client_id']);
-	    	        
-	    	        //here query again to get token first place
-	    	        
-	    	 $db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{client}}
-		    WHERE
-	    	email_address=".FunctionsV3::q($email)."
-	    	AND
-	    	password=".FunctionsV3::q(md5($password))."	    		    	
-	    	LIMIT 0,1
-		    ";
-		    
-		      if($res = $db->rst($stmt)){
-		    	$res = $res[0];
-		      }
-	    	       
 		    	}
 		    	return $res;
 		    }
@@ -351,7 +365,7 @@ class mobileWrapper
 	    return false;
     }
     
-    public static function loginByMobile($contact_phone='', $password='')
+	public static function loginByMobile($contact_phone='', $password='')
     {
     	if(!empty($contact_phone) && !empty($password)){
     		$contact_phone = str_replace("+","",$contact_phone);
@@ -373,24 +387,6 @@ class mobileWrapper
 	    	          'social_strategy'=>"mobileapp2",
 	    	          'last_login'=>FunctionsV3::dateNow()
 	    	        ),'client_id',$res['client_id']);
-	    	        
-	    	        
-	    	         	        //here query again to get token first place
-	    	        
-	    	 $db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{client}}
-		    WHERE
-	    	email_address=".FunctionsV3::q($email)."
-	    	AND
-	    	password=".FunctionsV3::q(md5($password))."	    		    	
-	    	LIMIT 0,1
-		    ";
-		    
-		      if($res = $db->rst($stmt)){
-		    	$res = $res[0];
-		      }
-	    	        
 		    	}
 		    	return $res;
 		    }
@@ -466,39 +462,58 @@ class mobileWrapper
 //         }      
 //         return $tag;  
 //     }
- public static function merchantStatus($merchant_id='')
-    {
-    	$is_merchant_open = Yii::app()->functions->isMerchantOpen($merchant_id); 
-	    $merchant_preorder= Yii::app()->functions->getOption("merchant_preorder",$merchant_id);
-	    
-	    $now=date('Y-m-d');
-	    
-		$is_holiday=false;
-	        if ( $m_holiday=Yii::app()->functions->getMerchantHoliday($merchant_id)){  
-      	   if (in_array($now,(array)$m_holiday)){
-      	     
-      	   	  $is_merchant_open=false;
-      	   }
-        }
-        
-        if ( $is_merchant_open==true){
-        	if ( getOption($merchant_id,'merchant_close_store')=="yes"){
-        		$is_merchant_open=false;	
-        		$merchant_preorder=false;			        		
-        	}
-        }
-        
-        if ($is_merchant_open){
-        	$tag = "open";
-        } else {
-        	if ($merchant_preorder){        		
-        		$tag = "pre-order";
-        	} else {        	
-        		$tag = "close";
-        	}
-        }      
-        return $tag;  
-    }
+public static function merchantStatus($merchant_id='')
+{
+	$is_merchant_open = Yii::app()->functions->isMerchantOpen($merchant_id); 
+	$merchant_preorder= Yii::app()->functions->getOption("merchant_preorder",$merchant_id);
+	
+	$now=date('Y-m-d');
+	$is_holiday=false;
+	if ( $m_holiday=Yii::app()->functions->getMerchantHoliday($merchant_id)){  
+		 if (in_array($now,(array)$m_holiday)){
+			if (false !== $key = array_search($now, $m_holiday)) {
+				$m_holiday_from=Yii::app()->functions->getMerchantHolidayTimeFrom($merchant_id);
+				$m_holiday_to=Yii::app()->functions->getMerchantHolidayTimeTo($merchant_id);
+				$start_time = date("Y-m-d H:i",strtotime($now." ".$m_holiday_from[$key]));
+				$end_time = date("Y-m-d H:i",strtotime($now." ".$m_holiday_to[$key]));
+			 /*echo date("Y-m-d H:i"); 
+				 echo "<br/>".date("Y-m-d H:i",strtotime($now." ".$m_holiday_from[$key]));
+				echo "<br/>".date("Y-m-d H:i",strtotime($now." ".$m_holiday_to[$key]));*/
+				$now_time = date("Y-m-d H:i");
+				if($now_time >= $start_time && $now_time <= $end_time ){
+					$is_merchant_open=true;
+				}else{
+					$is_merchant_open=false;
+				}
+			}
+		 }
+	}
+	
+	if ( $is_merchant_open==true){
+		if ( getOption($merchant_id,'merchant_close_store')=="yes"){
+			$is_merchant_open=false;	
+			$merchant_preorder=false;			        		
+		}
+	}
+	
+	if ($is_merchant_open){
+		$tag='open';
+	} else {
+		if ($merchant_preorder){
+			$tag='pre-order';
+		} else {
+			$tag='close';
+		}
+	}      
+	$store_start_date=getOption($merchant_id,'store_start_date');   
+	$store_close_date=getOption($merchant_id,'store_close_date');  	
+	$time = time();
+   if($time < $store_close_date && $time > $store_start_date){
+		
+	$tag='close';
+   } 
+	return $tag; 
+}
     
     
     public static function getMerchantBackground($merchant_id='',$set_image='')
@@ -572,10 +587,12 @@ class mobileWrapper
 		return false;
     }   
     
-    public static function getTotalCuisine($cuisine_id='',$search_radius ='', $unit='', $show_only_location='', $lat=0, $lng=0, $data=array() )
+    public static function getTotalCuisine($cuisine_id='',$search_radius ='', $unit='', 
+      $show_only_location='', $lat=0, $lng=0, $data=array() )
 	{
 		$query_distance='';	$and='';
 		if($show_only_location==1){
+			
 			$distance_exp=3959;
 		    if ($unit=="km"){
 			    $distance_exp=6371;
@@ -595,9 +612,9 @@ class mobileWrapper
 		{{merchant}}
 		WHERE
 		cuisine LIKE ".FunctionsV3::q('%"'.$cuisine_id.'"%')."
-		AND status='active'
-		AND app_status=1
-		AND is_ready ='2'
+		AND status='active' AND app_status =1
+		AND is_ready ='2' 
+		
 		";			
 		
 		if($show_only_location==1){

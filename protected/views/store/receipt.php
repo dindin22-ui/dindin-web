@@ -12,8 +12,8 @@ error_reporting(E_ALL & ~E_NOTICE);
 unset($_SESSION['pts_earn']);
 unset($_SESSION['pts_redeem_amt']);
 $this->renderPartial('/front/banner-receipt',array(
-   'h1'=>t("Your Order has been placed!"),
-   'sub_text'=>t("Thank you for ordering from DinDin"),
+    'h1'=>t("Your Order has been placed!"),
+    'sub_text'=>t("Please pick up your order at the restaurant"),
    'href'=>"<?php echo FunctionsV3::fixedLink($merchant_website)?>"
 ));
 $ok=false;
@@ -93,7 +93,7 @@ $show_time = true;
 <center>or simply click <a href="mailto:support@dindin.site?subject=Issue%20with%20my%20Order"><strong>HERE</strong></a>
     and we'll be able to assist you.</center>
 <br>
-
+<!--
 <center>Our mobile app is here!</center>
 <center>Click on the Apple store or Google play</center>
 <center>to download it for FREE!</center>
@@ -101,7 +101,8 @@ $show_time = true;
 <center><a href="http://onelink.to/dindin">
         <img border="0" alt="W3Schools" src="https://office.omnitech.pro/media/public/storelogo.png" width="350">
     </a></center>
- 
+-->
+
 <center>
     <a class="weblink"
         href="<?php echo Yii::app()->request->baseUrl."/menu-".clearString($data['restaurant_slug']);?>"><h4>Return to store</h4>
@@ -655,7 +656,7 @@ if (!in_array($data['order_id'],(array)$_SESSION['kr_receipt'])){
 
        /*PRINTER ADDON
 	   dump($receipt);
-die;
+die;*/
        if (FunctionsV3::hasModuleAddon("printer")){
 			Yii::app()->setImport(array('application.modules.printer.components.*',));
 			
@@ -731,7 +732,7 @@ die;
 			}
 				// exit('upsout');
 			FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl("printer/cron/processprint"));		
-		}*/
+		}
 	}
 }
 $_SESSION['kr_receipt']=array($data['order_id']);

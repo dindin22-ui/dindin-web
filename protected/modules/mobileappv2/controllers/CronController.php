@@ -12,6 +12,7 @@ class CronController extends CController
 	    
 		dump("running ProcessBroadcast...");
  		
+		// WHERE broadcast_id = 28
 		$db = new DbExt();
 		$stmt="
 		SELECT * FROM
@@ -21,13 +22,12 @@ class CronController extends CController
 		LIMIT 0,5
 		";
 		
-		
-		if($res = $db->rst($stmt)){
+		if($res = $db->rst_special($stmt)){
 		  
-		       
-		  
+		  //print_r($res);exit;
 		   $res = $res[0];		
 		   $broadcast_id=$res['broadcast_id'];
+		   $merchant_id=$res['merchant_id'];
 		   $push_title=$res['push_title'];
 		   $push_message=$res['push_message'];
 		   $address=$res['address'];
@@ -36,44 +36,62 @@ class CronController extends CController
 		    $lat = 0;
 			$long = 0;
 			$client_ids = array();
-		   if ( !empty($address)){
-				$ress = FunctionsV3::searchByMerchant(
-					'kr_search_location',
-					$address,
-					0
-				);
-
-				$clients = FunctionsV3::searchByMerchant(
-					'kr_search_location',
-					$address,
-					0,$ress['total']
-				);
-
-				foreach($clients['list'] as $val){
-					$merchant_id=$val['merchant_id'];             
-					/*get the distance from client address to merchant Address*/             
-					$distance_type=FunctionsV3::getMerchantDistanceType($merchant_id); 
-					$distance=FunctionsV3::getDistanceBetweenPlot(
-						$ress['client']['lat'],$ress['client']['long'],
-						$val['latitude'],$val['lontitude'],$distance_type
-					 ); 
-					 $query = "select client_id from {{mobile2_push_logs}}
-					 where client_id = ".$merchant_id."
-					 and broadcast_id=".FunctionsV3::q($broadcast_id);
-					 $res_found = $db->rst($query);
-					 if($res_found){
-						continue;
-					 }else{
-						if(ceil($distance) <= $radius){
-						   $client_ids[] = $merchant_id;
-						}
-					 }
-				}
+			if(!empty($merchant_id)){
+			    $stmt = "SELECT * FROM `mt_order` WHERE merchant_id = ".$merchant_id." and client_id > 0 GROUP BY client_id;";
+			     $connection=Yii::app()->db;
+        		$rows=$connection->createCommand($stmt)->queryAll(); 
+                // print_r($rows);
+                // exit;
+        		if (is_array($rows) && count($rows)>=1){
+    				foreach($rows as $val){
+    				    $client_ids[] = $val['client_id'];
+    				}
+        		}
 			}
+		   if ( !empty($address)){
+				
+				$lat_res=Yii::app()->functions->geodecodeAddress($address);
+				print_r($lat_res);
+				$stmt = "select oa.client_id,concat(oa.street,' ',oa.area_name,oa.location_name,' ',oa.city,', ',oa.state,' ',oa.zipcode ) as complete_address FROM {{order_delivery_address}} oa,{{client}} c
+                                    WHERE c.client_id = oa.client_id AND c.social_strategy = 'mobileapp2' AND oa.state != '' and (oa.street != '' || oa.street != 'null')
+                                    GROUP By oa.client_id ORDER BY oa.`id` DESC;";
+                                    
+                $connection=Yii::app()->db;
+        		$rows=$connection->createCommand($stmt)->queryAll(); 
+                // print_r($rows);
+                // exit;
+        		if (is_array($rows) && count($rows)>=1){
+    				foreach($rows as $val){
+    					$lat_user_res=Yii::app()->functions->geodecodeAddress($val['complete_address']);
+    					/*get the distance from client address to merchant Address*/       
+    					$distance=FunctionsV3::getDistanceBetweenPlot(
+    						$lat_res['lat'],$lat_res['long'],
+    						$lat_user_res['lat'],$lat_user_res['long'],'Miles'
+    					 ); 
+    					 $query = "select client_id from {{mobile2_push_logs}}
+    					 where client_id = ".$val['client_id']."
+    					 and broadcast_id=".FunctionsV3::q($broadcast_id);
+    					 $res_found = $db->rst_special($query);
+    				// 	 echo $distance." ".$radiues;
+    					 if($res_found){
+    						continue;
+    					 }else{
+    						if($distance > 0 && ceil($distance) <= $radius){
+    						    if(in_array($val['client_id'],$client_ids)){
+    						        
+    						    }else{
+    						        $client_ids[] = $val['client_id'];
+    						    }
+    						}
+    					 }
+    				}
+        		}
+			}
+// 			print_r($client_ids);
+// 		   exit;
 		   // print_r($date_created); exit('sdcds');
 		   
 		   $ip_address = $_SERVER['REMOTE_ADDR'];
-		   
 	       $and='';
 	       switch ($res['device_platform']) {
     	   case "1":	 
@@ -89,7 +107,7 @@ class CronController extends CController
     		default:
     			break;
 	       }
-		   echo count($client_ids);
+		  // echo count($client_ids);
 	       if(count($client_ids) > 0){
 				$client_ids = implode(",", $client_ids);
 				$and.=" 
@@ -142,13 +160,13 @@ class CronController extends CController
 	        if(isset($_GET['debug'])){
 	           dump($stmt2);	    
 	        }
-	        $db->qry($stmt2);
+	        $db->qrySp($stmt2);
 	        
 	        $params_update=array(
 	          'status'=>"process",
 	          'date_modified'=>FunctionsV3::dateNow(),	          
 	        );
-	        $db->updateData('{{mobile2_broadcast}}',$params_update,'broadcast_id',$broadcast_id);
+	        $db->updateSpecialData('{{mobile2_broadcast}}',$params_update,'broadcast_id',$broadcast_id);
 	        
 		} else {
 			if(isset($_GET['debug'])){
@@ -407,8 +425,9 @@ class CronController extends CController
 		
 
 		
-		$res = $db->rst($stmt);
-		if($res = $db->rst($stmt)){
+		
+		$res = $db->rst_special($stmt);
+		if($res = $db->rst_special($stmt)){
 			foreach ($res as $val) {
 				$process_status=''; $json_response='';
 			    $device_id = $val['device_id'];

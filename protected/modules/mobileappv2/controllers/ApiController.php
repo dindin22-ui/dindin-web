@@ -1,13 +1,19 @@
 <?php
 
+
 use \Stripe\Stripe;
 use \Stripe\Customer;
 use \Stripe\ApiOperations\Create;
 use \Stripe\Charge;
+use yii\mail\MailerInterface;
 use Stripe\StripeClient;
+use yii\db\Query;
+use yii\helpers\VarDumper;
 
 
-class ApiController extends CController {
+
+class ApiController extends CController
+{
     public $data;
     public $code = 2;
     public $msg = '';
@@ -17,7 +23,8 @@ class ApiController extends CController {
     public $merchant_id;
     public $client_id;
 
-    public function __construct() {
+    public function __construct()
+    {
         $website_timezone = getOptionA('website_timezone');
         if (!empty($website_timezone)) {
             Yii::app()->timeZone = $website_timezone;
@@ -30,12 +37,14 @@ class ApiController extends CController {
         //dump("language=>$lang");
     }
 
-    public function t($message = '') {
+    public function t($message = '')
+    {
         return Yii::t("mobile2", $message);
     }
 
-    public function beforeAction($action) {
-        
+    public function beforeAction($action)
+    {
+
         if (isset($_GET['debug'])) {
             dump("<h3>Request</h3>");
             dump($this->data);
@@ -53,14 +62,15 @@ class ApiController extends CController {
         return true;
     }
 
-    private function output() {
+    private function output()
+    {
 
         if (!isset($this->data['debug'])) {
             header('Access-Control-Allow-Origin: *');
             header('Content-type: application/javascript;charset=utf-8');
         }
-        if(empty($this->details) ){
-            $this->details = (object)[];
+        if (empty($this->details)) {
+            $this->details = (object) [];
         }
         $resp = array(
             'code' => $this->code,
@@ -69,7 +79,7 @@ class ApiController extends CController {
             'get' => $_GET,
             'post' => $_POST
         );
-        
+
         if (isset($this->data['debug'])) {
             dump($resp);
         }
@@ -85,45 +95,26 @@ class ApiController extends CController {
         Yii::app()->end();
     }
 
-    public function actionIndex() {
-        // exit('hu'); 
-        $device_id = '45A76F75-DDFD-4A32-B729-FC83D4A85AD2'; 
-		 $data = array( 
-	      'title' =>'this test',
-	      'body' => 'this body',
-	      'sound'=>'beep.wav',
-	      'android_channel_id'=>'123',
-	      'badge'=>1,
-	      'content-available'=>1,
-	      'push_type'=>'order'
-	    );        
-		$fields = array(
-		   'to' => $device_id, 
-	       'notification' => $data,
-	       'priority'=>'high',
-	       'content_available' => true,     
-		);
-		echo json_encode($fields);  exit();
-//         $device_id = '45A76F75-DDFD-4A32-B729-FC83D4A85AD2'; 
-//         $server_key = 'AAAACEzCf98:APA91bEyhK2m2s-lSr6Vd4P37ryl_BJqUY_Dj73eBesP4rfnn1YSSEGlaz90h-I5pdmJuw3pu3J3y9DxrqcGDV--oIjyfzTPMclioj4HfA6ivZub1HvWJUAedrwY11F5e-wDNOxCStkm';
-//         exit('huh'); 
-//         $json_response = fcmPush::pushIOS($data,$device_id,$server_key);						 	
-//         echo "<pre>"; print_r($json_response); exit('huhu'); 
+    public function actionIndex()
+    {
         echo "API IS WORKING";
     }
 
-    private function getGETData() {
+    private function getGETData()
+    {
         $this->device_uiid = isset($this->data['device_uiid']) ? $this->data['device_uiid'] : '';
         $this->merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
         $this->client_id = isset($this->data['client_id']) ? $this->data['client_id'] : '';
     }
 
-    private function getPOSTData() {
+    private function getPOSTData()
+    {
         $this->device_uiid = isset($_POST['device_uiid']) ? $_POST['device_uiid'] : '';
         $this->merchant_id = isset($_POST['merchant_id']) ? $_POST['merchant_id'] : '';
     }
 
-    private function checkToken() {
+    private function checkToken()
+    {
         $this->data['user_token'] = isset($this->data['user_token']) ? $this->data['user_token'] : '';
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
@@ -133,361 +124,13 @@ class ApiController extends CController {
         $client_id = $res['client_id'];
         return $client_id;
     }
-    
-    //previous unchanged function
 
-    // public function actiongetSettings() {
-    //     $this->code = 1;
-    //     $this->msg = "OK";
-
-    //     $settings = array();
-
-    //     $mobile_prefix = getOptionA('mobileapp2_prefix');
-    //     if (empty($mobile_prefix)) {
-    //         $mobile_countrycode = require_once 'MobileCountryCode.php';
-    //         $admin_country_set = getOptionA('admin_country_set');
-    //         if (!empty($admin_country_set)) {
-    //             if (array_key_exists($admin_country_set, $mobile_countrycode)) {
-    //                 $mobile_prefix = "+" . $mobile_countrycode[$admin_country_set]['code'];
-    //             }
-    //         }
-    //     } else
-    //         $mobile_prefix = "+$mobile_prefix";
-
-    //     $startup_options = getOptionA('mobileapp2_startup');
-    //     if (method_exists('mobileWrapper', 'getStartupBanner')) {
-    //         $settings['startup'] = array(
-    //             'options' => empty($startup_options) ? 1 : $startup_options,
-    //             'select_language' => getOptionA('mobile2_enabled_select_language'),
-    //             'banner' => mobileWrapper::getStartupBanner(),
-    //         );
-    //     } else {
-    //         $settings['startup'] = array(
-    //             'options' => 1,
-    //             'select_language' => 0,
-    //             'banner' => array(),
-    //         );
-    //     }
-
-    //     $location_rep = mobileWrapper::searchMode();
-    //     $settings['search_mode'] = $location_rep['search_mode'];
-    //     $settings['location_mode'] = $location_rep['location_mode'];
-    //     $settings['mobile_prefix'] = $mobile_prefix;
-    //     $settings['splash_screen'] = getOptionA('mobileapp2_api_splash_screen');
-    //     $settings['cart_theme'] = getOptionA('mobileapp2_cart_theme');
-    //     $settings['mobile_turnoff_prefix'] = getOptionA('mobileapp2_turnoff_prefix');
-    //     $settings['menu_type'] = mobileWrapper::getMenuType();
-    //     $settings['enabled_dish'] = getOptionA('mobile2_enabled_dish');
-    //     $settings['header_file'] = getOptionA('mobileapp2_header_image');
-    //     $settings['disabled_image_menu1'] = getOptionA('mobile2_disabled_image_menu1');
-    //     $settings['mobileapp2_select_map'] = getOptionA('mobileapp2_select_map');
-    //     $settings['mobileapp2_language'] = getOptionA('mobileapp2_language');
-    //     $settings['mobile2_enabled_fblogin'] = getOptionA('mobile2_enabled_fblogin');
-    //     $settings['mobile2_enabled_googlogin'] = getOptionA('mobile2_enabled_googlogin');
-    //     $settings['mobile2_analytics_enabled'] = getOptionA('mobile2_analytics_enabled');
-    //     $settings['mobile2_analytics_id'] = getOptionA('mobile2_analytics_id');
-    //     $settings['mobile2_location_accuracy'] = getOptionA('mobileapp2_location_accuracy');
-    //     if (empty($settings['mobile2_location_accuracy'])) {
-    //         $settings['mobile2_location_accuracy'] = 'REQUEST_PRIORITY_BALANCED_POWER_ACCURACY';
-    //     }
-
-    //     $settings['age_restriction'] = getOptionA('age_restriction');
-    //     $settings['age_restriction_content'] = getOptionA('age_restriction_content');
-
-    //     $mobileapp2_reg_email = getOptionA('mobileapp2_reg_email');
-    //     $mobileapp2_reg_phone = getOptionA('mobileapp2_reg_phone');
-
-    //     if (empty($mobileapp2_reg_email) && empty($mobileapp2_reg_phone)) {
-    //         $mobileapp2_reg_email = 1;
-    //         $mobileapp2_reg_phone = 1;
-    //     }
-
-    //     $settings['registration'] = array(
-    //         'email' => $mobileapp2_reg_email,
-    //         'phone' => $mobileapp2_reg_phone
-    //     );
-
-    //     $settings['tracking_theme'] = getOptionA('mobileapp2_tracking_theme');
-    //     if (empty($settings['tracking_theme'])) {
-    //         $settings['tracking_theme'] = 1;
-    //     }
-    //     $settings['tracking_interval'] = getOptionA('mobileapp2_tracking_interval');
-    //     if ($settings['tracking_interval'] <= 0 && empty($settings['tracking_interval'])) {
-    //         $settings['tracking_interval'] = 7000;
-    //     }
-
-    //     $settings['pages'] =  array();
-    //     $db = new DbExt();
-    //     $stmt = "SELECT * FROM {{mobile2_pages}} WHERE status = 'publish' ORDER BY sequence ASC ";
-    //     if (isset($_GET['debug'])) {
-    //         dump($stmt);
-    //     }
-    //     if ($res = $db->rst($stmt)) {
-    //         $settings['pages'] =  $res;         
-    //     }
- 
-    //     $settings['home'] = array(
-    //         'mobile2_home_offer' => getOptionA('mobile2_home_offer'),
-    //         'mobile2_home_featured' => getOptionA('mobile2_home_featured'),
-    //         'mobile2_home_cuisine' => getOptionA('mobile2_home_cuisine'),
-    //         'mobile2_home_all_restaurant' => getOptionA('mobile2_home_all_restaurant'),
-    //         'mobile2_home_favorite_restaurant' => getOptionA('mobile2_home_favorite_restaurant'),
-    //         'mobile2_home_banner' => getOptionA('mobile2_home_banner')
-    //     );
-
-    //     if ($settings['home']['mobile2_home_banner'] == 1) {
-    //         $settings['home_banner'] = mobileWrapper::getHomeBanner();
-    //     } else
-    //         $settings['home_banner'] = array();
-
-    //     $settings['mobile2_disabled_default_image'] = getOptionA('mobile2_disabled_default_image');
-
-    //     $settings['map_provider'] = FunctionsV3::getMapProvider();
-    //     $settings['map_country'] = FunctionsV3::getCountryCode();
-
-    //     $settings['map_auto_identity_location'] = false;
-
-    //     $settings['default_map_location'] = array(
-    //         'lat' => getOptionA('mobile2_default_lat'),
-    //         'lng' => getOptionA('mobile2_default_lng')
-    //     );
-
-    //     $settings['website_hide_foodprice'] = getOptionA('website_hide_foodprice');
-    //     $settings['enabled_map_selection_delivery'] = getOptionA('enabled_map_selection_delivery');
-    //     $settings['website_hide_foodprice'] = getOptionA('website_hide_foodprice');
-    //     $settings['merchant_two_flavor_option'] = getOptionA('merchant_two_flavor_option');
-    //     $settings['images'] = array(
-    //         'image1' => mobileWrapper::getImage('mobile-default-logo.png'),
-    //         'image2' => mobileWrapper::getImage('resto_banner.jpg', 'resto_banner.jpg'),
-    //     );
-    //     $settings['icons'] = array(
-    //         'marker1' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/icon_28.png",
-    //         'marker2' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker_green.png",
-    //         'marker3' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker_orange.png",
-    //         'bicycle' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/bicycle.png",
-    //         'bike' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/bike.png",
-    //         'car' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/car.png",
-    //         'scooter' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/scooter.png",
-    //         'truck' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/truck.png",
-    //         'walk' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/walk.png",
-    //     );
-    //     $settings['marker_icon'] = array(
-    //         $settings['icons']['marker1'],
-    //         $settings['icons']['marker2'],
-    //         $settings['icons']['marker3'],
-    //         websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker1.png",
-    //         websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker2.png",
-    //         websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker3.png",
-    //         websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker4.png",
-    //     );
-    //     $settings['list_type'] = mobileWrapper::getListType();
-
-    //     $settings['addon']['driver'] = false;
-    //     if (mobileWrapper::showDriverSignup()) {
-    //         $settings['addon']['driver'] = true;
-    //         $settings['addon']['driver_transport'] = Driver::transportType();
-    //     }
-
-    //     $settings['addon']['points'] = false;
-    //     if (FunctionsV3::hasModuleAddon("pointsprogram")) {
-    //         $settings['addon']['points'] = true;
-    //     }
-
-    //     if ($settings['mobileapp2_language'] == "0") {
-    //         $settings['mobileapp2_language'] = 'en';
-    //     }
-
-    //     $settings['cod_change_required'] = getOptionA('cod_change_required');
-    //     $settings['disabled_website_ordering'] = getOptionA('disabled_website_ordering');
-    //     $settings['mapbox_access_token'] = getOptionA('mapbox_access_token');
-    //     $settings['mapbox_default_zoom'] = getOptionA('mapbox_default_zoom');
-    //     $settings['disabled_cc_management'] = getOptionA('disabled_cc_management');
-    //     $settings['merchant_tbl_book_disabled'] = getOptionA('merchant_tbl_book_disabled');
-
-    //     $settings['currency_symbol'] = getCurrencyCode();
-    //     $settings['currency_position'] = getOptionA('admin_currency_position');
-    //     $settings['currency_decimal_place'] = getOptionA('admin_decimal_place');
-    //     $settings['currency_space'] = getOptionA('admin_add_space_between_price');
-    //     $settings['currency_use_separators'] = getOptionA('admin_use_separators');
-    //     $settings['currency_decimal_separator'] = getOptionA('admin_decimal_separator');
-    //     $settings['currency_thousand_separator'] = getOptionA('admin_thousand_separator');
-
-    //     if (empty($settings['currency_position'])) {
-    //         $settings['currency_position'] = 'left';
-    //     }
-    //     if (empty($settings['currency_decimal_place'])) {
-    //         $settings['currency_position'] = 2;
-    //     }
-    //     if (empty($settings['currency_decimal_separator'])) {
-    //         $settings['currency_decimal_separator'] = ".";
-    //     }
-    //     if ($settings['currency_use_separators'] == "yes") {
-    //         if ($settings['currency_thousand_separator'] == "") {
-    //             $settings['currency_thousand_separator'] = ",";
-    //         }
-    //     }
-
-    //     $reg_field_1 = getOptionA('client_custom_field_name1');
-    //     $reg_field_2 = getOptionA('client_custom_field_name2');
-
-    //     $settings['reg_custom'] = 0;
-
-    //     if (!empty($reg_field_1) || !empty($reg_field_2)) {
-    //         $fields = array();
-    //         if (!empty($reg_field_1)) {
-    //             $fields['custom_field1'] = $reg_field_1;
-    //         }
-    //         if (!empty($reg_field_2)) {
-    //             $fields['custom_field2'] = $reg_field_2;
-    //         }
-    //         $settings['reg_custom_fields'] = $fields;
-    //         $settings['reg_custom'] = 1;
-    //     }
-
-    //     $valid_token = 2;
-    //     $client_info = array();
-    //     if (isset($this->data['user_token'])) {
-    //         if ($client_info = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
-    //             if (!mobileWrapper::checkBlockAccount($client_info['email_address'], $client_info['contact_phone'])) {
-    //                 $valid_token = 1;
-    //             }
-    //         }
-    //     }
-
-    //     $settings['valid_token'] = $valid_token;
-
-    //     $sortby = array(
-    //         'restaurant' => mobileWrapper::sortRestaurantList(),
-    //         'cusine' => mobileWrapper::sortCuisineList()
-    //     );
-    //     $settings['sort'] = $sortby;
-
-    //     $filters = array(
-    //         'delivery_fee' => array(
-    //             'delivery_fee' => $this->t("Free Delivery")
-    //         ),
-    //         'promos' => array(
-    //             'offer' => mt("Offers"),
-    //             'voucher' => mt("Vouchers"),
-    //         ),
-    //         'services' => mobileWrapper::servicesList(),
-    //         'dishes_list' => itemWrapper::dishesList(),
-    //         'cuisine' => Yii::app()->functions->Cuisine(false),
-    //         'minimum_order' => FunctionsV3::minimumDeliveryFee()
-    //     );
-    //     $settings['filters'] = $filters;
-
-
-    //     $settings['custom_pages'] = mobileWrapper::getTitlePages();
-
-    //     $settings['order_tabs'] = array(
-    //         'all' => mt("All"),
-    //         'processing' => mt("Processing"),
-    //         'completed' => mt("Completed"),
-    //         'cancelled' => mt("Cancelled"),
-    //     );
-
-    //     $settings['booking_tabs'] = array(
-    //         'all' => mt("All"),
-    //         'pending' => mt("Pending"),
-    //         'approved' => mt("Approved"),
-    //         'denied' => mt("Denied"),
-    //     );
-
-    //     $app_dict = Mobileappv2Module::$global_dict;
-    //     $dict_cuisine = mobileWrapper::cuisineListDict($filters['cuisine']);
-    //     $dict_pages = mobileWrapper::customerPageDict($settings['custom_pages']);
-    //     $dict = array_merge((array) $app_dict, (array) $dict_cuisine, (array) $dict_pages);
-    //     $settings['dict'] = $dict;
-
-    //     $this->details = array(
-    //         'valid_token' => $valid_token,
-    //         'settings' => $settings
-    //     );
-
-    //     /* REGISTERED DEVICE */
-    //     /* if(is_array($client_info) && count((array)$client_info)>=1){
-    //       $this->data['client_id'] = $client_info['client_id'];
-    //       }
-    //       mobileWrapper::registeredDevice($this->data,'active',false); */
-
-    //     $this->output();
-    // }
-    
-    //end previous un changed function
-   	public function actionsendCode() {
-        
-		$email_code = Yii::app()->functions->generateRandomKeyAlfa(6);
-        $expiry_date = strtotime('+30 minutes');
-		
-        $params = array(
-            'email' => $_POST['email'],
-            'code' => $email_code,
-            'expiry_date' => date('Y-m-d H:i:s', $expiry_date)
-        );
-
-        $DbExt = new DbExt();
-		
-        if ( $DbExt->insertData("{{authentication}}", $params )  ) {
-            $this->code = 1;
-            $this->msg = $this->t("Please check your email for verification code.");
-   
-         /* send email verification added on version 3 */ 
-            $email_verification = getOptionA('email');
-        
-                $params['code'] = $email_code;
-               
-                FunctionsV3::sendMobilelVerificationCodeNew($params['email'], $email_code, $params);
-                // $this->data['next_step'] = 'verification_email';
-            
-        }else{
-            $this->code = 0;
-            $this->msg = $this->t("Please type your correct email.");
-            
-        }
-           $this->output();
-    } 
-   
-	public function actionverifysendCode()
-    {
-		// ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
-		$this->data =$_POST;
-		$email = isset($this->data['email']) ? trim($this->data['email']) : '';
-		$code = isset($this->data['code']) ? trim($this->data['code']) : '';
-		// $DbExt = new DbExt;
-
-
-			 $connection = Yii::app()->db;
-			// $command = $connection->createCommand('select code,email,expiry_date from mt_authentication where email=:email AND code=:code ')->bindValues([':email'=>$email,':code'=>$code]);
-			 $command = $connection->createCommand('SELECT code, email, expiry_date FROM mt_authentication WHERE BINARY email = :email AND BINARY code = :code')
-			->bindValues([':email' => $email, ':code' => $code]);
-
-			$row = $command->queryRow();
-
-		   if ($row !== false) {
-			// Check if the code is expired
-
-			$expiry_date = strtotime($row['expiry_date']);
-			$current_time = time();
-			if ($current_time > $expiry_date) {
-				$this->code = 0;
-				$this->msg = $this->t("Verification code has expired");
-			} else {
-				$this->code = 1;
-				$this->msg = $this->t("Your email has been verified");
-			}
-		} else {
-			$this->code = 0;
-			$this->msg = $this->t("Verification code does not match");
-		}
-
-
-		$this->output();
-	}
-	
     //Test function set for adding the facebook and google keys add
-	public function actiongetSettingsNew() {
-       
+
+
+
+    public function actiongetSettings()
+    {
         $this->code = 1;
         $this->msg = "OK";
 
@@ -519,20 +162,12 @@ class ApiController extends CController {
                 'banner' => array(),
             );
         }
-        
+
         $location_rep = mobileWrapper::searchMode();
         $settings['search_mode'] = $location_rep['search_mode'];
         $settings['location_mode'] = $location_rep['location_mode'];
         $settings['mobile_prefix'] = $mobile_prefix;
-            
-            $settings['splash_screen'] = getOptionA('mobileapp2_api_splash_screen');
-            $settings['ios_app_version'] = getOptionA('mobileapp2_api_app_version');
-            $settings['mobile2_fb_app_id'] = getOptionA('fb_app_id');
-            $settings['mobile2_fb_app_secret'] = getOptionA('fb_app_secret');
-            $settings['android_app_version'] = getOptionA('mobileapp2_api_android_app_version');
-            $settings['mobile2_google_app_id'] = getOptionA('google_app_id');
-          
-        $settings['mobileapp2_Google_client_id_android'] = getOptionA('google_client_id');
+        $settings['splash_screen'] = getOptionA('mobileapp2_api_splash_screen');
         $settings['cart_theme'] = getOptionA('mobileapp2_cart_theme');
         $settings['mobile_turnoff_prefix'] = getOptionA('mobileapp2_turnoff_prefix');
         $settings['menu_type'] = mobileWrapper::getMenuType();
@@ -543,198 +178,9 @@ class ApiController extends CController {
         $settings['mobileapp2_language'] = getOptionA('mobileapp2_language');
         $settings['mobile2_enabled_fblogin'] = getOptionA('mobile2_enabled_fblogin');
         $settings['mobile2_enabled_googlogin'] = getOptionA('mobile2_enabled_googlogin');
-         
-         
-    
-        //here addding the Facebook app id for both plateform mobile side
-      
-          $settings['mobileapp2_fb_id_both'] = getOptionA('mobileapp2_fb_id_both');
-          
-        
-        //end
-        
-       
-         $settings['mobileapp2_fb_app_secret_both'] = getOptionA('mobileapp2_fb_app_secret_both');
-         
-        //end
-        
-         //here addding the Facebook app secret for both plateform to mobile side
-       
-        
-        
-        //here adding the Google app id for ios
-            
-           $settings['mobileapp2_Google_client_id_ios'] = getOptionA('mobileapp2_Google_client_id_ios');
-        
-        //end
-        
-        //here adding the Google app secret for ios
-        
-           $settings['mobileapp2_Google_client_secret_ios'] = getOptionA('mobileapp2_Google_client_secret_ios');
-        
-        //end
-        
-        
-        //here adding the Google app id for android
-         $settings['mobileapp2_Google_client_id_android'] = getOptionA('mobileapp2_Google_client_id_android');
-        
-        //end
-        
-        //here Adding the Google app secret for Android
-        
-         $settings['mobileapp2_Google_client_secret_android'] = getOptionA('mobileapp2_Google_client_secret_android');
-        //end
-        
-        // print_r($settings['mobile2_enabled_fblogin']); exit('sdffs');
-        
-        if(empty($settings['mobile2_enabled_fblogin'])){
-            
-            
-                //here addding the Facebook app id for both plateform mobile side
-        
-          $settings['mobileapp2_fb_id_both'] = "";
-         
-        //end
-        
-        //here addding the Facebook app secret for both plateform to mobile side
-        
-         $settings['mobileapp2_fb_app_secret_both'] = "";
-         
-        //end
-        
-            
-        }
-        
-        // print_r($settings['mobile2_enabled_googlogin']); exit('asda');
-        
-        if(empty($settings['mobile2_enabled_googlogin']) ){
-            
-            
-                    //here adding the Google app id for ios
-        
-           $settings['mobileapp2_Google_client_id_ios'] = "";
-        
-        //end
-        
-        //here adding the Google app secret for ios
-        
-           $settings['mobileapp2_Google_client_secret_ios'] = "";
-        
-        //end
-        
-        
-        //here adding the Google app id for android
-         $settings['mobileapp2_Google_client_id_android'] = "";
-        
-        //end
-        
-        //here Adding the Google app secret for Android
-        
-         $settings['mobileapp2_Google_client_secret_android'] = "";
-        //end
-        
-        }
-        
-        
-        
-        
-        //here adding fb parameters
-        $settings['mobile2_fb_app_id'] = '';
-        $settings['mobile2_fb_app_secret'] = '';
-        $settings['mobile2_fb_page_url'] = '';
-        //end
-       
-        //here adding the google parameters
-        $settings['mobile2_google_app_id'] = '';
-        $settings['mobile2_google_app_secret'] = '';
-        $settings['mobile2_google_redirect_url'] = '';
-        $settings['mobile2_google_page_url'] = '';
-        //end
-        
         $settings['mobile2_analytics_enabled'] = getOptionA('mobile2_analytics_enabled');
         $settings['mobile2_analytics_id'] = getOptionA('mobile2_analytics_id');
         $settings['mobile2_location_accuracy'] = getOptionA('mobileapp2_location_accuracy');
-        
-        
-        //here fetching the facebook data from database
-        
-	    	$db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{option}}
-		    WHERE
-	    	option_name= 'fb_app_id'
-	    	LIMIT 0,1
-		    ";		    	
-		    if($fb_app_id = $db->rst($stmt)){
-		    	$fb_app_id = $fb_app_id[0];
-		    	if(isset($fb_app_id['option_value']) && !empty($fb_app_id['option_value'])){
-		    	    $settings['mobile2_fb_app_id'] = $fb_app_id['option_value'];
-		    	}
-		    }
-		    
-		    //for fb secret
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{option}}
-		    WHERE
-	    	option_name= 'fb_app_secret'
-	    	LIMIT 0,1
-		    ";		    	
-		    if($fb_app_secret = $db->rst($stmt)){
-		    	$fb_app_secret = $fb_app_secret[0];
-		  //  	print_r($fb_app_secret); exit('asds');
-		    	if(isset($fb_app_secret['option_value']) && !empty($fb_app_secret['option_value'])){
-		    	$settings['mobile2_fb_app_secret'] = $fb_app_secret['option_value'];
-		    	}
-		    }
-		    
-		    // here fetching the google data from database
-		    
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{option}}
-		    WHERE
-	    	option_name= 'google_client_id'
-	    	LIMIT 0,1
-		    ";		    	
-		    if($google_client_id = $db->rst($stmt)){
-		    	$google_client_id = $google_client_id[0];
-		    	if(isset($google_client_id['option_value']) && !empty($google_client_id['option_value'])){
-		    	    $settings['mobile2_google_app_id'] = $google_client_id['option_value'];
-		    	}
-		    }
-		    
-		    //for google secret key
-		    
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{option}}
-		    WHERE
-	    	option_name= 'google_client_secret'
-	    	LIMIT 0,1
-		    ";		    	
-		    if($google_client_secret = $db->rst($stmt)){
-		    	$google_client_secret = $google_client_secret[0];
-		    	if(isset($google_client_secret['option_value']) && !empty($google_client_secret['option_value'])){
-		    	    $settings['mobile2_google_app_secret'] = $google_client_secret['option_value'];
-		    	}
-		    }
-		    
-		    
-		    //checking if it is anable or disable
-		    if($settings['mobile2_enabled_fblogin'] == ''){
-		        
-		         $settings['mobile2_fb_app_id'] = '';
-		         $settings['mobile2_fb_app_secret'] = '';
-		    }
-		    
-		    if($settings['mobile2_enabled_googlogin'] == ''){
-		        $settings['mobile2_google_app_secret'] = '';
-		         $settings['mobile2_google_app_id'] = '';
-		    }
-		    
-		    
-        
         if (empty($settings['mobile2_location_accuracy'])) {
             $settings['mobile2_location_accuracy'] = 'REQUEST_PRIORITY_BALANCED_POWER_ACCURACY';
         }
@@ -764,24 +210,499 @@ class ApiController extends CController {
             $settings['tracking_interval'] = 7000;
         }
 
-        $settings['pages'] =  array();
+        $settings['pages'] = array();
         $db = new DbExt();
         $stmt = "SELECT * FROM {{mobile2_pages}} WHERE status = 'publish' ORDER BY sequence ASC ";
         if (isset($_GET['debug'])) {
             dump($stmt);
         }
         if ($res = $db->rst($stmt)) {
-            $settings['pages'] =  $res;         
+            $settings['pages'] = $res;
         }
-        
-         $settings['onboarding'] = array(
-              
-               $settings['screen_one'] = getOptionA('mobileapp2_api_screen_one'),
-              $settings['push_notification'] = getOptionA('mobileapp2_api_push_notification'),
-               $settings['allow_geo_location'] = getOptionA('mobileapp2_api_allow_geo_location')
-         
+
+        $settings['home'] = array(
+            'mobile2_home_offer' => getOptionA('mobile2_home_offer'),
+            'mobile2_home_featured' => getOptionA('mobile2_home_featured'),
+            'mobile2_home_cuisine' => getOptionA('mobile2_home_cuisine'),
+            'mobile2_home_all_restaurant' => getOptionA('mobile2_home_all_restaurant'),
+            'mobile2_home_favorite_restaurant' => getOptionA('mobile2_home_favorite_restaurant'),
+            'mobile2_home_banner' => getOptionA('mobile2_home_banner')
         );
- 
+
+        if ($settings['home']['mobile2_home_banner'] == 1) {
+            $settings['home_banner'] = mobileWrapper::getHomeBanner();
+        } else
+            $settings['home_banner'] = array();
+
+        $settings['mobile2_disabled_default_image'] = getOptionA('mobile2_disabled_default_image');
+
+        $settings['map_provider'] = FunctionsV3::getMapProvider();
+        $settings['map_country'] = FunctionsV3::getCountryCode();
+
+        $settings['map_auto_identity_location'] = false;
+
+        $settings['default_map_location'] = array(
+            'lat' => getOptionA('mobile2_default_lat'),
+            'lng' => getOptionA('mobile2_default_lng')
+        );
+
+        $settings['website_hide_foodprice'] = getOptionA('website_hide_foodprice');
+        $settings['enabled_map_selection_delivery'] = getOptionA('enabled_map_selection_delivery');
+        $settings['website_hide_foodprice'] = getOptionA('website_hide_foodprice');
+        $settings['merchant_two_flavor_option'] = getOptionA('merchant_two_flavor_option');
+        $settings['images'] = array(
+            'image1' => mobileWrapper::getImage('mobile-default-logo.png'),
+            'image2' => mobileWrapper::getImage('resto_banner.jpg', 'resto_banner.jpg'),
+        );
+        $settings['icons'] = array(
+            'marker1' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/icon_28.png",
+            'marker2' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker_green.png",
+            'marker3' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker_orange.png",
+            'bicycle' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/bicycle.png",
+            'bike' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/bike.png",
+            'car' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/car.png",
+            'scooter' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/scooter.png",
+            'truck' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/truck.png",
+            'walk' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/walk.png",
+        );
+        $settings['marker_icon'] = array(
+            $settings['icons']['marker1'],
+            $settings['icons']['marker2'],
+            $settings['icons']['marker3'],
+            websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker1.png",
+            websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker2.png",
+            websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker3.png",
+            websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker4.png",
+        );
+        $settings['list_type'] = mobileWrapper::getListType();
+
+        $settings['addon']['driver'] = false;
+        if (mobileWrapper::showDriverSignup()) {
+            $settings['addon']['driver'] = true;
+            $settings['addon']['driver_transport'] = Driver::transportType();
+        }
+
+        $settings['addon']['points'] = false;
+        if (FunctionsV3::hasModuleAddon("pointsprogram")) {
+            $settings['addon']['points'] = true;
+        }
+
+        if ($settings['mobileapp2_language'] == "0") {
+            $settings['mobileapp2_language'] = 'en';
+        }
+
+        $settings['cod_change_required'] = getOptionA('cod_change_required');
+        $settings['disabled_website_ordering'] = getOptionA('disabled_website_ordering');
+        $settings['mapbox_access_token'] = getOptionA('mapbox_access_token');
+        $settings['mapbox_default_zoom'] = getOptionA('mapbox_default_zoom');
+        $settings['disabled_cc_management'] = getOptionA('disabled_cc_management');
+        $settings['merchant_tbl_book_disabled'] = getOptionA('merchant_tbl_book_disabled');
+
+        $settings['currency_symbol'] = getCurrencyCode();
+        $settings['currency_position'] = getOptionA('admin_currency_position');
+        $settings['currency_decimal_place'] = getOptionA('admin_decimal_place');
+        $settings['currency_space'] = getOptionA('admin_add_space_between_price');
+        $settings['currency_use_separators'] = getOptionA('admin_use_separators');
+        $settings['currency_decimal_separator'] = getOptionA('admin_decimal_separator');
+        $settings['currency_thousand_separator'] = getOptionA('admin_thousand_separator');
+
+        if (empty($settings['currency_position'])) {
+            $settings['currency_position'] = 'left';
+        }
+        if (empty($settings['currency_decimal_place'])) {
+            $settings['currency_position'] = 2;
+        }
+        if (empty($settings['currency_decimal_separator'])) {
+            $settings['currency_decimal_separator'] = ".";
+        }
+        if ($settings['currency_use_separators'] == "yes") {
+            if ($settings['currency_thousand_separator'] == "") {
+                $settings['currency_thousand_separator'] = ",";
+            }
+        }
+
+        $reg_field_1 = getOptionA('client_custom_field_name1');
+        $reg_field_2 = getOptionA('client_custom_field_name2');
+
+        $settings['reg_custom'] = 0;
+
+        if (!empty($reg_field_1) || !empty($reg_field_2)) {
+            $fields = array();
+            if (!empty($reg_field_1)) {
+                $fields['custom_field1'] = $reg_field_1;
+            }
+            if (!empty($reg_field_2)) {
+                $fields['custom_field2'] = $reg_field_2;
+            }
+            $settings['reg_custom_fields'] = $fields;
+            $settings['reg_custom'] = 1;
+        }
+
+        $valid_token = 2;
+        $client_info = array();
+        if (isset($this->data['user_token'])) {
+            if ($client_info = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
+                if (!mobileWrapper::checkBlockAccount($client_info['email_address'], $client_info['contact_phone'])) {
+                    $valid_token = 1;
+                }
+            }
+        }
+
+        $settings['valid_token'] = $valid_token;
+
+        $sortby = array(
+            'restaurant' => mobileWrapper::sortRestaurantList(),
+            'cusine' => mobileWrapper::sortCuisineList()
+        );
+        $settings['sort'] = $sortby;
+
+        $filters = array(
+            'delivery_fee' => array(
+                'delivery_fee' => $this->t("Free Delivery")
+            ),
+            'promos' => array(
+                'offer' => mt("Offers"),
+                'voucher' => mt("Vouchers"),
+            ),
+            'services' => mobileWrapper::servicesList(),
+            'dishes_list' => itemWrapper::dishesList(),
+            'cuisine' => Yii::app()->functions->Cuisine(false),
+            'minimum_order' => FunctionsV3::minimumDeliveryFee()
+        );
+        $settings['filters'] = $filters;
+
+
+        $settings['custom_pages'] = mobileWrapper::getTitlePages();
+
+        $settings['order_tabs'] = array(
+            'all' => mt("All"),
+            'processing' => mt("Processing"),
+            'completed' => mt("Completed"),
+            'cancelled' => mt("Cancelled"),
+        );
+
+        $settings['booking_tabs'] = array(
+            'all' => mt("All"),
+            'pending' => mt("Pending"),
+            'approved' => mt("Approved"),
+            'denied' => mt("Denied"),
+        );
+
+        $app_dict = Mobileappv2Module::$global_dict;
+        $dict_cuisine = mobileWrapper::cuisineListDict($filters['cuisine']);
+        $dict_pages = mobileWrapper::customerPageDict($settings['custom_pages']);
+        $dict = array_merge((array) $app_dict, (array) $dict_cuisine, (array) $dict_pages);
+        $settings['dict'] = $dict;
+
+        $this->details = array(
+            'valid_token' => $valid_token,
+            'settings' => $settings
+        );
+
+        /* REGISTERED DEVICE */
+        /* if(is_array($client_info) && count((array)$client_info)>=1){
+          $this->data['client_id'] = $client_info['client_id'];
+          }
+          mobileWrapper::registeredDevice($this->data,'active',false); */
+
+        $this->output();
+    }
+
+    public function actiongetSettingsNew()
+    {
+
+        $this->code = 1;
+        $this->msg = "OK";
+
+        $settings = array();
+
+        $mobile_prefix = getOptionA('mobileapp2_prefix');
+        if (empty($mobile_prefix)) {
+            $mobile_countrycode = require_once 'MobileCountryCode.php';
+            $admin_country_set = getOptionA('admin_country_set');
+            if (!empty($admin_country_set)) {
+                if (array_key_exists($admin_country_set, $mobile_countrycode)) {
+                    $mobile_prefix = "+" . $mobile_countrycode[$admin_country_set]['code'];
+                }
+            }
+        } else
+            $mobile_prefix = "+$mobile_prefix";
+
+        $startup_options = getOptionA('mobileapp2_startup');
+        if (method_exists('mobileWrapper', 'getStartupBanner')) {
+            $settings['startup'] = array(
+                'options' => empty($startup_options) ? 1 : $startup_options,
+                'select_language' => getOptionA('mobile2_enabled_select_language'),
+                'banner' => mobileWrapper::getStartupBanner(),
+            );
+        } else {
+            $settings['startup'] = array(
+                'options' => 1,
+                'select_language' => 0,
+                'banner' => array(),
+            );
+        }
+
+        $location_rep = mobileWrapper::searchMode();
+        $settings['search_mode'] = $location_rep['search_mode'];
+        $settings['location_mode'] = $location_rep['location_mode'];
+        $settings['mobile_prefix'] = $mobile_prefix;
+        $settings['splash_screen'] = getOptionA('mobileapp2_api_splash_screen');
+        $settings['ios_app_version'] = getOptionA('mobileapp2_api_app_version');
+        $settings['mobile2_fb_app_id'] = getOptionA('fb_app_id');
+        $settings['mobile2_fb_app_secret'] = getOptionA('fb_app_secret');
+        $settings['android_app_version'] = getOptionA('mobileapp2_api_android_app_version');
+        $settings['mobile2_google_app_id'] = getOptionA('google_app_id');
+        $settings['mobileapp2_Google_client_id_android'] = getOptionA('google_client_id');
+        $settings['cart_theme'] = getOptionA('mobileapp2_cart_theme');
+        $settings['mobile_turnoff_prefix'] = getOptionA('mobileapp2_turnoff_prefix');
+        $settings['menu_type'] = mobileWrapper::getMenuType();
+        $settings['enabled_dish'] = getOptionA('mobile2_enabled_dish');
+        $settings['header_file'] = getOptionA('mobileapp2_header_image');
+        $settings['disabled_image_menu1'] = getOptionA('mobile2_disabled_image_menu1');
+        $settings['mobileapp2_select_map'] = getOptionA('mobileapp2_select_map');
+        $settings['mobileapp2_language'] = getOptionA('mobileapp2_language');
+        $settings['mobile2_enabled_fblogin'] = getOptionA('mobile2_enabled_fblogin');
+        $settings['mobile2_enabled_googlogin'] = getOptionA('mobile2_enabled_googlogin');
+
+
+
+        //here addding the Facebook app id for both plateform mobile side
+
+        $settings['mobileapp2_fb_id_both'] = getOptionA('mobileapp2_fb_id_both');
+
+
+        //end
+
+
+        $settings['mobileapp2_fb_app_secret_both'] = getOptionA('mobileapp2_fb_app_secret_both');
+
+        //end
+
+        //here addding the Facebook app secret for both plateform to mobile side
+
+
+
+        //here adding the Google app id for ios
+
+        $settings['mobileapp2_Google_client_id_ios'] = getOptionA('mobileapp2_Google_client_id_ios');
+
+        //end
+
+        //here adding the Google app secret for ios
+
+        $settings['mobileapp2_Google_client_secret_ios'] = getOptionA('mobileapp2_Google_client_secret_ios');
+
+        //end
+
+
+        //here adding the Google app id for android
+        $settings['mobileapp2_Google_client_id_android'] = getOptionA('mobileapp2_Google_client_id_android');
+
+        //end
+
+        //here Adding the Google app secret for Android
+
+        $settings['mobileapp2_Google_client_secret_android'] = getOptionA('mobileapp2_Google_client_secret_android');
+        //end
+
+        // print_r($settings['mobile2_enabled_fblogin']); exit('sdffs');
+
+        if (empty($settings['mobile2_enabled_fblogin'])) {
+
+
+            //here addding the Facebook app id for both plateform mobile side
+
+            $settings['mobileapp2_fb_id_both'] = "";
+
+            //end
+
+            //here addding the Facebook app secret for both plateform to mobile side
+
+            $settings['mobileapp2_fb_app_secret_both'] = "";
+
+            //end
+
+
+        }
+
+        // print_r($settings['mobile2_enabled_googlogin']); exit('asda');
+
+        if (empty($settings['mobile2_enabled_googlogin'])) {
+
+
+            //here adding the Google app id for ios
+
+            $settings['mobileapp2_Google_client_id_ios'] = "";
+
+            //end
+
+            //here adding the Google app secret for ios
+
+            $settings['mobileapp2_Google_client_secret_ios'] = "";
+
+            //end
+
+
+            //here adding the Google app id for android
+            $settings['mobileapp2_Google_client_id_android'] = "";
+
+            //end
+
+            //here Adding the Google app secret for Android
+
+            $settings['mobileapp2_Google_client_secret_android'] = "";
+            //end
+
+        }
+
+
+
+
+        //here adding fb parameters
+        $settings['mobile2_fb_app_id'] = '';
+        $settings['mobile2_fb_app_secret'] = '';
+        $settings['mobile2_fb_page_url'] = '';
+        //end
+
+        //here adding the google parameters
+        $settings['mobile2_google_app_id'] = '';
+        $settings['mobile2_google_app_secret'] = '';
+        $settings['mobile2_google_redirect_url'] = '';
+        $settings['mobile2_google_page_url'] = '';
+        //end
+
+        $settings['mobile2_analytics_enabled'] = getOptionA('mobile2_analytics_enabled');
+        $settings['mobile2_analytics_id'] = getOptionA('mobile2_analytics_id');
+        $settings['mobile2_location_accuracy'] = getOptionA('mobileapp2_location_accuracy');
+
+
+        //here fetching the facebook data from database
+
+        $db = new DbExt();
+        $stmt = "SELECT * FROM
+		    {{option}}
+		    WHERE
+	    	option_name= 'fb_app_id'
+	    	LIMIT 0,1
+		    ";
+        if ($fb_app_id = $db->rst($stmt)) {
+            $fb_app_id = $fb_app_id[0];
+            if (isset($fb_app_id['option_value']) && !empty($fb_app_id['option_value'])) {
+                $settings['mobile2_fb_app_id'] = $fb_app_id['option_value'];
+            }
+        }
+
+        //for fb secret
+        $db = new DbExt();
+        $stmt = "SELECT * FROM
+		    {{option}}
+		    WHERE
+	    	option_name= 'fb_app_secret'
+	    	LIMIT 0,1
+		    ";
+        if ($fb_app_secret = $db->rst($stmt)) {
+            $fb_app_secret = $fb_app_secret[0];
+            //  	print_r($fb_app_secret); exit('asds');
+            if (isset($fb_app_secret['option_value']) && !empty($fb_app_secret['option_value'])) {
+                $settings['mobile2_fb_app_secret'] = $fb_app_secret['option_value'];
+            }
+        }
+
+        // here fetching the google data from database
+
+        $db = new DbExt();
+        $stmt = "SELECT * FROM
+		    {{option}}
+		    WHERE
+	    	option_name= 'google_client_id'
+	    	LIMIT 0,1
+		    ";
+        if ($google_client_id = $db->rst($stmt)) {
+            $google_client_id = $google_client_id[0];
+            if (isset($google_client_id['option_value']) && !empty($google_client_id['option_value'])) {
+                $settings['mobile2_google_app_id'] = $google_client_id['option_value'];
+            }
+        }
+
+        //for google secret key
+
+        $db = new DbExt();
+        $stmt = "SELECT * FROM
+		    {{option}}
+		    WHERE
+	    	option_name= 'google_client_secret'
+	    	LIMIT 0,1
+		    ";
+        if ($google_client_secret = $db->rst($stmt)) {
+            $google_client_secret = $google_client_secret[0];
+            if (isset($google_client_secret['option_value']) && !empty($google_client_secret['option_value'])) {
+                $settings['mobile2_google_app_secret'] = $google_client_secret['option_value'];
+            }
+        }
+
+
+        //checking if it is anable or disable
+        if ($settings['mobile2_enabled_fblogin'] == '') {
+
+            $settings['mobile2_fb_app_id'] = '';
+            $settings['mobile2_fb_app_secret'] = '';
+        }
+
+        if ($settings['mobile2_enabled_googlogin'] == '') {
+            $settings['mobile2_google_app_secret'] = '';
+            $settings['mobile2_google_app_id'] = '';
+        }
+
+
+
+        if (empty($settings['mobile2_location_accuracy'])) {
+            $settings['mobile2_location_accuracy'] = 'REQUEST_PRIORITY_BALANCED_POWER_ACCURACY';
+        }
+
+        $settings['age_restriction'] = getOptionA('age_restriction');
+        $settings['age_restriction_content'] = getOptionA('age_restriction_content');
+
+        $mobileapp2_reg_email = getOptionA('mobileapp2_reg_email');
+        $mobileapp2_reg_phone = getOptionA('mobileapp2_reg_phone');
+
+        if (empty($mobileapp2_reg_email) && empty($mobileapp2_reg_phone)) {
+            $mobileapp2_reg_email = 1;
+            $mobileapp2_reg_phone = 1;
+        }
+
+        $settings['registration'] = array(
+            'email' => $mobileapp2_reg_email,
+            'phone' => $mobileapp2_reg_phone
+        );
+
+        $settings['tracking_theme'] = getOptionA('mobileapp2_tracking_theme');
+        if (empty($settings['tracking_theme'])) {
+            $settings['tracking_theme'] = 1;
+        }
+        $settings['tracking_interval'] = getOptionA('mobileapp2_tracking_interval');
+        if ($settings['tracking_interval'] <= 0 && empty($settings['tracking_interval'])) {
+            $settings['tracking_interval'] = 7000;
+        }
+
+        $settings['pages'] = array();
+        $db = new DbExt();
+        $stmt = "SELECT * FROM {{mobile2_pages}} WHERE status = 'publish' ORDER BY sequence ASC ";
+        if (isset($_GET['debug'])) {
+            dump($stmt);
+        }
+        if ($res = $db->rst($stmt)) {
+            $settings['pages'] = $res;
+        }
+
+        $settings['onboarding'] = array(
+
+            $settings['screen_one'] = getOptionA('mobileapp2_api_screen_one'),
+            $settings['push_notification'] = getOptionA('mobileapp2_api_push_notification'),
+            $settings['allow_geo_location'] = getOptionA('mobileapp2_api_allow_geo_location')
+
+        );
+
         $settings['home'] = array(
             'mobile2_home_offer' => getOptionA('mobile2_home_offer'),
             'mobile2_home_featured' => getOptionA('mobile2_home_featured'),
@@ -970,473 +891,10 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetSettings() {
-        $this->code = 1;
-        $this->msg = "OK";
-
-        $settings = array();
-
-        $mobile_prefix = getOptionA('mobileapp2_prefix');
-        if (empty($mobile_prefix)) {
-            $mobile_countrycode = require_once 'MobileCountryCode.php';
-            $admin_country_set = getOptionA('admin_country_set');
-            if (!empty($admin_country_set)) {
-                if (array_key_exists($admin_country_set, $mobile_countrycode)) {
-                    $mobile_prefix = "+" . $mobile_countrycode[$admin_country_set]['code'];
-                }
-            }
-        } else
-            $mobile_prefix = "+$mobile_prefix";
-
-        $startup_options = getOptionA('mobileapp2_startup');
-        if (method_exists('mobileWrapper', 'getStartupBanner')) {
-            $settings['startup'] = array(
-                'options' => empty($startup_options) ? 1 : $startup_options,
-                'select_language' => getOptionA('mobile2_enabled_select_language'),
-                'banner' => mobileWrapper::getStartupBanner(),
-            );
-        } else {
-            $settings['startup'] = array(
-                'options' => 1,
-                'select_language' => 0,
-                'banner' => array(),
-            );
-        }
-        
-        $location_rep = mobileWrapper::searchMode();
-        $settings['search_mode'] = $location_rep['search_mode'];
-        $settings['location_mode'] = $location_rep['location_mode'];
-        $settings['mobile_prefix'] = $mobile_prefix;
-        $settings['splash_screen'] = getOptionA('mobileapp2_api_splash_screen');
-        $settings['cart_theme'] = getOptionA('mobileapp2_cart_theme');
-        $settings['mobile_turnoff_prefix'] = getOptionA('mobileapp2_turnoff_prefix');
-        $settings['menu_type'] = mobileWrapper::getMenuType();
-        $settings['enabled_dish'] = getOptionA('mobile2_enabled_dish');
-        $settings['header_file'] = getOptionA('mobileapp2_header_image');
-        $settings['disabled_image_menu1'] = getOptionA('mobile2_disabled_image_menu1');
-        $settings['mobileapp2_select_map'] = getOptionA('mobileapp2_select_map');
-        $settings['mobileapp2_language'] = getOptionA('mobileapp2_language');
-        $settings['mobile2_enabled_fblogin'] = getOptionA('mobile2_enabled_fblogin');
-        $settings['mobile2_enabled_googlogin'] = getOptionA('mobile2_enabled_googlogin');
-         
-         
-    
-        //here addding the Facebook app id for both plateform mobile side
-        
-          $settings['mobileapp2_fb_id_both'] = getOptionA('mobileapp2_fb_id_both');
-         
-        //end
-        
-        //here addding the Facebook app secret for both plateform to mobile side
-        
-         $settings['mobileapp2_fb_app_secret_both'] = getOptionA('mobileapp2_fb_app_secret_both');
-         
-        //end
-        
-        
-        //here adding the Google app id for ios
-        
-           $settings['mobileapp2_Google_client_id_ios'] = getOptionA('mobileapp2_Google_client_id_ios');
-        
-        //end
-        
-        //here adding the Google app secret for ios
-        
-           $settings['mobileapp2_Google_client_secret_ios'] = getOptionA('mobileapp2_Google_client_secret_ios');
-        
-        //end
-        
-        
-        //here adding the Google app id for android
-         $settings['mobileapp2_Google_client_id_android'] = getOptionA('mobileapp2_Google_client_id_android');
-        
-        //end
-        
-        //here Adding the Google app secret for Android
-        
-         $settings['mobileapp2_Google_client_secret_android'] = getOptionA('mobileapp2_Google_client_secret_android');
-        //end
-        
-        // print_r($settings['mobile2_enabled_fblogin']); exit('sdffs');
-        
-        if(empty($settings['mobile2_enabled_fblogin'])){
-            
-            
-                //here addding the Facebook app id for both plateform mobile side
-        
-          $settings['mobileapp2_fb_id_both'] = "";
-         
-        //end
-        
-        //here addding the Facebook app secret for both plateform to mobile side
-        
-         $settings['mobileapp2_fb_app_secret_both'] = "";
-         
-        //end
-        
-            
-        }
-        
-        // print_r($settings['mobile2_enabled_googlogin']); exit('asda');
-        
-        if(empty($settings['mobile2_enabled_googlogin']) ){
-            
-            
-                    //here adding the Google app id for ios
-        
-           $settings['mobileapp2_Google_client_id_ios'] = "";
-        
-        //end
-        
-        //here adding the Google app secret for ios
-        
-           $settings['mobileapp2_Google_client_secret_ios'] = "";
-        
-        //end
-        
-        
-        //here adding the Google app id for android
-         $settings['mobileapp2_Google_client_id_android'] = "";
-        
-        //end
-        
-        //here Adding the Google app secret for Android
-        
-         $settings['mobileapp2_Google_client_secret_android'] = "";
-        //end
-        
-        }
-        
-        
-        
-        
-        //here adding fb parameters
-        $settings['mobile2_fb_app_id'] = '';
-        $settings['mobile2_fb_app_secret'] = '';
-        $settings['mobile2_fb_page_url'] = '';
-        //end
-       
-        //here adding the google parameters
-        $settings['mobile2_google_app_id'] = '';
-        $settings['mobile2_google_app_secret'] = '';
-        $settings['mobile2_google_redirect_url'] = '';
-        $settings['mobile2_google_page_url'] = '';
-        //end
-        
-        $settings['mobile2_analytics_enabled'] = getOptionA('mobile2_analytics_enabled');
-        $settings['mobile2_analytics_id'] = getOptionA('mobile2_analytics_id');
-        $settings['mobile2_location_accuracy'] = getOptionA('mobileapp2_location_accuracy');
-        
-        
-        //here fetching the facebook data from database
-        
-	    	$db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{option}}
-		    WHERE
-	    	option_name= 'fb_app_id'
-	    	LIMIT 0,1
-		    ";		    	
-		    if($fb_app_id = $db->rst($stmt)){
-		    	$fb_app_id = $fb_app_id[0];
-		    	if(isset($fb_app_id['option_value']) && !empty($fb_app_id['option_value'])){
-		    	    $settings['mobile2_fb_app_id'] = $fb_app_id['option_value'];
-		    	}
-		    }
-		    
-		    //for fb secret
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{option}}
-		    WHERE
-	    	option_name= 'fb_app_secret'
-	    	LIMIT 0,1
-		    ";		    	
-		    if($fb_app_secret = $db->rst($stmt)){
-		    	$fb_app_secret = $fb_app_secret[0];
-		  //  	print_r($fb_app_secret); exit('asds');
-		    	if(isset($fb_app_secret['option_value']) && !empty($fb_app_secret['option_value'])){
-		    	$settings['mobile2_fb_app_secret'] = $fb_app_secret['option_value'];
-		    	}
-		    }
-		    
-		    // here fetching the google data from database
-		    
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{option}}
-		    WHERE
-	    	option_name= 'google_client_id'
-	    	LIMIT 0,1
-		    ";		    	
-		    if($google_client_id = $db->rst($stmt)){
-		    	$google_client_id = $google_client_id[0];
-		    	if(isset($google_client_id['option_value']) && !empty($google_client_id['option_value'])){
-		    	    $settings['mobile2_google_app_id'] = $google_client_id['option_value'];
-		    	}
-		    }
-		    
-		    //for google secret key
-		    
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
-		    {{option}}
-		    WHERE
-	    	option_name= 'google_client_secret'
-	    	LIMIT 0,1
-		    ";		    	
-		    if($google_client_secret = $db->rst($stmt)){
-		    	$google_client_secret = $google_client_secret[0];
-		    	if(isset($google_client_secret['option_value']) && !empty($google_client_secret['option_value'])){
-		    	    $settings['mobile2_google_app_secret'] = $google_client_secret['option_value'];
-		    	}
-		    }
-		    
-		    
-		    //checking if it is anable or disable
-		    if($settings['mobile2_enabled_fblogin'] == ''){
-		        
-		         $settings['mobile2_fb_app_id'] = '';
-		         $settings['mobile2_fb_app_secret'] = '';
-		    }
-		    
-		    if($settings['mobile2_enabled_googlogin'] == ''){
-		        $settings['mobile2_google_app_secret'] = '';
-		         $settings['mobile2_google_app_id'] = '';
-		    }
-		    
-		    
-        
-        if (empty($settings['mobile2_location_accuracy'])) {
-            $settings['mobile2_location_accuracy'] = 'REQUEST_PRIORITY_BALANCED_POWER_ACCURACY';
-        }
-
-        $settings['age_restriction'] = getOptionA('age_restriction');
-        $settings['age_restriction_content'] = getOptionA('age_restriction_content');
-
-        $mobileapp2_reg_email = getOptionA('mobileapp2_reg_email');
-        $mobileapp2_reg_phone = getOptionA('mobileapp2_reg_phone');
-
-        if (empty($mobileapp2_reg_email) && empty($mobileapp2_reg_phone)) {
-            $mobileapp2_reg_email = 1;
-            $mobileapp2_reg_phone = 1;
-        }
-
-        $settings['registration'] = array(
-            'email' => $mobileapp2_reg_email,
-            'phone' => $mobileapp2_reg_phone
-        );
-
-        $settings['tracking_theme'] = getOptionA('mobileapp2_tracking_theme');
-        if (empty($settings['tracking_theme'])) {
-            $settings['tracking_theme'] = 1;
-        }
-        $settings['tracking_interval'] = getOptionA('mobileapp2_tracking_interval');
-        if ($settings['tracking_interval'] <= 0 && empty($settings['tracking_interval'])) {
-            $settings['tracking_interval'] = 7000;
-        }
-
-        $settings['pages'] =  array();
-        $db = new DbExt();
-        $stmt = "SELECT * FROM {{mobile2_pages}} WHERE status = 'publish' ORDER BY sequence ASC ";
-        if (isset($_GET['debug'])) {
-            dump($stmt);
-        }
-        if ($res = $db->rst($stmt)) {
-            $settings['pages'] =  $res;         
-        }
- 
-        $settings['home'] = array(
-            'mobile2_home_offer' => getOptionA('mobile2_home_offer'),
-            'mobile2_home_featured' => getOptionA('mobile2_home_featured'),
-            'mobile2_home_cuisine' => getOptionA('mobile2_home_cuisine'),
-            'mobile2_home_all_restaurant' => getOptionA('mobile2_home_all_restaurant'),
-            'mobile2_home_favorite_restaurant' => getOptionA('mobile2_home_favorite_restaurant'),
-            'mobile2_home_banner' => getOptionA('mobile2_home_banner')
-        );
-
-        if ($settings['home']['mobile2_home_banner'] == 1) {
-            $settings['home_banner'] = mobileWrapper::getHomeBanner();
-        } else
-            $settings['home_banner'] = array();
-
-        $settings['mobile2_disabled_default_image'] = getOptionA('mobile2_disabled_default_image');
-
-        $settings['map_provider'] = FunctionsV3::getMapProvider();
-        $settings['map_country'] = FunctionsV3::getCountryCode();
-
-        $settings['map_auto_identity_location'] = false;
-
-        $settings['default_map_location'] = array(
-            'lat' => getOptionA('mobile2_default_lat'),
-            'lng' => getOptionA('mobile2_default_lng')
-        );
-
-        $settings['website_hide_foodprice'] = getOptionA('website_hide_foodprice');
-        $settings['enabled_map_selection_delivery'] = getOptionA('enabled_map_selection_delivery');
-        $settings['website_hide_foodprice'] = getOptionA('website_hide_foodprice');
-        $settings['merchant_two_flavor_option'] = getOptionA('merchant_two_flavor_option');
-        $settings['images'] = array(
-            'image1' => mobileWrapper::getImage('mobile-default-logo.png'),
-            'image2' => mobileWrapper::getImage('resto_banner.jpg', 'resto_banner.jpg'),
-        );
-        $settings['icons'] = array(
-            'marker1' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/icon_28.png",
-            'marker2' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker_green.png",
-            'marker3' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker_orange.png",
-            'bicycle' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/bicycle.png",
-            'bike' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/bike.png",
-            'car' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/car.png",
-            'scooter' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/scooter.png",
-            'truck' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/truck.png",
-            'walk' => websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/walk.png",
-        );
-        $settings['marker_icon'] = array(
-            $settings['icons']['marker1'],
-            $settings['icons']['marker2'],
-            $settings['icons']['marker3'],
-            websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker1.png",
-            websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker2.png",
-            websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker3.png",
-            websiteUrl() . "/protected/modules/" . APP_FOLDER . "/assets/images/marker4.png",
-        );
-        $settings['list_type'] = mobileWrapper::getListType();
-
-        $settings['addon']['driver'] = false;
-        if (mobileWrapper::showDriverSignup()) {
-            $settings['addon']['driver'] = true;
-            $settings['addon']['driver_transport'] = Driver::transportType();
-        }
-
-        $settings['addon']['points'] = false;
-        if (FunctionsV3::hasModuleAddon("pointsprogram")) {
-            $settings['addon']['points'] = true;
-        }
-
-        if ($settings['mobileapp2_language'] == "0") {
-            $settings['mobileapp2_language'] = 'en';
-        }
-
-        $settings['cod_change_required'] = getOptionA('cod_change_required');
-        $settings['disabled_website_ordering'] = getOptionA('disabled_website_ordering');
-        $settings['mapbox_access_token'] = getOptionA('mapbox_access_token');
-        $settings['mapbox_default_zoom'] = getOptionA('mapbox_default_zoom');
-        $settings['disabled_cc_management'] = getOptionA('disabled_cc_management');
-        $settings['merchant_tbl_book_disabled'] = getOptionA('merchant_tbl_book_disabled');
-
-        $settings['currency_symbol'] = getCurrencyCode();
-        $settings['currency_position'] = getOptionA('admin_currency_position');
-        $settings['currency_decimal_place'] = getOptionA('admin_decimal_place');
-        $settings['currency_space'] = getOptionA('admin_add_space_between_price');
-        $settings['currency_use_separators'] = getOptionA('admin_use_separators');
-        $settings['currency_decimal_separator'] = getOptionA('admin_decimal_separator');
-        $settings['currency_thousand_separator'] = getOptionA('admin_thousand_separator');
-
-        if (empty($settings['currency_position'])) {
-            $settings['currency_position'] = 'left';
-        }
-        if (empty($settings['currency_decimal_place'])) {
-            $settings['currency_position'] = 2;
-        }
-        if (empty($settings['currency_decimal_separator'])) {
-            $settings['currency_decimal_separator'] = ".";
-        }
-        if ($settings['currency_use_separators'] == "yes") {
-            if ($settings['currency_thousand_separator'] == "") {
-                $settings['currency_thousand_separator'] = ",";
-            }
-        }
-
-        $reg_field_1 = getOptionA('client_custom_field_name1');
-        $reg_field_2 = getOptionA('client_custom_field_name2');
-
-        $settings['reg_custom'] = 0;
-
-        if (!empty($reg_field_1) || !empty($reg_field_2)) {
-            $fields = array();
-            if (!empty($reg_field_1)) {
-                $fields['custom_field1'] = $reg_field_1;
-            }
-            if (!empty($reg_field_2)) {
-                $fields['custom_field2'] = $reg_field_2;
-            }
-            $settings['reg_custom_fields'] = $fields;
-            $settings['reg_custom'] = 1;
-        }
-
-        $valid_token = 2;
-        $client_info = array();
-        if (isset($this->data['user_token'])) {
-            if ($client_info = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
-                if (!mobileWrapper::checkBlockAccount($client_info['email_address'], $client_info['contact_phone'])) {
-                    $valid_token = 1;
-                }
-            }
-        }
-
-        $settings['valid_token'] = $valid_token;
-
-        $sortby = array(
-            'restaurant' => mobileWrapper::sortRestaurantList(),
-            'cusine' => mobileWrapper::sortCuisineList()
-        );
-        $settings['sort'] = $sortby;
-
-        $filters = array(
-            'delivery_fee' => array(
-                'delivery_fee' => $this->t("Free Delivery")
-            ),
-            'promos' => array(
-                'offer' => mt("Offers"),
-                'voucher' => mt("Vouchers"),
-            ),
-            'services' => mobileWrapper::servicesList(),
-            'dishes_list' => itemWrapper::dishesList(),
-            'cuisine' => Yii::app()->functions->Cuisine(false),
-            'minimum_order' => FunctionsV3::minimumDeliveryFee()
-        );
-        $settings['filters'] = $filters;
-
-
-        $settings['custom_pages'] = mobileWrapper::getTitlePages();
-
-        $settings['order_tabs'] = array(
-            'all' => mt("All"),
-            'processing' => mt("Processing"),
-            'completed' => mt("Completed"),
-            'cancelled' => mt("Cancelled"),
-        );
-
-        $settings['booking_tabs'] = array(
-            'all' => mt("All"),
-            'pending' => mt("Pending"),
-            'approved' => mt("Approved"),
-            'denied' => mt("Denied"),
-        );
-
-        $app_dict = Mobileappv2Module::$global_dict;
-        $dict_cuisine = mobileWrapper::cuisineListDict($filters['cuisine']);
-        $dict_pages = mobileWrapper::customerPageDict($settings['custom_pages']);
-        $dict = array_merge((array) $app_dict, (array) $dict_cuisine, (array) $dict_pages);
-        $settings['dict'] = $dict;
-
-        $this->details = array(
-            'valid_token' => $valid_token,
-            'settings' => $settings
-        );
-
-        /* REGISTERED DEVICE */
-        /* if(is_array($client_info) && count((array)$client_info)>=1){
-          $this->data['client_id'] = $client_info['client_id'];
-          }
-          mobileWrapper::registeredDevice($this->data,'active',false); */
-
-        $this->output();
-    }
-    
     //start
-    
-  public function actiongetSettingsTest() {
+
+    public function actiongetSettingsTest()
+    {
         $this->code = 1;
         $this->msg = "OK";
 
@@ -1468,14 +926,14 @@ class ApiController extends CController {
                 'banner' => array(),
             );
         }
-        
-      
-        
+
+
+
         $location_rep = mobileWrapper::searchMode();
-        
-      
-        
-        
+
+
+
+
         $settings['search_mode'] = $location_rep['search_mode'];
         $settings['location_mode'] = $location_rep['location_mode'];
         $settings['mobile_prefix'] = $mobile_prefix;
@@ -1489,46 +947,46 @@ class ApiController extends CController {
         $settings['mobileapp2_select_map'] = getOptionA('mobileapp2_select_map');
         $settings['mobileapp2_language'] = getOptionA('mobileapp2_language');
         $settings['mobile2_enabled_fblogin'] = getOptionA('mobile2_enabled_fblogin');
-        
+
         //here addding the Facebook app id for both plateform mobile side
-        
-            $settings['mobileapp2_fb_id_both'] = getOptionA('mobileapp2_fb_id_both');
-            
+
+        $settings['mobileapp2_fb_id_both'] = getOptionA('mobileapp2_fb_id_both');
+
         //end
-        
+
         //here addding the Facebook app secret for both plateform to mobile side
-        
-         $settings['mobileapp2_fb_app_secret_both'] = getOptionA('mobileapp2_fb_app_secret_both');
-         
+
+        $settings['mobileapp2_fb_app_secret_both'] = getOptionA('mobileapp2_fb_app_secret_both');
+
         //end
-        
-        
+
+
         //here adding the Google app id for ios
-        
-           $settings['mobileapp2_Google_client_id_ios'] = getOptionA('mobileapp2_Google_client_id_ios');
-        
+
+        $settings['mobileapp2_Google_client_id_ios'] = getOptionA('mobileapp2_Google_client_id_ios');
+
         //end
-        
+
         //here adding the Google app secret for ios
-        
-           $settings['mobileapp2_Google_client_secret_ios'] = getOptionA('mobileapp2_Google_client_secret_ios');
-        
+
+        $settings['mobileapp2_Google_client_secret_ios'] = getOptionA('mobileapp2_Google_client_secret_ios');
+
         //end
-        
-        
+
+
         //here adding the Google app id for android
-         $settings['mobileapp2_Google_client_id_android'] = getOptionA('mobileapp2_Google_client_id_android');
-        
+        $settings['mobileapp2_Google_client_id_android'] = getOptionA('mobileapp2_Google_client_id_android');
+
         //end
-        
+
         //here Adding the Google app secret for Android
-        
-         $settings['mobileapp2_Google_client_secret_android'] = getOptionA('mobileapp2_Google_client_secret_android');
+
+        $settings['mobileapp2_Google_client_secret_android'] = getOptionA('mobileapp2_Google_client_secret_android');
         //end
-        
-        
-        
-        
+
+
+
+
         //here adding fb parameters
         $settings['mobile2_fb_app_id'] = '';
         $settings['mobile2_fb_app_secret'] = '';
@@ -1541,93 +999,93 @@ class ApiController extends CController {
         $settings['mobile2_google_redirect_url'] = '';
         $settings['mobile2_google_page_url'] = '';
         //end
-        
+
         $settings['mobile2_analytics_enabled'] = getOptionA('mobile2_analytics_enabled');
         $settings['mobile2_analytics_id'] = getOptionA('mobile2_analytics_id');
         $settings['mobile2_location_accuracy'] = getOptionA('mobileapp2_location_accuracy');
-        
+
         //   print_r($settings); exit('sdfs');
-        
-        
+
+
         //here fetching the facebook data from database
-        
-	    	$db = new  DbExt();
-	    	$stmt="SELECT * FROM
+
+        $db = new DbExt();
+        $stmt = "SELECT * FROM
 		    {{option}}
 		    WHERE
 	    	option_name= 'fb_app_id'
 	    	LIMIT 0,1
-		    ";		    	
-		    if($fb_app_id = $db->rst($stmt)){
-		    	$fb_app_id = $fb_app_id[0];
-		    	if(isset($fb_app_id['option_value']) && !empty($fb_app_id['option_value'])){
-		    	    $settings['mobile2_fb_app_id'] = $fb_app_id['option_value'];
-		    	}
-		    }
-		    
-		    //for fb secret
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
+		    ";
+        if ($fb_app_id = $db->rst($stmt)) {
+            $fb_app_id = $fb_app_id[0];
+            if (isset($fb_app_id['option_value']) && !empty($fb_app_id['option_value'])) {
+                $settings['mobile2_fb_app_id'] = $fb_app_id['option_value'];
+            }
+        }
+
+        //for fb secret
+        $db = new DbExt();
+        $stmt = "SELECT * FROM
 		    {{option}}
 		    WHERE
 	    	option_name= 'fb_app_secret'
 	    	LIMIT 0,1
-		    ";		    	
-		    if($fb_app_secret = $db->rst($stmt)){
-		    	$fb_app_secret = $fb_app_secret[0];
-		  //  	print_r($fb_app_secret); exit('asds');
-		    	if(isset($fb_app_secret['option_value']) && !empty($fb_app_secret['option_value'])){
-		    	$settings['mobile2_fb_app_secret'] = $fb_app_secret['option_value'];
-		    	}
-		    }
-		    
-		    // here fetching the google data from database
-		    
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
+		    ";
+        if ($fb_app_secret = $db->rst($stmt)) {
+            $fb_app_secret = $fb_app_secret[0];
+            //  	print_r($fb_app_secret); exit('asds');
+            if (isset($fb_app_secret['option_value']) && !empty($fb_app_secret['option_value'])) {
+                $settings['mobile2_fb_app_secret'] = $fb_app_secret['option_value'];
+            }
+        }
+
+        // here fetching the google data from database
+
+        $db = new DbExt();
+        $stmt = "SELECT * FROM
 		    {{option}}
 		    WHERE
 	    	option_name= 'google_client_id'
 	    	LIMIT 0,1
-		    ";		    	
-		    if($google_client_id = $db->rst($stmt)){
-		    	$google_client_id = $google_client_id[0];
-		    	if(isset($google_client_id['option_value']) && !empty($google_client_id['option_value'])){
-		    	    $settings['mobile2_google_app_id'] = $google_client_id['option_value'];
-		    	}
-		    }
-		    
-		    //for google secret key
-		    
-		    $db = new  DbExt();
-	    	$stmt="SELECT * FROM
+		    ";
+        if ($google_client_id = $db->rst($stmt)) {
+            $google_client_id = $google_client_id[0];
+            if (isset($google_client_id['option_value']) && !empty($google_client_id['option_value'])) {
+                $settings['mobile2_google_app_id'] = $google_client_id['option_value'];
+            }
+        }
+
+        //for google secret key
+
+        $db = new DbExt();
+        $stmt = "SELECT * FROM
 		    {{option}}
 		    WHERE
 	    	option_name= 'google_client_secret'
 	    	LIMIT 0,1
-		    ";		    	
-		    if($google_client_secret = $db->rst($stmt)){
-		    	$google_client_secret = $google_client_secret[0];
-		    	if(isset($google_client_secret['option_value']) && !empty($google_client_secret['option_value'])){
-		    	    $settings['mobile2_google_app_secret'] = $google_client_secret['option_value'];
-		    	}
-		    }
-		    
-		    
-		    //checking if it is anable or disable
-		    if($settings['mobile2_enabled_fblogin'] == ''){
-		        
-		         $settings['mobile2_fb_app_id'] = '';
-		         $settings['mobile2_fb_app_secret'] = '';
-		    }
-		    
-		    if($settings['mobile2_enabled_googlogin'] == ''){
-		        $settings['mobile2_google_app_secret'] = '';
-		         $settings['mobile2_google_app_id'] = '';
-		    }
-		    
-		    
-        
+		    ";
+        if ($google_client_secret = $db->rst($stmt)) {
+            $google_client_secret = $google_client_secret[0];
+            if (isset($google_client_secret['option_value']) && !empty($google_client_secret['option_value'])) {
+                $settings['mobile2_google_app_secret'] = $google_client_secret['option_value'];
+            }
+        }
+
+
+        //checking if it is anable or disable
+        if ($settings['mobile2_enabled_fblogin'] == '') {
+
+            $settings['mobile2_fb_app_id'] = '';
+            $settings['mobile2_fb_app_secret'] = '';
+        }
+
+        if ($settings['mobile2_enabled_googlogin'] == '') {
+            $settings['mobile2_google_app_secret'] = '';
+            $settings['mobile2_google_app_id'] = '';
+        }
+
+
+
         if (empty($settings['mobile2_location_accuracy'])) {
             $settings['mobile2_location_accuracy'] = 'REQUEST_PRIORITY_BALANCED_POWER_ACCURACY';
         }
@@ -1657,16 +1115,16 @@ class ApiController extends CController {
             $settings['tracking_interval'] = 7000;
         }
 
-        $settings['pages'] =  array();
+        $settings['pages'] = array();
         $db = new DbExt();
         $stmt = "SELECT * FROM {{mobile2_pages}} WHERE status = 'publish' ORDER BY sequence ASC ";
         if (isset($_GET['debug'])) {
             dump($stmt);
         }
         if ($res = $db->rst($stmt)) {
-            $settings['pages'] =  $res;         
+            $settings['pages'] = $res;
         }
- 
+
         $settings['home'] = array(
             'mobile2_home_offer' => getOptionA('mobile2_home_offer'),
             'mobile2_home_featured' => getOptionA('mobile2_home_featured'),
@@ -1854,14 +1312,15 @@ class ApiController extends CController {
 
         $this->output();
     }
-    
-    //end
-    
-    //end test function 
-    
-    
 
-    public function actiongetMobileCodeList() {
+    //end
+
+    //end test function 
+
+
+
+    public function actiongetMobileCodeList()
+    {
         $mobile_countrycode = require_once 'MobileCountryCode.php';
         $data = array();
 
@@ -1879,7 +1338,79 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actioncreateAccount() {
+    public function actionsendCode()
+    {
+
+        $email_code = Yii::app()->functions->generateRandomKeyAlfa(6);
+        $expiry_date = strtotime('+30 minutes');
+
+        $params = array(
+            'email' => $_POST['email'],
+            'code' => $email_code,
+            'expiry_date' => date('Y-m-d H:i:s', $expiry_date)
+        );
+
+        $DbExt = new DbExt;
+        if ($DbExt->insertData("{{authentication}}", $params)) {
+
+            $this->code = 1;
+            $this->msg = $this->t("Please check your email for verification code.");
+
+            /* send email verification added on version 3 */
+
+            $email_verification = getOptionA('email');
+
+            $params['code'] = $email_code;
+
+            FunctionsV3::sendMobilelVerificationCodeNew($params['email'], $email_code, $params);
+            // $this->data['next_step'] = 'verification_email';
+
+        } else {
+            $this->code = 0;
+            $this->msg = $this->t("Please type your correct email.");
+
+        }
+        $this->output();
+    }
+
+    public function actionverifysendCode()
+    {
+        // ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
+        $this->data = $_POST;
+        $email = isset($this->data['email']) ? trim($this->data['email']) : '';
+        $code = isset($this->data['code']) ? trim($this->data['code']) : '';
+        // $DbExt = new DbExt;
+
+
+        $connection = Yii::app()->db;
+        // $command = $connection->createCommand('select code,email,expiry_date from mt_authentication where email=:email AND code=:code ')->bindValues([':email'=>$email,':code'=>$code]);
+        $command = $connection->createCommand('SELECT code, email, expiry_date FROM mt_authentication WHERE BINARY email = :email AND BINARY code = :code')
+            ->bindValues([':email' => $email, ':code' => $code]);
+
+        $row = $command->queryRow();
+
+        if ($row !== false) {
+            // Check if the code is expired
+
+            $expiry_date = strtotime($row['expiry_date']);
+            $current_time = time();
+            if ($current_time > $expiry_date) {
+                $this->code = 0;
+                $this->msg = $this->t("Verification code has expired");
+            } else {
+                $this->code = 1;
+                $this->msg = $this->t("Your email has been verified");
+            }
+        } else {
+            $this->code = 0;
+            $this->msg = $this->t("Verification code does not match");
+        }
+
+
+        $this->output();
+    }
+    public function actioncreateAccount()
+    {
         $this->data = $_POST;
 
         $Validator = new Validator;
@@ -1889,7 +1420,7 @@ class ApiController extends CController {
 
         $mobileapp2_reg_email = getOptionA('mobileapp2_reg_email');
         $mobileapp2_reg_phone = getOptionA('mobileapp2_reg_phone');
-        
+
         if (empty($mobileapp2_reg_email) && empty($mobileapp2_reg_phone)) {
             $mobileapp2_reg_email = 1;
             $mobileapp2_reg_phone = 1;
@@ -1897,23 +1428,23 @@ class ApiController extends CController {
 
         /* check if email address is blocked */
         if ($mobileapp2_reg_email == 1) {
-             
+
             if (FunctionsK::emailBlockedCheck($this->data['email_address'])) {
                 $Validator->msg[] = $this->t("Sorry but your email address is blocked by website admin");
             }
-         
+
             if ($resp = Yii::app()->functions->isClientExist($this->data['email_address'])) {
-                
+
                 $Validator->msg[] = $this->t("Sorry but your email address already exist in our records. Please login or click on forget password to reset your password");
             }
-               
+
         }
         if ($mobileapp2_reg_phone == 1) {
-            if ($this->data['contact_phone'] !='' && FunctionsK::mobileBlockedCheck($this->data['contact_phone'])) {
+            if ($this->data['contact_phone'] != '' && FunctionsK::mobileBlockedCheck($this->data['contact_phone'])) {
                 $Validator->msg[] = $this->t("Sorry but your mobile number is blocked by website admin");
             }
             $functionk = new FunctionsK();
-            if ($this->data['contact_phone'] !='' && $functionk->CheckCustomerMobile($this->data['contact_phone'])) {
+            if ($this->data['contact_phone'] != '' && $functionk->CheckCustomerMobile($this->data['contact_phone'])) {
                 $Validator->msg[] = $this->t("Sorry but your mobile number is already exist in our records");
             }
         }
@@ -2014,7 +1545,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionresendCode() {
+    public function actionresendCode()
+    {
         $verification_type = isset($this->data['verification_type']) ? $this->data['verification_type'] : '';
         $customer_token = isset($this->data['customer_token']) ? $this->data['customer_token'] : '';
 
@@ -2053,7 +1585,7 @@ class ApiController extends CController {
                                 $db = new DbExt();
                                 $db->updateData("{{client}}", array(
                                     'verify_code_requested' => FunctionsV3::dateNow()
-                                        ), 'client_id', $client_id);
+                                ), 'client_id', $client_id);
                                 unset($db);
                             } else {
                                 $this->msg = $this->t("you are requesting too soon please wait a minute then try again");
@@ -2095,7 +1627,7 @@ class ApiController extends CController {
                                 $db = new DbExt();
                                 $db->updateData("{{client}}", array(
                                     'verify_code_requested' => FunctionsV3::dateNow()
-                                        ), 'client_id', $client_id);
+                                ), 'client_id', $client_id);
                                 unset($db);
                             } else {
                                 $this->msg = $this->t("you are requesting too soon please wait a minute then try again");
@@ -2116,7 +1648,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionverifyCode() {
+    public function actionverifyCode()
+    {
         $db = new DbExt();
         $verification_type = isset($this->data['verification_type']) ? $this->data['verification_type'] : '';
         $customer_token = isset($this->data['customer_token']) ? $this->data['customer_token'] : '';
@@ -2175,16 +1708,15 @@ class ApiController extends CController {
         $this->output();
     }
 
-    
-    
-    public function actionsearchMerchant() {
-        
-        
+    public function actionsearchMerchant()
+    {
+
+
         $db = new DbExt();
         $db->qry("SET SQL_BIG_SELECTS=1");
 
         $search_resp = mobileWrapper::searchMode();
-        
+
         $search_mode = $search_resp['search_mode'];
         $location_mode = $search_resp['location_mode'];
 
@@ -2195,10 +1727,10 @@ class ApiController extends CController {
         $enabled_distance = 1;
 
         $distance_results_type = mobileWrapper::getDistanceResultsType();
-        
-        $cuisine_name = ''; 
+
+        $cuisine_name = '';
         $page = $this->data['page'] * $page_limit;
-        
+
         $stmt = '';
         $and = ' AND a.app_status = 1 ';
         $where = '';
@@ -2208,10 +1740,10 @@ class ApiController extends CController {
 
 
         $home_search_unit_type = getOptionA('home_search_unit_type');
-        
-       
+
+
         $home_search_unit_type_admin = $home_search_unit_type;
-        
+
         $home_search_radius = getOptionA('home_search_radius');
         $home_search_radius = is_numeric($home_search_radius) ? $home_search_radius : 10;
 
@@ -2241,10 +1773,10 @@ class ApiController extends CController {
 		a.minimum_order as minimum_order_raw,
 		a.is_featured,
 		";
-		
-		
 
-	
+
+
+
 
         $query_distance = "
 		( $distance_exp * acos( cos( radians($lat) ) * cos( radians( latitude ) ) 
@@ -2252,8 +1784,8 @@ class ApiController extends CController {
 				+ sin( radians($lat) ) * sin( radians( latitude ) ) ) ) 
 				AS distance		
 		";
-		
-		
+
+
 
 
         $sort_asc_desc = isset($this->data['sort_asc_desc']) ? $this->data['sort_asc_desc'] : 'ASC';
@@ -2263,8 +1795,8 @@ class ApiController extends CController {
         if ($search_mode == "location") {
             $sort = "ORDER BY is_sponsored DESC, restaurant_name $sort_asc_desc";
         }
-        
-        		
+
+
 
         $sort_by = isset($this->data['sort_by']) ? $this->data['sort_by'] : '';
         $sortby_selected = $this->t("Distance");
@@ -2279,8 +1811,8 @@ class ApiController extends CController {
             $sortby_selected = $sort_resp['name'];
             $sort = "ORDER BY " . stripslashes($sort_by) . " $sort_asc_desc";
         }
-        
-        	
+
+
 
         /* FILTER */
         $filter = '';
@@ -2289,7 +1821,7 @@ class ApiController extends CController {
                 $filter .= " AND a.delivery_charges <= 0 ";
             }
         }
-       
+
         if (isset($this->data['filter_services'])) {
             if (is_array($this->data['filter_services']) && count($this->data['filter_services']) >= 1) {
                 $filter_services_stmt = '';
@@ -2312,11 +1844,11 @@ class ApiController extends CController {
                 $filter .= " AND ($filter_services_stmt) ";
             }
         }
-         
+
 
         if (isset($this->data['filter_cuisine'])) {
-            
-    
+
+
             if (is_array($this->data['filter_cuisine']) && count($this->data['filter_cuisine']) >= 1) {
                 $filter_cuisine_stmt = '';
                 foreach ($this->data['filter_cuisine'] as $filter_cuisine) {
@@ -2334,7 +1866,9 @@ class ApiController extends CController {
         }
 
         /* FILTER PROMOS */
+
         if (isset($this->data['filter_promos'])) {
+
             if (!empty($this->data['filter_promos']) && $search_type != "special_Offers") {
                 if ($this->data['filter_promos'] == "offer") {
                     $filter .= " AND a.merchant_id IN (
@@ -2383,39 +1917,39 @@ class ApiController extends CController {
         $postal_code = isset($this->data['postal_code']) ? $this->data['postal_code'] : -1;
 
         switch ($search_type) {
-            
-          
-            
+
+
+
             case "byLatLong":
-                
-                
+
+
                 // print("sdfs"); exit("latuu");
                 //  print_r($this->data);  print_r($lat, $lng); exit(LLLL);
-                
-  
-            
+
+
+
                 if (isset($this->data['map_page'])) {
                     if ($this->data['map_page'] == 1) {
                         $page_limit = 1000;
                     }
                 }
-                
-                
+
+
                 $R = 3960;  // earth's mean radius
                 $rad = '100';
                 // first-cut bounding box (in degrees)
-                $maxLat = $lat + rad2deg($rad/$R);
-                
-                $minLat = $lat - rad2deg($rad/$R);
-                
+                $maxLat = $lat + rad2deg($rad / $R);
+
+                $minLat = $lat - rad2deg($rad / $R);
+
                 // compensate for degrees longitude getting smaller with increasing latitude
-                $maxLon = $lon + rad2deg($rad/$R/cos(deg2rad($lat)));
-                $minLon = $lon - rad2deg($rad/$R/cos(deg2rad($lat)));
-                
-                $maxLat=number_format((float)$maxLat, 6, '.', '');
-                $minLat=number_format((float)$minLat, 6, '.', '');
-                $maxLon=number_format((float)$maxLon, 6, '.', '');
-                $minLon=number_format((float)$minLon, 6, '.', '');
+                $maxLon = $lon + rad2deg($rad / $R / cos(deg2rad($lat)));
+                $minLon = $lon - rad2deg($rad / $R / cos(deg2rad($lat)));
+
+                $maxLat = number_format((float) $maxLat, 6, '.', '');
+                $minLat = number_format((float) $minLat, 6, '.', '');
+                $maxLon = number_format((float) $maxLon, 6, '.', '');
+                $minLon = number_format((float) $minLon, 6, '.', '');
 
 
                 $stmt = "
@@ -2434,8 +1968,8 @@ class ApiController extends CController {
 			 	$sort
 				LIMIT $page,$page_limit
 				";
-				
-				     
+
+
                 if ($search_mode == "location") {
 
                     if (isset($this->data['filter_delivery_fee'])) {
@@ -2783,7 +2317,7 @@ class ApiController extends CController {
                         }
                     }
                 }
-                
+
                 $stmt = "
 				    SELECT SQL_CALC_FOUND_ROWS 
 					$a
@@ -2791,17 +2325,17 @@ class ApiController extends CController {
 	                $query_distance					
 					FROM {{view_merchant}} a
 					$where  AND (";
-					
-					$cuisine_ids = explode(',', $cuisine_id);
-					
-					foreach($cuisine_ids as $key => $cuids){
-					    if($key == 0){
-					       $stmt .= "  a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%') ;        
-					    }else{
-					        $stmt .= " OR a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%') ; 
-					    }
-					}
-					$stmt .= ")
+
+                $cuisine_ids = explode(',', $cuisine_id);
+
+                foreach ($cuisine_ids as $key => $cuids) {
+                    if ($key == 0) {
+                        $stmt .= "  a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%');
+                    } else {
+                        $stmt .= " OR a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%');
+                    }
+                }
+                $stmt .= ")
 					$and
 					$sort
 					LIMIT $page,$page_limit
@@ -2919,7 +2453,7 @@ class ApiController extends CController {
         $search_options = mobileWrapper::getDataSearchOptions();
         if (!empty($stmt)) {
             if ($res = $db->rst($stmt)) {
-                
+
 
                 $total_records = 0;
                 $stmtc = "SELECT FOUND_ROWS() as total_records";
@@ -2933,35 +2467,40 @@ class ApiController extends CController {
                     case "allMerchant":
                     case "byCuisine":
                         $this->msg = mobileWrapper::t("[total] Restaurant Found", array(
-                                    '[total]' => $total_records
-                        ));
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
 
                     case "featuredMerchant":
                         $this->msg = mobileWrapper::t("[total] Featured Restaurant", array(
-                                    '[total]' => $total_records
-                        ));
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
 
                     case "special_Offers":
                         $this->msg = mobileWrapper::t("[total] Special Offers", array(
-                                    '[total]' => $total_records
-                        ));
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
 
                     case "favorites":
                         $this->msg = mobileWrapper::t("[total] Favorites", array(
-                                    '[total]' => $total_records
-                        ));
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
 
                     default:
                         $this->msg = mobileWrapper::t("[total] Nearby
                       
                         Restaurant", array(
-                            
-                                    '[total]' => $total_records
-                        ));
+
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
                 }
 
@@ -2972,6 +2511,8 @@ class ApiController extends CController {
                 foreach ($res as $val) {
                     $merchant_id = $val['merchant_id'];
                     $val['restaurant_name'] = clearString($val['restaurant_name']);
+                    $val['order_asap'] = (Yii::app()->functions->getOption('order_asap', $merchant_id) == 2) ? 'true' : 'false';
+                    $val['merchant_time_interval'] = Yii::app()->functions->getOption('merchant_time_interval', $merchant_id);
 
                     $home_search_unit_type = getOption($merchant_id, 'merchant_distance_type');
                     if (empty($home_search_unit_type)) {
@@ -2979,23 +2520,26 @@ class ApiController extends CController {
                     }
 
                     if (in_array('minimum_order', $search_options)) {
-                        
+
                         if ($search_mode == "address") {
                             $minimum_order = $val['minimum_order'];
-                            $min_fees = FunctionsV3::getMinOrderByTableRates($merchant_id,
-                                            $val['distance'],
-                                            $home_search_unit_type,
-                                            $val['minimum_order']
+                            $min_fees = FunctionsV3::getMinOrderByTableRates(
+                                $merchant_id,
+                                $val['distance'],
+                                $home_search_unit_type,
+                                $val['minimum_order']
                             );
                             $val['minimum_order_raw'] = $min_fees;
                             $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-                                        '[min]' => FunctionsV3::prettyPrice($min_fees)
-                            ));
+                                '[min]' => FunctionsV3::prettyPrice($min_fees)
+                            )
+                            );
                         } else {
                             if ($val['minimum_order'] > 0.0001) {
                                 $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-                                            '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
-                                ));
+                                    '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
+                                )
+                                );
                             } else {
                                 unset($val['minimum_order']);
                                 unset($val['minimum_order_raw']);
@@ -3008,8 +2552,8 @@ class ApiController extends CController {
 
 
                     if (in_array('open_tag', $search_options)) {
-                        
-                  
+
+
                         $status = mobileWrapper::merchantStatus($merchant_id);
                         $val['open_status_raw'] = $status;
                         $val['open_status'] = mt($status);
@@ -3029,8 +2573,9 @@ class ApiController extends CController {
                     if (in_array('review', $search_options)) {
                         $ratings = Yii::app()->functions->getRatings($merchant_id);
                         $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-                                    '[count]' => $ratings['votes']
-                        ));
+                            '[count]' => $ratings['votes']
+                        )
+                        );
                         $val['rating'] = $ratings;
                     }
 
@@ -3045,14 +2590,16 @@ class ApiController extends CController {
                         if (in_array('distace', $search_options)) {
 
                             $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-                                        '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
-                            ));
+                                '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
+                            )
+                            );
 
                             if ($distance_results_type == 2) {
                                 if ($resp_lat = FunctionsV3::getDistanceBetweenPlot($lat, $lng, $val['latitude'], $val['lontitude'], $home_search_unit_type)) {
                                     $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-                                                '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
-                                    ));
+                                        '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
+                                    )
+                                    );
                                     $distance = number_format($resp_lat, 1);
                                 } else
                                     $val['distance_plot'] = $this->t("Distance : not available");
@@ -3074,15 +2621,17 @@ class ApiController extends CController {
                         if (in_array('delivery_estimation', $search_options)) {
                             $estimation = FunctionsV3::getDeliveryEstimation($merchant_id);
                             $val['delivery_estimation'] = mobileWrapper::t("Delivery Est: [estimation]", array(
-                                        '[estimation]' => mt($estimation)
-                            ));
+                                '[estimation]' => mt($estimation)
+                            )
+                            );
                         }
                         if (in_array('delivery_distance', $search_options)) {
                             $delivery_distance = getOption($merchant_id, 'merchant_delivery_miles');
                             if ($delivery_distance >= 0.001) {
                                 $val['delivery_distance'] = mobileWrapper::t("Delivery Distance: [delivery_distance]", array(
-                                            '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
-                                ));
+                                    '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
+                                )
+                                );
                             }
                         }
                     }
@@ -3093,16 +2642,18 @@ class ApiController extends CController {
                             $delivery_fee = isset($val['location_fee']) ? $val['location_fee'] : 0;
                         } else {
                             $delivery_fee = FunctionsV3::getMerchantDeliveryFee(
-                                            $merchant_id,
-                                            $val['delivery_charges'],
-                                            $distance,
-                                            $home_search_unit_type);
+                                $merchant_id,
+                                $val['delivery_charges'],
+                                $distance,
+                                $home_search_unit_type
+                            );
                         }
 
                         if ($delivery_fee >= 0.001) {
                             $val['delivery_fee'] = mobileWrapper::t("Delivery Fee: [fee]", array(
-                                        '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
-                            ));
+                                '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
+                            )
+                            );
                         }
                     }
 
@@ -3118,8 +2669,9 @@ class ApiController extends CController {
                         $free_delivery_above = getOption($merchant_id, 'free_delivery_above_price');
                         if ($free_delivery_above > 0.001) {
                             $free_above = mobileWrapper::t("Free Delivery On Orders Over [subtotal]", array(
-                                        '[subtotal]' => $free_delivery_above
-                            ));
+                                '[subtotal]' => $free_delivery_above
+                            )
+                            );
                             $offers[] = array(
                                 'raw' => mt("Free[fee]", array('[fee]' => FunctionsV3::prettyPrice($free_delivery_above))),
                                 'full' => $free_above
@@ -3141,7 +2693,8 @@ class ApiController extends CController {
                                     $vouchers[] = mt("[discount] off | Use coupon [code]", array(
                                         '[discount]' => $v_amount,
                                         '[code]' => $voucher_val['voucher_name']
-                                    ));
+                                    )
+                                    );
                                 }
                                 $val['vouchers'] = $vouchers;
                             }
@@ -3173,540 +2726,416 @@ class ApiController extends CController {
                             $val['paymet_method_icon'] = $paymet_method_list;
                         }
                     }
-            
-            //info code start
 
-            if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
+                    //info code start
 
-                $this->code = 1;
-                $this->msg = "ok";
+                    if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
 
-                $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-                $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-                $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
-                
-                $store_start_date=getOption($merchant_id,'store_start_date');
-                $store_close_date=getOption($merchant_id,'store_close_date');
+                        $this->code = 1;
+                        $this->msg = "ok";
 
-                    if( $store_start_date !='' && $store_close_date !='')
-                    {
-                        $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
-                        $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
+                        $dataInfo['merchant_id'] = $resInfo['merchant_id'];
+                        $dataInfo['merchant_id'] = $resInfo['merchant_id'];
+                        $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
 
-                    }
-                
-                $dataInfo['services'] = $services; 
-                $dataInfo['count_services'] = count($services); 
-                $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
-                $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
+                        $store_start_date = getOption($merchant_id, 'store_start_date');
+                        $store_close_date = getOption($merchant_id, 'store_close_date');
 
-                $dataInfo['latitude'] = $resInfo['latitude'];
-                $dataInfo['lontitude'] = $resInfo['lontitude'];
+                        if ($store_start_date != '' && $store_close_date != '') {
+                            $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
+                            $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
 
-                $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
-                $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
-                $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
+                        }
 
-                $status = mobileWrapper::merchantStatus($merchant_id);
+                        $dataInfo['services'] = $services;
+                        $dataInfo['count_services'] = count($services);
+                        $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
+                        $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
 
-                $dataInfo['close_message'] = '';
-                if ($status == "close") {
-                    //$date_close=date("F,d l Y h:ia");
-                    $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
-                    $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
+                        $dataInfo['latitude'] = $resInfo['latitude'];
+                        $dataInfo['lontitude'] = $resInfo['lontitude'];
+
+                        $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
+                        $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
+                        $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
+
+                        $status = mobileWrapper::merchantStatus($merchant_id);
+
+                        $dataInfo['close_message'] = '';
+                        if ($status == "close") {
+                            //$date_close=date("F,d l Y h:ia");
+                            $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
+                            $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
                                 '[date_close]' => $date_close
-                    ));
-                }
+                            )
+                            );
+                        }
 
-                $dataInfo['status_raw'] = $status;
-                $dataInfo['status'] = mt($status);
+                        $dataInfo['status_raw'] = $status;
+                        $dataInfo['status'] = mt($status);
 
 
-                $dataInfo['gallery'] = 2;
-                $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
-                $banner_enabled = getOption($merchant_id, 'banner_enabled');
-                if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
-                    $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
-                }
+                        $dataInfo['gallery'] = 2;
+                        $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
+                        $banner_enabled = getOption($merchant_id, 'banner_enabled');
+                        if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
+                            $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
+                        }
 
-                $ratings = Yii::app()->functions->getRatings($merchant_id);
-                $dataInfo['rating'] = $ratings;
-                $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
+                        $ratings = Yii::app()->functions->getRatings($merchant_id);
+                        $dataInfo['rating'] = $ratings;
+                        $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
                             '[count]' => $ratings['votes']
-                ));
-                $dataInfo['rating'] = $ratings;
+                        )
+                        );
+                        $dataInfo['rating'] = $ratings;
 
-                $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
+                        $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
 
-                if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-                    $dataInfo['offers'] = $offers;
-                }
+                        if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
+                            $dataInfo['offers'] = $offers;
+                        }
 
-                if ($resInfo['is_sponsored'] == 2) {
-                    $dataInfo['sponsored'] = $this->t("Sponsored");
-                }
+                        if ($resInfo['is_sponsored'] == 2) {
+                            $dataInfo['sponsored'] = $this->t("Sponsored");
+                        }
 
-                //dump($ratings);
-                $dataInfo['tab_menu_enabled'] = 1;
-                $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
+                        //dump($ratings);
+                        $dataInfo['tab_menu_enabled'] = 1;
+                        $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
 
-                $dataInfo['share_options'] = array(
-                    'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
-                        '[website_name]' => getOptionA('website_title'),
-                        '[merchant_address]' => $resInfo['complete_address']
-                    )),
-                    'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
-                    'subject' => $resInfo['restaurant_name'],
-                    'files' => ''
-                );
-                
-                $val['info'] = $dataInfo;
-               
-            }
-                
-                //hours narration set
-                
-                
-                $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
-                
-                if(empty($val['info']['hours'])){
-                    $val['info']['hours']  = array();
-                }
-                
-                
-                
-                
-                $val['info']['holidays']  = array();
-                $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
-                
+                        $dataInfo['share_options'] = array(
+                            'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
+                                '[website_name]' => getOptionA('website_title'),
+                                '[merchant_address]' => $resInfo['complete_address']
+                            )
+                            ),
+                            'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
+                            'subject' => $resInfo['restaurant_name'],
+                            'files' => ''
+                        );
 
-                /////////start opening time management ////////
-                
-                $today_date = date('Y-m-d');
-                
-                $today_time = date('h:i A');
-                //  $today_time = date('12:55 PM');
-                
-                $today_day = strtolower(date('l',strtotime($today_date)));
-                
-                
-                $ondays = array();
+                        $val['info'] = $dataInfo;
 
-                foreach($val['info']['hours'] as $ondaykey => $onday){
-                    array_push($ondays, $onday['day']);
-                    
-                    // valid day    
-                    if( trim($today_day) ==  trim($onday['day'] )){
-
-                        //check double shift start
-                            $shifts = explode('/', $onday['hours']);
-                            if(isset($shifts[1])){
-                                $oneshift = explode('-', $shifts['0']);
-                                $twoshift = explode('-', $shifts['1']);
-
-                                // incase of 1st shift fall
-                                if( strtotime($today_time)  < strtotime($oneshift[0])){
-                                    $onday['hours'] = $shifts[0]; 
-                                }
-                                else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-                                    $onday['hours'] = $shifts[0]; 
-                                }
-                                // incase of 2nd shift fall
-                                else if( strtotime($today_time)  < strtotime($twoshift[0])){
-                                    $onday['hours'] = $shifts[1]; 
-                                }                                
-                                else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-                                    $onday['hours'] = $shifts[1]; 
-                                }                                                  
-                            }
-                            
-                        //check double shift end
-
-                        $validate_hoursdata = explode('-', $onday['hours']);
-                        $valid_closetime =$validate_hoursdata[1]; 
-                                        
-                        if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
-                                $today_date = date('Y-m-d');
-                                
-                                $today_time = date('h:i A');
-                                
-                                $today_day = strtolower(date('l',strtotime($today_date)));
-                                
-                                // next day due to close
-                                
-                                $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                                
-                                $today_day = date('l', strtotime($today_date));
-                                
-                        }    
-        
-                    }                    
-                    // valid day end
-          
-                    
-                }
-
-                // if day not enable
-                
-                foreach($val['info']['hours'] as $ondayEnablekey => $ondayEnable){
-                    
-                    
-                    if(!in_array(strtolower($today_day), $ondays)){
-                        
-                 
-
-                        $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                        $today_day = date('l', strtotime($today_date));  
-                        continue;
-                        
                     }
-                    
-                    // valid day
 
-                    //hereee
+                    //hours narration set
 
-                        if( trim($today_day) ==  trim($ondayEnable['day'] )){
-                        
-                        
+
+                    $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
+
+                    if (empty($val['info']['hours'])) {
+                        $val['info']['hours'] = array();
+                    }
+
+
+
+
+                    $val['info']['holidays'] = array();
+                    $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
+
+
+                    /////////start opening time management ////////
+
+                    $today_date = date('Y-m-d');
+
+                    $today_time = date('h:i A');
+                    //  $today_time = date('12:55 PM');
+
+                    $today_day = strtolower(date('l', strtotime($today_date)));
+
+
+                    $ondays = array();
+
+                    foreach ($val['info']['hours'] as $ondaykey => $onday) {
+                        array_push($ondays, $onday['day']);
+
+                        // valid day    
+                        if (trim($today_day) == trim($onday['day'])) {
+
                             $validate_hoursdata = explode('-', $onday['hours']);
-                            $valid_closetime =$validate_hoursdata[1]; 
-                            //exploding hours /
-                            
-                            //here changed the time formate
-                            $validate_hors = explode('/', $valid_closetime);
-                             
-                            $valid_closetime = $validate_hors[0];
-                     
-                            //here changed the time formate
-                        
-                        if( strtotime($today_time)  > strtotime($valid_closetime)){
-                        
-                            
+                            $valid_closetime = $validate_hoursdata[1];
+                            if (strtotime($today_time) > strtotime($valid_closetime)) {
+
                                 $today_date = date('Y-m-d');
-                                
+
                                 $today_time = date('h:i A');
-                                
-                                $today_day = strtolower(date('l',strtotime($today_date)));
-                                
+
+                                $today_day = strtolower(date('l', strtotime($today_date)));
+
                                 // next day due to close
-                                
-                                $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                                
+
+                                $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+
                                 $today_day = date('l', strtotime($today_date));
-                                
-                                
-                        }    
-                    }
-                    
-                        
-                    
-                    // valid day end
-                    
-                }
-                
-               
-                //   if($val['info']['merchant_id'] == 9){
-                          
-                //             echo $today_day; echo $today_date;
-                //             echo $today_time;
-                //             echo "<pre>"; print_r($val['info']['hours']); exit('jijij'); 
-                //         } 
-                
-                //total numbers of holidays
-                
-                $alldates = [0,1,2,3,4,5,6];
-                $valid_date =''; 
-                
-                
-                foreach ($alldates as $dates) {
-                    
-                         //here i change the count of $res_holiday == 1 to $res_holiday >= 1 
-                         
-                        //   if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) //previous code
 
-                if (count($res_holiday) >= 1 && ($res_holiday[0] != $today_date)) {
-                     $valid_date = $today_date;
-                     break;
-                }
-                 
-                else if (!in_array($today_date, $res_holiday)) {
-
-                    if (!in_array($today_day, $ondays)) {
-                      $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                    } 
-                    else {
-                      $valid_date = $today_date;
-                      break;
-                    }
-                 } 
-                else {
-                        $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                    }
-            }
-            
-              
-         
-                $timestampForday = strtotime($valid_date);
-                   
-                $valid_day = date('l', $timestampForday);
-                
-                $valid_day = strtolower($valid_day);
-
-                $val['info']['timing_note'] = '';
-                
-                foreach($val['info']['hours'] as $hordata){
-                    
-                        
-                 
-                    
-                    if( trim(strtolower($valid_day)) ==  trim(strtolower($hordata['day']) )){
-                   
-                            //check double shift start
-                                $shifts = explode('/', $hordata['hours']);
-                                if(isset($shifts[1])){
-                                    $oneshift = explode('-', $shifts['0']);
-                                    $twoshift = explode('-', $shifts['1']);
-                                    
-                                    // incase of 1st shift fall
-                                    if( strtotime($today_time)  < strtotime($oneshift[0])){
-                                        $hordata['hours'] = $shifts[0]; 
-                                    }
-                                    else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-                                        $hordata['hours'] = $shifts[0]; 
-                                    }
-                                    // incase of 2nd shift fall
-                                    else if( strtotime($today_time)  < strtotime($twoshift[0])){
-                                        $hordata['hours'] = $shifts[1]; 
-                                    }                                
-                                    else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-                                        $hordata['hours'] = $shifts[1]; 
-                                    }                                                  
-                                } 
-
-                     $today_date = date('Y-m-d');
-                     $today_day = strtolower(date('l',strtotime($today_date)));
-                    
-                        
-                        if(strtolower($today_day) != strtolower($valid_day)){
-                            
-                            
-                    //       if($val['info']['merchant_id'] = 9){
-                    //     print_r($today_day);
-                    //     print_r($valid_day);
-                    //     exit('this day');
-                        
-                    // }
-            
-                            $validate_hours = explode('-', $hordata['hours']);
-                            $valid_opentime =$validate_hours[0];
-                            $valid_closetime =$validate_hours[1];
-                            
-                            $now_date_test = date('Y-m-d');
-                            
-                            $now_date_check = strtolower(date('l', strtotime( $now_date_test . " +1 days")));
-
-                        if($now_date_check == $valid_day){
-                         
-                                $val['info']['timing_note'] = 'Opens tomorrow from '. $valid_opentime. 'to'.$valid_closetime; 
                             }
-                            else{
-                                $val['info']['timing_note'] = 'Opens '.$valid_day. ' from '. $valid_opentime.'to'.$valid_closetime;
-                            }                            
-                                                       
+                        }
+                        // valid day end
+
+                    }
+
+                    // if day not enable
+
+                    foreach ($val['info']['hours'] as $ondayEnablekey => $ondayEnable) {
+
+
+                        if (!in_array(strtolower($today_day), $ondays)) {
+
+                            $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
+                            $today_day = date('l', strtotime($today_date));
                             continue;
-                        }                        
-                        
-                  //hours formate Start
-                        
-                    $now_time = date('H:i A');
-                    
-                    $now_hours = date('H');
-                    $now_mins = date('i');
-                    $now_timezone = date('A');
-                
-                    if($now_hours == '00'){
-                        $now_hours = '12';
+
+                        }
+                        // valid day    
+                        if (trim($today_day) == trim($ondayEnable['day'])) {
+
+                            $validate_hoursdata = explode('-', $onday['hours']);
+                            $valid_closetime = $validate_hoursdata[1];
+                            if (strtotime($today_time) > strtotime($valid_closetime)) {
+
+                                $today_date = date('Y-m-d');
+
+                                $today_time = date('h:i A');
+
+                                $today_day = strtolower(date('l', strtotime($today_date)));
+
+                                // next day due to close
+
+                                $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
+
+                                $today_day = date('l', strtotime($today_date));
+
+
+                            }
+                        }
+
+                        // valid day end
+
                     }
-                    
-                    if($now_hours == '12'){
-                        $now_hours = '12';
+
+                    //total numbers of holidays
+
+                    $alldates = [0, 1, 2, 3, 4, 5, 6];
+                    $valid_date = '';
+
+
+                    foreach ($alldates as $dates) {
+
+                        if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) {
+                            $valid_date = $today_date;
+                            break;
+                        } else if (!in_array($today_date, $res_holiday)) {
+
+                            if (!in_array($today_day, $ondays)) {
+                                $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+                            } else {
+                                $valid_date = $today_date;
+                                break;
+                            }
+                        } else {
+                            $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+                        }
                     }
-                    
-                      if($now_hours > '12'){
-                          
-                         
-                        if($now_hours == '13'){
-                                $now_hours = '1';
-                          }
-                          else if($now_hours == '14'){
-                                $now_hours = '2';
-                          }
-                          else if($now_hours == '15'){
-                                $now_hours = '3';
-                          }
-                          else if($now_hours == '16'){
-                                $now_hours = '4';
-                          }
-                          else if($now_hours == '17'){
-                                $now_hours = '5';
-                          }
-                          else if($now_hours == '18'){
-                                $now_hours = '6';
-                          }
-                          else if($now_hours == '19'){
-                                $now_hours = '7';
-                          }
-                          else if($now_hours == '20'){
-                                $now_hours = '8';
-                          }
-                          else if($now_hours == '20'){
-                                $now_hours = '8';
-                          }
-                          else if($now_hours == '21'){
-                                $now_hours = '9';
-                          }
-                          else if($now_hours == '22'){
-                                $now_hours = '10';
-                          }
-                          else if($now_hours == '23'){
-                                $now_hours = '11';
-                          }
-                          else if($now_hours == '24'){
+
+                    $timestampForday = strtotime($valid_date);
+
+                    $valid_day = date('l', $timestampForday);
+
+                    $valid_day = strtolower($valid_day);
+
+                    $val['info']['timing_note'] = '';
+
+                    foreach ($val['info']['hours'] as $hordata) {
+
+                        if (trim($valid_day) == trim($hordata['day'])) {
+
+                            if ($today_day != $valid_day) {
+                                $validate_hours = explode('-', $hordata['hours']);
+                                $valid_opentime = $validate_hours[0];
+                                $valid_closetime = $validate_hours[1];
+
+                                $now_date_test = date('Y-m-d');
+
+                                $now_date_check = strtolower(date('l', strtotime($now_date_test . " +1 days")));
+
+                                if ($now_date_check == $valid_day) {
+                                    $val['info']['timing_note'] = 'Opens tomorrow from ' . $valid_opentime . 'to' . $valid_closetime;
+                                } else {
+                                    $val['info']['timing_note'] = 'Opens ' . $valid_day . ' from ' . $valid_opentime . 'to' . $valid_closetime;
+                                }
+
+                                continue;
+                            }
+
+                            //hours formate Start
+
+                            $now_time = date('H:i A');
+
+                            $now_hours = date('H');
+                            $now_mins = date('i');
+                            $now_timezone = date('A');
+
+                            if ($now_hours == '00') {
                                 $now_hours = '12';
-                          }
+                            }
+
+                            if ($now_hours == '12') {
+                                $now_hours = '12';
+                            }
+
+                            if ($now_hours > '12') {
+
+
+                                if ($now_hours == '13') {
+                                    $now_hours = '1';
+                                } else if ($now_hours == '14') {
+                                    $now_hours = '2';
+                                } else if ($now_hours == '15') {
+                                    $now_hours = '3';
+                                } else if ($now_hours == '16') {
+                                    $now_hours = '4';
+                                } else if ($now_hours == '17') {
+                                    $now_hours = '5';
+                                } else if ($now_hours == '18') {
+                                    $now_hours = '6';
+                                } else if ($now_hours == '19') {
+                                    $now_hours = '7';
+                                } else if ($now_hours == '20') {
+                                    $now_hours = '8';
+                                } else if ($now_hours == '20') {
+                                    $now_hours = '8';
+                                } else if ($now_hours == '21') {
+                                    $now_hours = '9';
+                                } else if ($now_hours == '22') {
+                                    $now_hours = '10';
+                                } else if ($now_hours == '23') {
+                                    $now_hours = '11';
+                                } else if ($now_hours == '24') {
+                                    $now_hours = '12';
+                                }
+                            }
+
+
+                            //    hours formate end
+
+                            $now_time = $now_hours . ':' . $now_mins . ' ' . $now_timezone;
+
+                            $validate_hours = explode('-', $hordata['hours']);
+
+                            $valid_opentime = $validate_hours[0];
+
+                            $valid_closetime = $validate_hours[1];
+
+
+                            if (strtotime($now_time) < strtotime($validate_hours[0])) {
+
+                                $datetime1 = new DateTime($now_time);
+                                $datetime2 = new DateTime($valid_opentime);
+                                $interval = $datetime1->diff($datetime2);
+                                $hour_diff = $interval->format('%h');
+                                $mint_diff = $interval->format('%i');
+
+                                //if the hours are zero
+                                if ($hour_diff == 0) {
+
+                                    $will_open = $mint_diff . ' ' . 'minutes';
+
+                                    $val['info']['timing_note'] = 'Opens in ' . $mint_diff . ' ' . 'minutes';
+
+                                }
+
+                                //if the minute are zero
+
+                                if ($mint_diff == 0) {
+
+                                    $will_open = $hour_diff . ' ' . 'hours';
+
+                                    // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
+                                    $val['info']['timing_note'] = 'Opens today at  ' . $validate_hours[0];
+                                }
+
+                                //if both hours and minutes are present
+                                if (($hour_diff != 0) && ($mint_diff != 0)) {
+
+                                    $will_open = $hour_diff . ' ' . 'hours';
+
+                                    // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
+                                    $val['info']['timing_note'] = 'Opens today at ' . $validate_hours[0];
+
+                                }
+
+                            }
+
+                            //Case when customer is came after Close time.
+                            else if (strtotime($now_time) > strtotime($validate_hours[1])) {
+
+                                //for open tomorrow
+
+                                $alldates = [0, 1, 2, 3, 4, 5, 6];
+                                $valid_date = '';
+                                $tomorrow = false;
+                                foreach ($alldates as $keydate => $dates) {
+
+                                    //Adding 1 Day if that day is holiday
+
+                                    $now_date = date('Y-m-d', strtotime($now_date . " +1 days"));
+
+                                    if ($keydate == 0) {
+                                        $tomorrow = true;
+                                    } else {
+                                        $tomorrow = false;
+                                    }
+
+                                    if (!in_array($now_date, $res_holiday)) {
+                                        $valid_date = $now_date;
+                                        break;
+                                    }
+                                }
+
+                                //get the day According to the date
+
+                                $now_date = date('l', strtotime($now_date));
+
+                                $now_date = strtolower($now_date);
+
+                                $open_time_next_day = '';
+                                foreach ($val['info']['hours'] as $hours_valid) {
+                                    if ($hours_valid['day'] == $now_date) {
+
+                                        $hoursdatanext = explode('-', $hours_valid['hours']);
+
+                                        $open_time_next_day = $hoursdatanext[0];
+
+                                    }
+
+                                }
+                                if ($open_time_next_day) {
+
+
+                                    if ($tomorrow = true) {
+                                        $val['info']['timing_note'] = 'Opens tomorrow  ' . $open_time_next_day;
+                                    } else {
+                                        $val['info']['timing_note'] = 'Opens ' . $now_date . '  ' . $open_time_next_day;
+                                    }
+                                }
+                            }
+
+                            // if open 
+                            else if (strtotime($now_time) < strtotime($validate_hours[1])) {
+                                $val['info']['timing_note'] = 'Closes at ' . trim($validate_hours[1]);
+                            }
+
+                        }
                     }
-                    
-                    
-                //    hours formate end
-                    
-                    $now_time = $now_hours. ':'. $now_mins. ' '. $now_timezone;
- 
-                        $validate_hours = explode('-', $hordata['hours']);
-                        
-                        
-                        $valid_opentime =$validate_hours[0];
-                        
-                        $valid_closetime =$validate_hours[1];
-        
-                
-                        if(strtotime($now_time) <  strtotime($validate_hours[0])){
-                            
-                            
-                          $datetime1 = new DateTime($now_time);
-                          $datetime2 = new DateTime($valid_opentime);
-                            $interval = $datetime1->diff($datetime2);
-                            $hour_diff =  $interval->format('%h');
-                            $mint_diff =  $interval->format('%i'); 
-                            
-                            //if the hours are zero
-                            if($hour_diff == 0){
-                                 
-                              $will_open =   $mint_diff  .' '. 'minutes'; 
-                              
-                              $val['info']['timing_note'] = 'Opens in '.$mint_diff  .' '. 'minutes';
-                              
-                            }
 
-                            //if the minute are zero
+                    //hours narration set end 
 
-                            if($mint_diff == 0){
-                            
-                                $will_open =  $hour_diff .' '. 'hours'; 
-                                
-                                // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
-                                 $val['info']['timing_note'] = 'Opens today at  '. $validate_hours[0];
-                            }
-                            
-                             //if both hours and minutes are present
-                            if(($hour_diff != 0) && ($mint_diff != 0) ){
-                                
-                                $will_open =  $hour_diff .' '. 'hours'; 
-                                
-                                
-                                // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
-                                  $val['info']['timing_note'] = 'Opens today at '. $validate_hours[0];
-                                
-                            }
-                   
-                        }
-                        
-                        //Case when customer is came after Close time.
-                        
-                        else if (strtotime($now_time) >  strtotime($validate_hours[1]) ){
-                        
-                            //for open tomorrow
-                            
-                            $alldates = [0,1,2,3,4,5,6];
-                            $valid_date =''; 
-                            $tomorrow = false;
-                            foreach($alldates as $keydate => $dates){
-
-                            //Adding 1 Day if that day is holiday
-                                
-
-                                if($keydate == 0){
-                                    $tomorrow = true ;        
-                                }
-                                else{
-                                    $tomorrow = false ;
-                                }
-                                
-                                if (!in_array($now_date, $res_holiday)) {
-                              $valid_date =$now_date;
-                                    break; 
-                                }
-                            }
-                            
-                     
-                            //get the day According to the date
-                            
-                            $now_date = date('l', strtotime($now_date) ); 
-                            
-                            $now_date = strtolower($now_date) ;
-                            
-                            $open_time_next_day = '';
-                            foreach($val['info']['hours'] as $hours_valid){
-                                if($hours_valid['day'] ==  $now_date){
-                                    
-                                    $hoursdatanext = explode('-',$hours_valid['hours']);
-                                    
-                                    $open_time_next_day = $hoursdatanext[0];
-                                    
-                                }
-                                
-                            }
-                            if($open_time_next_day){
-                                
-                                            $now_date = date('Y-m-d', strtotime( $now_date . " +1 days"));
-                         
-                                
-                                if($tomorrow = true){
-                                    $val['info']['timing_note'] = 'Opens tomorrow  '. $open_time_next_day ;        
-                                }
-                                else{
-                                    $val['info']['timing_note'] = 'Opens '.$now_date.'  '. $open_time_next_day ;        
-                                }
-                            }
-                        }
-                        
-                        // if open 
-                        else if (strtotime($now_time) <  strtotime($validate_hours[1]) ){
-                 
-                            $val['info']['timing_note'] = 'Closes at '.trim($validate_hours[1]);
-                   
-                        }
-                        
+                    if (!empty($res_holiday)) {
+                        $val['info']['holidays'] = $res_holiday;
                     }
-                }
-                
-                //hours narration set end 
-                
-                if (!empty($res_holiday)) {
-                    $val['info']['holidays']= $res_holiday;
-                }                
                     //info code end             
-            
+
                     $data[] = $val;
                 }
                 $this->details = array(
@@ -3718,17 +3147,12 @@ class ApiController extends CController {
                     'map_page' => isset($this->data['map_page']) ? $this->data['map_page'] : '',
                     'list' => $data
                 );
-                
-               
-                
-                
+
             } else {
                 if ($search_type == "byLatLong") {
                     $this->msg = $this->t("0 restaurant found");
                 } else
                     $this->msg = $this->t("No results");
-                    
-                 
 
                 $this->details = array(
                     'search_type' => $search_type,
@@ -3736,10 +3160,11 @@ class ApiController extends CController {
                     'page_action' => $page_action,
                     'paginate_total' => $paginate_total,
                 );
-                
-             
+
+
             }
         } else {
+
             $this->msg = $this->t("invalid query");
             $this->details = array(
                 'search_type' => $search_type,
@@ -3750,3191 +3175,17 @@ class ApiController extends CController {
         }
         $this->output();
     }
-    
-    
-    
-    //here creating test function for handeling both senario same time
-    //in this function i just chabge the res holiday 1 to more by AR (06-12-2022)
-    
-    //removed  saved in logs
 
-    //ending function here
-    
-//cloning the present working function to solve the  prob problem by AR (24-11-2022)
-
-//     public function actionsearchMerchantTest() {
-        
-        
-//         $db = new DbExt();
-//         $db->qry("SET SQL_BIG_SELECTS=1");
-
-//         $search_resp = mobileWrapper::searchMode();
-        
-//         $search_mode = $search_resp['search_mode'];
-//         $location_mode = $search_resp['location_mode'];
-
-//         $home_search_unit_type = '';
-
-//         $search_type = isset($this->data['search_type']) ? $this->data['search_type'] : '';
-//         $page_limit = mobileWrapper::paginateLimit();
-//         $enabled_distance = 1;
-
-//         $distance_results_type = mobileWrapper::getDistanceResultsType();
-        
-//         $cuisine_name = ''; 
-//         $page = $this->data['page'] * $page_limit;
-        
-//         $stmt = '';
-//         $and = ' AND a.app_status = 1 ';
-//         $where = '';
-
-//         $lat = isset($this->data['lat']) ? $this->data['lat'] : '';
-//         $lng = isset($this->data['lng']) ? $this->data['lng'] : '';
-
-
-//         $home_search_unit_type = getOptionA('home_search_unit_type');
-        
-       
-//         $home_search_unit_type_admin = $home_search_unit_type;
-        
-//         $home_search_radius = getOptionA('home_search_radius');
-//         $home_search_radius = is_numeric($home_search_radius) ? $home_search_radius : 10;
-
-//         $distance_exp = 3959;
-//         if ($home_search_unit_type == "km") {
-//             $distance_exp = 6371;
-//         }
-
-//         $lat = !empty($lat) ? $lat : 0;
-//         $lng = !empty($lng) ? $lng : 0;
-
-//         $a = "
-// 		a.merchant_id,
-// 		a.restaurant_name,				
-// 		a.cuisine,
-// 		a.logo,
-// 		a.latitude,
-// 		a.lontitude,
-// 		a.is_sponsored,
-// 		a.delivery_charges,
-// 		a.service,
-// 		a.status,
-//         concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address2,
-// 		a.is_ready,
-//                 a.app_status,
-// 		a.minimum_order,
-// 		a.minimum_order as minimum_order_raw,
-// 		a.is_featured,
-// 		";
-		
-		
-
-	
-
-//         $query_distance = "
-// 		( $distance_exp * acos( cos( radians($lat) ) * cos( radians( latitude ) ) 
-// 				* cos( radians( lontitude ) - radians($lng) ) 
-// 				+ sin( radians($lat) ) * sin( radians( latitude ) ) ) ) 
-// 				AS distance		
-// 		";
-		
-		
-
-
-//         $sort_asc_desc = isset($this->data['sort_asc_desc']) ? $this->data['sort_asc_desc'] : 'ASC';
-//         $sort_asc_desc = mobileWrapper::validateSort($sort_asc_desc);
-
-//         $sort = "ORDER BY is_sponsored DESC, distance $sort_asc_desc";
-//         if ($search_mode == "location") {
-//             $sort = "ORDER BY is_sponsored DESC, restaurant_name $sort_asc_desc";
-//         }
-        
-        		
-
-//         $sort_by = isset($this->data['sort_by']) ? $this->data['sort_by'] : '';
-//         $sortby_selected = $this->t("Distance");
-
-//         if ($sort_by == "distance") {
-//             $sort_by = '';
-//         }
-
-//         if (!empty($sort_by)) {
-//             $sort_resp = mobileWrapper::validateSortRestoList($sort_by);
-//             $sort_by = $sort_resp['key'];
-//             $sortby_selected = $sort_resp['name'];
-//             $sort = "ORDER BY " . stripslashes($sort_by) . " $sort_asc_desc";
-//         }
-        
-        	
-
-//         /* FILTER */
-//         $filter = '';
-//         if (isset($this->data['filter_delivery_fee'])) {
-//             if ($this->data['filter_delivery_fee'] >= 1) {
-//                 $filter .= " AND a.delivery_charges <= 0 ";
-//             }
-//         }
-       
-//         if (isset($this->data['filter_services'])) {
-//             if (is_array($this->data['filter_services']) && count($this->data['filter_services']) >= 1) {
-//                 $filter_services_stmt = '';
-//                 foreach ($this->data['filter_services'] as $filter_services) {
-//                     switch ($filter_services) {
-//                         case "delivery":
-//                             $filter_services_stmt .= " service='1' OR service='2' OR service='4' OR service='5' OR";
-//                             break;
-
-//                         case "pickup":
-//                             $filter_services_stmt .= " service='1' OR service='3' OR service='4' OR service='6' OR";
-//                             break;
-
-//                         case "dinein":
-//                             $filter_services_stmt .= " service='4' OR service='5' OR service='6' OR service='7' OR";
-//                             break;
-//                     }
-//                 }
-//                 $filter_services_stmt = substr($filter_services_stmt, 0, -3);
-//                 $filter .= " AND ($filter_services_stmt) ";
-//             }
-//         }
-         
-
-//         if (isset($this->data['filter_cuisine'])) {
-            
-    
-//             if (is_array($this->data['filter_cuisine']) && count($this->data['filter_cuisine']) >= 1) {
-//                 $filter_cuisine_stmt = '';
-//                 foreach ($this->data['filter_cuisine'] as $filter_cuisine) {
-//                     $filter_cuisine_stmt .= " cuisine  LIKE " . FunctionsV3::q("%$filter_cuisine%") . " OR";
-//                 }
-//                 $filter_cuisine_stmt = substr($filter_cuisine_stmt, 0, -3);
-//                 $filter .= " AND ($filter_cuisine_stmt)";
-//             }
-//         }
-
-//         if (isset($this->data['filter_minimum'])) {
-//             if ($this->data['filter_minimum'] >= 1) {
-//                 $filter .= " AND CAST(minimum_order as SIGNED) <=" . FunctionsV3::q($this->data['filter_minimum']) . " ";
-//             }
-//         }
-
-//         /* FILTER PROMOS */
-//         if (isset($this->data['filter_promos'])) {
-//             if (!empty($this->data['filter_promos']) && $search_type != "special_Offers") {
-//                 if ($this->data['filter_promos'] == "offer") {
-//                     $filter .= " AND a.merchant_id IN (
-// 					   SELECT merchant_id FROM
-// 						{{offers}}
-// 						WHERE
-// 						status in ('publish','published')
-// 						AND
-// 						now() >= valid_from and now() <= valid_to
-// 						AND merchant_id = a.merchant_id							
-// 					)";
-//                 }
-//             }
-
-//             if ($this->data['filter_promos'] == "voucher") {
-//                 $filter .= " AND a.merchant_id IN (
-// 					   SELECT merchant_id FROM
-// 						{{voucher_new}}
-// 						WHERE
-// 						status in ('publish','published')
-// 						AND
-// 						now() <= expiration
-// 						AND merchant_id = a.merchant_id								
-// 					)";
-//             }
-//         }
-
-//         $and .= $filter;
-//         /* END FILTER */
-
-
-//         $and .= "  AND a.status='active'  AND a.is_ready ='2' ";
-
-//         $show_only_current_location = getOptionA('mobile2_show_only_current_location');
-
-//         $state_id = '';
-//         $city_id = '';
-//         $area_id = '';
-//         $sub_query_filter = '';
-//         $and_location = '';
-//         $and_location_fee = '';
-
-//         $state_id = isset($this->data['state_id']) ? $this->data['state_id'] : -1;
-//         $city_id = isset($this->data['city_id']) ? $this->data['city_id'] : -1;
-//         $area_id = isset($this->data['area_id']) ? $this->data['area_id'] : -1;
-//         $postal_code = isset($this->data['postal_code']) ? $this->data['postal_code'] : -1;
-
-//         switch ($search_type) {
-            
-          
-            
-//             case "byLatLong":
-                
-                
-//                 // print("sdfs"); exit("latuu");
-//                 //  print_r($this->data);  print_r($lat, $lng); exit(LLLL);
-                
-  
-            
-//                 if (isset($this->data['map_page'])) {
-//                     if ($this->data['map_page'] == 1) {
-//                         $page_limit = 1000;
-//                     }
-//                 }
-                
-                
-//                 $R = 3960;  // earth's mean radius
-//                 $rad = '100';
-//                 // first-cut bounding box (in degrees)
-//                 $maxLat = $lat + rad2deg($rad/$R);
-                
-//                 $minLat = $lat - rad2deg($rad/$R);
-                
-//                 // compensate for degrees longitude getting smaller with increasing latitude
-//                 $maxLon = $lon + rad2deg($rad/$R/cos(deg2rad($lat)));
-//                 $minLon = $lon - rad2deg($rad/$R/cos(deg2rad($lat)));
-                
-//                 $maxLat=number_format((float)$maxLat, 6, '.', '');
-//                 $minLat=number_format((float)$minLat, 6, '.', '');
-//                 $maxLon=number_format((float)$maxLon, 6, '.', '');
-//                 $minLon=number_format((float)$minLon, 6, '.', '');
-
-
-//                 $stmt = "
-// 				SELECT SQL_CALC_FOUND_ROWS 		
-// 				$a		
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 				( $distance_exp * acos( cos( radians($lat) ) * cos( radians( latitude ) ) 
-// 				* cos( radians( lontitude ) - radians($lng) ) 
-// 				+ sin( radians($lat) ) * sin( radians( latitude ) ) ) ) 
-// 				AS distance								
-				
-// 				FROM {{view_merchant}} a 
-				
-// 				HAVING distance < $home_search_radius			
-// 				$and
-// 			 	$sort
-// 				LIMIT $page,$page_limit
-// 				";
-				
-				     
-//                 if ($search_mode == "location") {
-
-//                     if (isset($this->data['filter_delivery_fee'])) {
-//                         if ($this->data['filter_delivery_fee'] >= 1) {
-//                             $sub_query_filter .= " and fee <=0 ";
-//                         }
-//                     }
-
-//                     if ($location_mode == 1) {
-//                         $and_location = "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{location_rate}}
-// 					   	    where
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    and
-// 					   	    area_id=" . FunctionsV3::q($area_id) . "
-// 					   	    $sub_query_filter
-// 				   	    ) 
-// 						";
-//                         $and_location_fee = "
-// 						  and city_id=" . FunctionsV3::q($city_id) . "
-// 						  and area_id =" . FunctionsV3::q($area_id) . "
-// 						";
-//                     } elseif ($location_mode == 2) {
-//                         $and_location = "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{location_rate}}
-// 					   	    where
-// 					   	    state_id=" . FunctionsV3::q($state_id) . "
-// 					   	    and
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    $sub_query_filter
-// 				   	    ) 
-// 						";
-//                         $and_location_fee = "
-// 						  and state_id=" . FunctionsV3::q($state_id) . "
-// 						  and city_id=" . FunctionsV3::q($city_id) . "
-// 						";
-//                     } elseif ($location_mode == 3) {
-//                         $and_location = "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{view_location_rate}}
-// 					   	    where
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    and
-// 					   	    postal_code=" . FunctionsV3::q($postal_code) . "
-// 					   	    $sub_query_filter
-// 				   	    ) 
-// 						";
-//                         $and_location_fee = "
-// 						  and city_id=" . FunctionsV3::q($city_id) . "
-// 						  and postal_code=" . FunctionsV3::q($postal_code) . "
-// 						";
-//                     }
-
-//                     $stmt = "
-// 					  SELECT SQL_CALC_FOUND_ROWS a.*,
-// 					  $a
-// 			          concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 			          (
-// 			           select fee
-// 			           from {{view_location_rate}}
-// 			           where merchant_id = a.merchant_id
-// 			           $and_location_fee
-// 			           limit 0,1
-// 			          ) as location_fee
-			          
-// 			          FROM {{view_merchant}} a
-// 					  WHERE 1			   
-// 					  $and_location
-// 			          AND status='active'  AND is_ready ='2' 
-// 			          $and
-// 					  $sort
-// 			          LIMIT $page,$page_limit
-// 					";
-//                 }
-
-//                 break;
-
-//             case "featuredMerchant":
-
-//                 $where = "WHERE 1";
-//                 if ($show_only_current_location == 1) {
-//                     $where = "HAVING distance < $home_search_radius";
-//                 }
-
-//                 if ($search_mode == "location") {
-//                     $where = "WHERE 1";
-//                     $query_distance = 1;
-
-//                     if (isset($this->data['filter_delivery_fee'])) {
-//                         if ($this->data['filter_delivery_fee'] >= 1) {
-//                             $sub_query_filter .= " and fee <=0 ";
-//                         }
-//                     }
-
-//                     if ($show_only_current_location == 1) {
-//                         if ($location_mode == 1) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{location_rate}}
-// 						   	    where
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    and
-// 						   	    area_id=" . FunctionsV3::q($area_id) . "
-// 						   	    $sub_query_filter
-// 					   	    ) 
-// 							";
-//                         } elseif ($location_mode == 2) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{location_rate}}
-// 						   	    where
-// 						   	    state_id=" . FunctionsV3::q($state_id) . "
-// 						   	    and
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    $sub_query_filter
-// 					   	    ) 
-// 							";
-//                         } elseif ($location_mode == 3) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{view_location_rate}}
-// 						   	    where
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    and
-// 						   	    postal_code=" . FunctionsV3::q($postal_code) . "
-// 						   	    $sub_query_filter
-// 					   	    ) 
-// 							";
-//                         }
-//                     }
-//                 }
-
-//                 $stmt = "
-// 			    SELECT SQL_CALC_FOUND_ROWS 
-// 				$a
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 				$query_distance
-// 				FROM {{view_merchant}} a
-// 				$where
-// 				AND is_featured='2'				
-// 				$and
-// 				$sort
-// 				LIMIT $page,$page_limit
-// 			   ";
-
-//                 break;
-
-//             case "allMerchant":
-
-
-//                 $stmt = "
-// 			    SELECT SQL_CALC_FOUND_ROWS 
-// 				$a
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 				$query_distance
-// 				FROM {{view_merchant}} a
-// 				WHERE  status in ('active')				
-// 				AND is_ready='2'
-// 				$and
-// 				$sort
-// 				LIMIT $page,$page_limit
-// 			   ";
-//                 if ($search_mode == "location") {
-//                     if ($location_mode == 1) {
-//                         $stmt = "
-// 					   	  SELECT SQL_CALC_FOUND_ROWS a.*,
-// 						  $a
-// 						  concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 						  (
-// 						   select fee
-// 						   from {{view_location_rate}}
-// 						   where merchant_id = a.merchant_id
-// 						   and city_id =" . FunctionsV3::q($city_id) . "
-// 						   and area_id =" . FunctionsV3::q($area_id) . "
-// 						   limit 0,1
-// 						  ) as location_fee
-						  
-// 						  FROM {{view_merchant}} a
-// 						  WHERE 1		
-// 						  AND status='active'  AND is_ready ='2' 
-// 						  $and
-// 						  $sort
-// 				   	  ";
-//                     }
-//                 }
-
-//                 break;
-
-//             case "special_Offers":
-
-//                 $where = "WHERE 1";
-//                 if ($show_only_current_location == 1) {
-//                     $where = "
-// 			   	  HAVING distance < $home_search_radius
-// 			   	  AND status in ('active')	
-// 			   	  ";
-//                 }
-
-//                 if ($search_mode == "location") {
-//                     $where = "WHERE 1";
-//                     $query_distance = 1;
-//                     if ($show_only_current_location == 1) {
-//                         if ($location_mode == 1) {
-//                             $and .= "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{location_rate}}
-// 					   	    where
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    and
-// 					   	    area_id=" . FunctionsV3::q($area_id) . "					   	    
-// 				   	    ) 
-// 						";
-//                         } elseif ($location_mode == 2) {
-//                             $and .= "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{location_rate}}
-// 					   	    where
-// 					   	    state_id=" . FunctionsV3::q($state_id) . "
-// 					   	    and
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 				   	    ) 
-// 						";
-//                         } elseif ($location_mode == 3) {
-//                             $and .= "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{view_location_rate}}
-// 					   	    where
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    and
-// 					   	    postal_code=" . FunctionsV3::q($postal_code) . "
-// 				   	    ) 
-// 						";
-//                         }
-//                     }
-//                 }
-
-//                 $stmt = "
-// 			    SELECT SQL_CALC_FOUND_ROWS 
-// 				$a
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,				
-//                 $query_distance					
-// 				FROM {{view_merchant}} a
-// 				$where				
-// 				AND 
-// 				(				
-// 				   merchant_id IN (
-// 					    SELECT merchant_id FROM
-// 						{{offers}}
-// 						WHERE
-// 						status in ('publish','published')
-// 						AND
-// 						now() >= valid_from and now() <= valid_to
-// 						AND merchant_id = a.merchant_id					
-// 					)					
-// 					OR					
-// 					merchant_id IN (
-// 					    SELECT merchant_id FROM
-// 						{{voucher_new}}
-// 						WHERE
-// 						status in ('publish','published')													
-// 						AND merchant_id = a.merchant_id			
-// 						AND now() <= expiration
-// 					)									
-// 				)
-// 				$and			    
-// 				$sort
-// 				LIMIT $page,$page_limit
-// 			   ";
-
-//                 break;
-
-//             case "byCuisine":
-//                 $cuisine_id = isset($this->data['cuisine_id']) ? $this->data['cuisine_id'] : '';
-
-//                 $where = "WHERE  status in ('active')";
-//                 if ($show_only_current_location == 1) {
-//                     $where = "
-// 			    	    HAVING distance < $home_search_radius
-// 						AND a.status in ('active')			
-// 			    	";
-
-//                     if ($search_mode == "location") {
-//                         $where = "WHERE  status in ('active')";
-//                         $query_distance = '1';
-
-//                         if ($location_mode == 1) {
-//                             $and .= "
-// 			    		      AND a.merchant_id IN (
-// 								select merchant_id 
-// 								from
-// 								{{location_rate}}
-// 								where
-// 								city_id=" . FunctionsV3::q($city_id) . "
-// 								and
-// 								area_id=" . FunctionsV3::q($area_id) . "
-// 								$sub_query_filter
-// 							   ) 
-// 			    		   ";
-//                         } elseif ($location_mode == 2) {
-//                             $and .= "
-// 			    		      AND a.merchant_id IN (
-// 								select merchant_id 
-// 								from
-// 								{{location_rate}}
-// 								where
-// 								state_id=" . FunctionsV3::q($state_id) . "
-// 								and
-// 								city_id=" . FunctionsV3::q($city_id) . "
-// 								$sub_query_filter
-// 							   ) 
-// 			    		   ";
-//                         } elseif ($location_mode == 3) {
-//                             $and .= "
-// 			    		      AND a.merchant_id IN (
-// 								select merchant_id 
-// 								from
-// 								{{view_location_rate}}
-// 								where
-// 								city_id=" . FunctionsV3::q($city_id) . "
-// 								and
-// 								postal_code=" . FunctionsV3::q($postal_code) . "
-// 								$sub_query_filter
-// 							   ) 
-// 			    		   ";
-//                         }
-//                     }
-//                 }
-                
-//                 $stmt = "
-// 				    SELECT SQL_CALC_FOUND_ROWS 
-// 					$a
-// 					concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,				
-// 	                $query_distance					
-// 					FROM {{view_merchant}} a
-// 					$where  AND (";
-					
-// 					$cuisine_ids = explode(',', $cuisine_id);
-					
-// 					foreach($cuisine_ids as $key => $cuids){
-// 					    if($key == 0){
-// 					       $stmt .= "  a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%') ;        
-// 					    }else{
-// 					        $stmt .= " OR a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%') ; 
-// 					    }
-// 					}
-// 					$stmt .= ")
-// 					$and
-// 					$sort
-// 					LIMIT $page,$page_limit
-// 				";
-//                 if ($cuisin_resp = Yii::app()->functions->GetCuisine($cuisine_id)) {
-//                     $cuisine_name = $cuisin_resp['cuisine_name'];
-//                 }
-//                 break;
-
-//             case "favorites":
-
-//                 $client_id = '';
-//                 if ($res_customer = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
-//                     $client_id = $res_customer['client_id'];
-//                 }
-
-//                 $where = "WHERE 1";
-//                 if ($show_only_current_location == 1) {
-//                     $where = "HAVING distance < $home_search_radius";
-//                 }
-
-//                 if ($res_customer > 0) {
-//                     $and .= "
-// 					AND a.merchant_id IN (
-// 					   select merchant_id from {{favorites}} 
-// 					   where
-// 					   merchant_id = a.merchant_id
-// 					   and
-// 					   client_id=" . FunctionsV3::q($client_id) . "
-// 					)
-// 					";
-//                 }
-
-//                 if ($search_mode == "location") {
-//                     $where = "WHERE 1";
-//                     $query_distance = 1;
-
-//                     if (isset($this->data['filter_delivery_fee'])) {
-//                         if ($this->data['filter_delivery_fee'] >= 1) {
-//                             $sub_query_filter .= " and fee <=0 ";
-//                         }
-//                     }
-
-//                     if ($show_only_current_location == 1) {
-//                         if ($location_mode == 1) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{location_rate}}
-// 						   	    where
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    and
-// 						   	    area_id=" . FunctionsV3::q($area_id) . "		
-// 						   	    $sub_query_filter			   	    
-// 					   	    ) 
-// 							";
-//                         } elseif ($location_mode == 2) {
-
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{location_rate}}
-// 						   	    where
-// 						   	    state_id=" . FunctionsV3::q($state_id) . "
-// 						   	    and
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    $sub_query_filter			   	    
-// 					   	    ) 
-// 							";
-//                         } elseif ($location_mode == 3) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{view_location_rate}}
-// 						   	    where
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    and
-// 						   	    postal_code=" . FunctionsV3::q($postal_code) . "
-// 						   	    $sub_query_filter			   	    
-// 					   	    ) 
-// 							";
-//                         }
-//                     }
-//                 }
-
-//                 $stmt = "
-// 			    SELECT SQL_CALC_FOUND_ROWS 
-// 				$a
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 				$query_distance
-// 				FROM {{view_merchant}} a
-// 				$where						
-// 				$and
-// 				$sort
-// 				LIMIT $page,$page_limit
-// 			   ";
-
-//                 break;
-
-//             default:
-//                 break;
-//         }
-
-//         if (isset($_GET['debug'])) {
-//             dump($stmt);
-//         }
-
-
-//         $page_action = isset($this->data['page_action']) ? $this->data['page_action'] : '';
-//         $paginate_total = 0;
-
-//         $search_options = mobileWrapper::getDataSearchOptions();
-//         if (!empty($stmt)) {
-//             if ($res = $db->rst($stmt)) {
-                
-
-//                 $total_records = 0;
-//                 $stmtc = "SELECT FOUND_ROWS() as total_records";
-//                 if ($resp = $db->rst($stmtc)) {
-//                     $total_records = $resp[0]['total_records'];
-//                 }
-
-//                 $this->code = 1;
-
-//                 switch ($search_type) {
-//                     case "allMerchant":
-//                     case "byCuisine":
-//                         $this->msg = mobileWrapper::t("[total] Restaurant Found", array(
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-
-//                     case "featuredMerchant":
-//                         $this->msg = mobileWrapper::t("[total] Featured Restaurant", array(
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-
-//                     case "special_Offers":
-//                         $this->msg = mobileWrapper::t("[total] Special Offers", array(
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-
-//                     case "favorites":
-//                         $this->msg = mobileWrapper::t("[total] Favorites", array(
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-
-//                     default:
-//                         $this->msg = mobileWrapper::t("[total] Nearby
-                      
-//                         Restaurant", array(
-                            
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-//                 }
-
-//                 $paginate_total = ceil($total_records / $page_limit);
-
-//                 $data = array();
-
-//                 foreach ($res as $val) {
-//                     $merchant_id = $val['merchant_id'];
-//                     $val['restaurant_name'] = clearString($val['restaurant_name']);
-
-//                     $home_search_unit_type = getOption($merchant_id, 'merchant_distance_type');
-//                     if (empty($home_search_unit_type)) {
-//                         $home_search_unit_type = $home_search_unit_type_admin;
-//                     }
-
-//                     if (in_array('minimum_order', $search_options)) {
-                        
-//                         if ($search_mode == "address") {
-//                             $minimum_order = $val['minimum_order'];
-//                             $min_fees = FunctionsV3::getMinOrderByTableRates($merchant_id,
-//                                             $val['distance'],
-//                                             $home_search_unit_type,
-//                                             $val['minimum_order']
-//                             );
-//                             $val['minimum_order_raw'] = $min_fees;
-//                             $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-//                                         '[min]' => FunctionsV3::prettyPrice($min_fees)
-//                             ));
-//                         } else {
-//                             if ($val['minimum_order'] > 0.0001) {
-//                                 $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-//                                             '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
-//                                 ));
-//                             } else {
-//                                 unset($val['minimum_order']);
-//                                 unset($val['minimum_order_raw']);
-//                             }
-//                         }
-//                     } else {
-//                         unset($val['minimum_order']);
-//                         unset($val['minimum_order_raw']);
-//                     }
-
-
-//                     if (in_array('open_tag', $search_options)) {
-                        
-                  
-//                         $status = mobileWrapper::merchantStatus($merchant_id);
-//                         $val['open_status_raw'] = $status;
-//                         $val['open_status'] = mt($status);
-//                     }
-
-//                     $val['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-
-//                     if (in_array('cuisine', $search_options)) {
-//                         $val['cuisine'] = FunctionsV3::displayCuisine($val['cuisine']);
-//                         if ($search_type == "byCuisine") {
-//                             $val['cuisine'] = FunctionsV3::displayCuisine($val['cuisine']);
-//                             $val['cuisine'] = mobileWrapper::highlight_word($val['cuisine'], $cuisine_name);
-//                         }
-//                     } else
-//                         unset($val['cuisine']);
-
-//                     if (in_array('review', $search_options)) {
-//                         $ratings = Yii::app()->functions->getRatings($merchant_id);
-//                         $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-//                                     '[count]' => $ratings['votes']
-//                         ));
-//                         $val['rating'] = $ratings;
-//                     }
-
-//                     $val['logo'] = mobileWrapper::getImage($val['logo']);
-
-//                     //$home_search_unit_type = getOption($merchant_id,'merchant_distance_type');
-//                     $unit_pretty = mobileWrapper::unitPretty($home_search_unit_type);
-
-//                     $distance = isset($val['distance']) ? $val['distance'] : '';
-
-//                     if (isset($this->data['with_distance']) && $search_mode == "address") {
-//                         if (in_array('distace', $search_options)) {
-
-//                             $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-//                                         '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
-//                             ));
-
-//                             if ($distance_results_type == 2) {
-//                                 if ($resp_lat = FunctionsV3::getDistanceBetweenPlot($lat, $lng, $val['latitude'], $val['lontitude'], $home_search_unit_type)) {
-//                                     $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-//                                                 '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
-//                                     ));
-//                                     $distance = number_format($resp_lat, 1);
-//                                 } else
-//                                     $val['distance_plot'] = $this->t("Distance : not available");
-//                             }
-//                         }
-//                     } else {
-//                         $val['distance_plot'] = '';
-//                     }
-
-//                     if ($val['is_sponsored'] == 2) {
-//                         $val['sponsored'] = $this->t("Sponsored");
-//                     }
-
-//                     if (!in_array('address', $search_options)) {
-//                         $val['address'] = '';
-//                     }
-
-//                     if ($search_mode == "address") {
-//                         if (in_array('delivery_estimation', $search_options)) {
-//                             $estimation = FunctionsV3::getDeliveryEstimation($merchant_id);
-//                             $val['delivery_estimation'] = mobileWrapper::t("Delivery Est: [estimation]", array(
-//                                         '[estimation]' => mt($estimation)
-//                             ));
-//                         }
-//                         if (in_array('delivery_distance', $search_options)) {
-//                             $delivery_distance = getOption($merchant_id, 'merchant_delivery_miles');
-//                             if ($delivery_distance >= 0.001) {
-//                                 $val['delivery_distance'] = mobileWrapper::t("Delivery Distance: [delivery_distance]", array(
-//                                             '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
-//                                 ));
-//                             }
-//                         }
-//                     }
-
-//                     if (in_array('delivery_fee', $search_options)) {
-//                         $delivery_fee = 0;
-//                         if ($search_mode == "location") {
-//                             $delivery_fee = isset($val['location_fee']) ? $val['location_fee'] : 0;
-//                         } else {
-//                             $delivery_fee = FunctionsV3::getMerchantDeliveryFee(
-//                                             $merchant_id,
-//                                             $val['delivery_charges'],
-//                                             $distance,
-//                                             $home_search_unit_type);
-//                         }
-
-//                         if ($delivery_fee >= 0.001) {
-//                             $val['delivery_fee'] = mobileWrapper::t("Delivery Fee: [fee]", array(
-//                                         '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
-//                             ));
-//                         }
-//                     }
-
-//                     if (in_array('offers', $search_options)) {
-//                         $offers = array();
-//                         if (method_exists('FunctionsV3', 'getOffersByMerchantNew')) {
-//                             if ($offer = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-//                                 foreach ($offer as $offer_val) {
-//                                     $offers[] = $offer_val;
-//                                 }
-//                             }
-//                         }
-//                         $free_delivery_above = getOption($merchant_id, 'free_delivery_above_price');
-//                         if ($free_delivery_above > 0.001) {
-//                             $free_above = mobileWrapper::t("Free Delivery On Orders Over [subtotal]", array(
-//                                         '[subtotal]' => $free_delivery_above
-//                             ));
-//                             $offers[] = array(
-//                                 'raw' => mt("Free[fee]", array('[fee]' => FunctionsV3::prettyPrice($free_delivery_above))),
-//                                 'full' => $free_above
-//                             );
-//                         }
-//                         $val['offers'] = $offers;
-//                     }
-
-//                     if (in_array('voucher', $search_options)) {
-//                         $vouchers = array();
-//                         if (method_exists("FunctionsV3", "merchantActiveVoucher")) {
-//                             if ($voucher = FunctionsV3::merchantActiveVoucher($merchant_id)) {
-//                                 foreach ($voucher as $voucher_val) {
-//                                     if ($voucher_val['voucher_type'] == "fixed amount") {
-//                                         $v_amount = FunctionsV3::prettyPrice($voucher_val['amount']);
-//                                     } else
-//                                         $v_amount = number_format(($voucher_val['amount'] / 100) * 100) . "%";
-
-//                                     $vouchers[] = mt("[discount] off | Use coupon [code]", array(
-//                                         '[discount]' => $v_amount,
-//                                         '[code]' => $voucher_val['voucher_name']
-//                                     ));
-//                                 }
-//                                 $val['vouchers'] = $vouchers;
-//                             }
-//                         }
-//                     }
-
-//                     if (in_array('services', $search_options)) {
-//                         $services_list = array();
-//                         if ($services = mobileWrapper::getMerchantServicesList($val['service'])) {
-//                             foreach ($services as $services_val) {
-//                                 $services_list[] = $services_val;
-//                             }
-//                             $val['services'] = $services_list;
-//                         }
-//                     }
-
-//                     if (in_array('payment_option', $search_options)) {
-//                         $paymet_method_list = array();
-//                         if ($paymet_method = FunctionsV3::getMerchantPaymentListNew($merchant_id)) {
-//                             if (array_key_exists('cod', $paymet_method)) {
-//                                 $paymet_method_list[] = mobileWrapper::getImage("icon-cod.png", "icon-cod.png");
-//                             }
-//                             if (array_key_exists('obd', $paymet_method)) {
-//                                 $paymet_method_list[] = mobileWrapper::getImage("icon-obd.png", "icon-obd.png");
-//                             }
-//                             if (array_key_exists('ocr', $paymet_method)) {
-//                                 $paymet_method_list[] = mobileWrapper::getImage("icon-ocr.png", "icon-ocr.png");
-//                             }
-//                             $val['paymet_method_icon'] = $paymet_method_list;
-//                         }
-//                     }
-            
-//             //info code start
-
-//             if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
-
-//                 $this->code = 1;
-//                 $this->msg = "ok";
-
-//                 $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-//                 $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-//                 $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
-                
-//                 $store_start_date=getOption($merchant_id,'store_start_date');
-//                 $store_close_date=getOption($merchant_id,'store_close_date');
-
-//                     if( $store_start_date !='' && $store_close_date !='')
-//                     {
-//                         $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
-//                         $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
-
-//                     }
-                
-//                 $dataInfo['services'] = $services; 
-//                 $dataInfo['count_services'] = count($services); 
-//                 $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
-//                 $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
-
-//                 $dataInfo['latitude'] = $resInfo['latitude'];
-//                 $dataInfo['lontitude'] = $resInfo['lontitude'];
-
-//                 $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
-//                 $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
-//                 $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-
-//                 $status = mobileWrapper::merchantStatus($merchant_id);
-
-//                 $dataInfo['close_message'] = '';
-//                 if ($status == "close") {
-//                     //$date_close=date("F,d l Y h:ia");
-//                     $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
-//                     $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-//                                 '[date_close]' => $date_close
-//                     ));
-//                 }
-
-//                 $dataInfo['status_raw'] = $status;
-//                 $dataInfo['status'] = mt($status);
-
-
-//                 $dataInfo['gallery'] = 2;
-//                 $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
-//                 $banner_enabled = getOption($merchant_id, 'banner_enabled');
-//                 if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
-//                     $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
-//                 }
-
-//                 $ratings = Yii::app()->functions->getRatings($merchant_id);
-//                 $dataInfo['rating'] = $ratings;
-//                 $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-//                             '[count]' => $ratings['votes']
-//                 ));
-//                 $dataInfo['rating'] = $ratings;
-
-//                 $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
-
-//                 if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-//                     $dataInfo['offers'] = $offers;
-//                 }
-
-//                 if ($resInfo['is_sponsored'] == 2) {
-//                     $dataInfo['sponsored'] = $this->t("Sponsored");
-//                 }
-
-//                 //dump($ratings);
-//                 $dataInfo['tab_menu_enabled'] = 1;
-//                 $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
-
-//                 $dataInfo['share_options'] = array(
-//                     'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
-//                         '[website_name]' => getOptionA('website_title'),
-//                         '[merchant_address]' => $resInfo['complete_address']
-//                     )),
-//                     'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
-//                     'subject' => $resInfo['restaurant_name'],
-//                     'files' => ''
-//                 );
-                
-//                 $val['info'] = $dataInfo;
-               
-//             }
-                
-//                 //hours narration set
-                
-                
-//                 $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
-                
-//                 if(empty($val['info']['hours'])){
-//                     $val['info']['hours']  = array();
-//                 }
-                
-                
-                
-                
-//                 $val['info']['holidays']  = array();
-//                 $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
-                
-
-//                 /////////start opening time management ////////
-                
-//                 $today_date = date('Y-m-d');
-                
-//                 $today_time = date('h:i A');
-                
-//                 // print_r($today_time); exit('sdfs');
-//                 //  $today_time = date('12:55 PM');
-                
-//                 $today_day = strtolower(date('l',strtotime($today_date)));
-                
-                
-//                 $ondays = array();
-
-//                 foreach($val['info']['hours'] as $ondaykey => $onday){
-//                     array_push($ondays, $onday['day']);
-                    
-//                     // valid day    
-//                     if( trim($today_day) ==  trim($onday['day'] )){
-
-//                         //check double shift start
-//                             $shifts = explode('/', $onday['hours']);
-//                             if(isset($shifts[1])){
-//                                 $oneshift = explode('-', $shifts['0']);
-//                                 $twoshift = explode('-', $shifts['1']);
-
-//                                 // incase of 1st shift fall
-//                                 if( strtotime($today_time)  < strtotime($oneshift[0])){
-//                                     $onday['hours'] = $shifts[0]; 
-//                                 }
-//                                 else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-//                                     $onday['hours'] = $shifts[0]; 
-//                                 }
-//                                 // incase of 2nd shift fall
-//                                 else if( strtotime($today_time)  < strtotime($twoshift[0])){
-//                                     $onday['hours'] = $shifts[1]; 
-//                                 }                                
-//                                 else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-//                                     $onday['hours'] = $shifts[1]; 
-//                                 }                                                  
-//                             }
-                            
-//                         //check double shift end
-                
-                        
-                        
-
-//                         $validate_hoursdata = explode('-', $onday['hours']);
-//                         $valid_closetime =$validate_hoursdata[1]; 
-                        
-                        
-                                
-                      
-                        
-                        
-                                        
-//                         if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
-                       
-                            
-//                                 $today_date = date('Y-m-d');
-                                
-//                                 $today_time = date('h:i A');
-                                
-//                                 $today_day = strtolower(date('l',strtotime($today_date)));
-                                
-//                                 // next day due to close
-                                
-//                                 $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                                
-//                                 $today_day = date('l', strtotime($today_date));
-                                
-//                         }    
-        
-//                     }                    
-//                     // valid day end
-          
-                    
-//                 }
-                
-                      
-                
-                                                         
-                
-//                 // if day not enable
-                
-//                 foreach($val['info']['hours'] as $ondayEnablekey => $ondayEnable){
-                    
-                    
-//                     if(!in_array(strtolower($today_day), $ondays)){
-                        
-                 
-
-//                         $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-//                         $today_day = date('l', strtotime($today_date));  
-//                         continue;
-                        
-//                     }
-                    
-//                     // valid day
-                    
-                    
-//                     //hereee
-
-
-
-//                         if( trim($today_day) ==  trim($ondayEnable['day'] )){
-                        
-                        
-//                             $validate_hoursdata = explode('-', $onday['hours']);
-//                             $valid_closetime =$validate_hoursdata[1]; 
-//                             //exploding hours /
-                            
-//                             //here changed the time formate
-//                             $validate_hors = explode('/', $valid_closetime);
-                             
-//                             $valid_closetime = $validate_hors[0];
-                     
-//                             //here changed the time formate
-                        
-//                         if( strtotime($today_time)  > strtotime($valid_closetime)){
-                        
-                            
-//                                 $today_date = date('Y-m-d');
-                                
-//                                 $today_time = date('h:i A');
-                                
-//                                 $today_day = strtolower(date('l',strtotime($today_date)));
-                                
-//                                 // next day due to close
-                                
-//                                 $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                                
-//                                 $today_day = date('l', strtotime($today_date));
-                                
-                                
-//                         }    
-//                     }
-                    
-                        
-                    
-//                     // valid day end
-                    
-//                 }
-                
-                
-             
-                
-               
-//                 //   if($val['info']['merchant_id'] == 9){
-                          
-//                 //             echo $today_day; echo $today_date;
-//                 //             echo $today_time;
-//                 //             echo "<pre>"; print_r($val['info']['hours']); exit('jijij'); 
-//                 //         } 
-                
-               
-                
-                   
-                    
-//                     //       if($val['info']['merchant_id'] = 287 ) {
-//                     //     print_r($today_day);  exit('k valid day');
-//                     //     // print_r($valid_day); exit('sdfsd');
-//                     // }
-                
-                          
-                
-//                 //total numbers of holidays
-                
-//                 $alldates = [0,1,2,3,4,5,6];
-//                 $valid_date =''; 
-                
-                
-//                 foreach ($alldates as $dates) {
-
-//                 if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) {
-//                      $valid_date = $today_date;
-//                      break;
-//                 }
-                 
-//                 else if (!in_array($today_date, $res_holiday)) {
-
-//                     if (!in_array($today_day, $ondays)) {
-//                       $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-//                     } 
-//                     else {
-//                       $valid_date = $today_date;
-//                       break;
-//                     }
-//                  } 
-//                 else {
-//                         $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-//                     }
-//             }
-            
-              
-//                 $timestampForday = strtotime($valid_date);
-                   
-//                 $valid_day = date('l', $timestampForday);
-                
-//                 $valid_day = strtolower($valid_day);
-
-//                 $val['info']['timing_note'] = '';
-                
-//                 foreach($val['info']['hours'] as $hordata){
-                    
-                        
-                 
-                    
-//                     if( trim(strtolower($valid_day)) ==  trim(strtolower($hordata['day']) )){
-                   
-//                             //check double shift start
-//                                 $shifts = explode('/', $hordata['hours']);
-//                                 if(isset($shifts[1])){
-//                                     $oneshift = explode('-', $shifts['0']);
-//                                     $twoshift = explode('-', $shifts['1']);
-                                    
-//                                     // incase of 1st shift fall
-//                                     if( strtotime($today_time)  < strtotime($oneshift[0])){
-//                                         $hordata['hours'] = $shifts[0]; 
-//                                     }
-//                                     else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-//                                         $hordata['hours'] = $shifts[0]; 
-//                                     }
-//                                     // incase of 2nd shift fall
-//                                     else if( strtotime($today_time)  < strtotime($twoshift[0])){
-//                                         $hordata['hours'] = $shifts[1]; 
-//                                     }                                
-//                                     else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-//                                         $hordata['hours'] = $shifts[1]; 
-//                                     }                                                  
-//                                 } 
-                
-                 
-                    
-//                             //check double shift end  
-                            
-//                     // if($val['info']['merchant_id'] = 287){
-                     
-//                     //       print_r($today_day); exit('next');
-//                     //     // print_r($valid_day); exit('kjhgf');
-//                     // }
-                    
-                    
-//                      $today_date = date('Y-m-d');
-//                      $today_day = strtolower(date('l',strtotime($today_date)));
-                     
-                     
-                        
-//                         if(strtolower($today_day) != strtolower($valid_day)){
-                            
-                            
-//                     //       if($val['info']['merchant_id'] = 9){
-//                     //     print_r($today_day);
-//                     //     print_r($valid_day);
-//                     //     exit('this day');
-                        
-//                     // }
-                            
-                  
-                                        
-//                             $validate_hours = explode('-', $hordata['hours']);
-//                             $valid_opentime =$validate_hours[0];
-//                             $valid_closetime =$validate_hours[1];
-                            
-//                             $now_date_test = date('Y-m-d');
-                            
-//                             $now_date_check = strtolower(date('l', strtotime( $now_date_test . " +1 days")));
-
-//                         if($now_date_check == $valid_day){
-                         
-//                                 $val['info']['timing_note'] = 'Opens tomorrow from '. $valid_opentime. 'to'.$valid_closetime; 
-//                             }
-//                             else{
-//                                 $val['info']['timing_note'] = 'Opens '.$valid_day. ' from '. $valid_opentime.'to'.$valid_closetime;
-//                             }                            
-                                                       
-//                             continue;
-//                         } 
-                        
-                        
-                        
-                        
-//                   //hours formate Start
-                        
-//                     $now_time = date('H:i A');
-                    
-//                     $now_hours = date('H');
-//                     $now_mins = date('i');
-//                     $now_timezone = date('A');
-                
-//                     if($now_hours == '00'){
-//                         $now_hours = '12';
-//                     }
-                    
-//                     if($now_hours == '12'){
-//                         $now_hours = '12';
-//                     }
-                    
-//                       if($now_hours > '12'){
-                          
-                         
-//                         if($now_hours == '13'){
-//                                 $now_hours = '1';
-//                           }
-//                           else if($now_hours == '14'){
-//                                 $now_hours = '2';
-//                           }
-//                           else if($now_hours == '15'){
-//                                 $now_hours = '3';
-//                           }
-//                           else if($now_hours == '16'){
-//                                 $now_hours = '4';
-//                           }
-//                           else if($now_hours == '17'){
-//                                 $now_hours = '5';
-//                           }
-//                           else if($now_hours == '18'){
-//                                 $now_hours = '6';
-//                           }
-//                           else if($now_hours == '19'){
-//                                 $now_hours = '7';
-//                           }
-//                           else if($now_hours == '20'){
-//                                 $now_hours = '8';
-//                           }
-//                           else if($now_hours == '20'){
-//                                 $now_hours = '8';
-//                           }
-//                           else if($now_hours == '21'){
-//                                 $now_hours = '9';
-//                           }
-//                           else if($now_hours == '22'){
-//                                 $now_hours = '10';
-//                           }
-//                           else if($now_hours == '23'){
-//                                 $now_hours = '11';
-//                           }
-//                           else if($now_hours == '24'){
-//                                 $now_hours = '12';
-//                           }
-//                     }
-                    
-                    
-//                 //    hours formate end
-                    
-//                     $now_time = $now_hours. ':'. $now_mins. ' '. $now_timezone;
-                    
-//                     //                   if($val['info']['merchant_id'] = 9){
-//                     //     print_r($now_time); exit('adas');
-//                     //     // print_r($valid_day); exit('kjhgf');
-//                     // }
-                    
-//                     // $now_time = '3:20 PM';
-                    
-//                     //problemmmmm
-                    
-//                         $validate_hours = explode('-', $hordata['hours']);
-                        
-                        
-//                         $valid_opentime =$validate_hours[0];
-                        
-//                         $valid_closetime =$validate_hours[1];
-                        
-                        
-//                         //here is the problem
-                        
-//                         //       if($val['info']['merchant_id'] = 9){
-//                         //     //print_r($valid_day);
-//                         //       print_r($validate_hours);
-//                         //       print_r($now_time);
-//                         //       exit('sdf');
-//                         // }
-        
-                
-//                         if(strtotime($now_time) <  strtotime($validate_hours[0])){
-                            
-                      
-                            
-                            
-//                           $datetime1 = new DateTime($now_time);
-//                           $datetime2 = new DateTime($valid_opentime);
-//                             $interval = $datetime1->diff($datetime2);
-//                             $hour_diff =  $interval->format('%h');
-//                             $mint_diff =  $interval->format('%i'); 
-                            
-//                             //if the hours are zero
-//                             if($hour_diff == 0){
-                                 
-//                               $will_open =   $mint_diff  .' '. 'minutes'; 
-                              
-//                               $val['info']['timing_note'] = 'Opens in '.$mint_diff  .' '. 'minutes';
-                              
-//                             }
-
-//                             //if the minute are zero
-
-//                             if($mint_diff == 0){
-                            
-//                                 $will_open =  $hour_diff .' '. 'hours'; 
-                                
-//                                 // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
-//                                  $val['info']['timing_note'] = 'Opens today at  '. $validate_hours[0];
-//                             }
-                            
-//                              //if both hours and minutes are present
-//                             if(($hour_diff != 0) && ($mint_diff != 0) ){
-                                
-//                                 $will_open =  $hour_diff .' '. 'hours'; 
-                                
-                                
-//                                 // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
-//                                   $val['info']['timing_note'] = 'Opens today at '. $validate_hours[0];
-                                
-//                             }
-                   
-//                         }
-                        
-//                         //Case when customer is came after Close time.
-                        
-//                         else if (strtotime($now_time) >  strtotime($validate_hours[1]) ){
-                        
-//                             //for open tomorrow
-                            
-//                             $alldates = [0,1,2,3,4,5,6];
-//                             $valid_date =''; 
-//                             $tomorrow = false;
-//                             foreach($alldates as $keydate => $dates){
-
-//                             //Adding 1 Day if that day is holiday
-                                
-
-//                                 if($keydate == 0){
-//                                     $tomorrow = true ;        
-//                                 }
-//                                 else{
-//                                     $tomorrow = false ;
-//                                 }
-                                
-//                                 if (!in_array($now_date, $res_holiday)) {
-//                               $valid_date =$now_date;
-//                                     break; 
-//                                 }
-//                             }
-                            
-                     
-//                             //get the day According to the date
-                            
-//                             $now_date = date('l', strtotime($now_date) ); 
-                            
-//                             $now_date = strtolower($now_date) ;
-                            
-//                             $open_time_next_day = '';
-//                             foreach($val['info']['hours'] as $hours_valid){
-//                                 if($hours_valid['day'] ==  $now_date){
-                                    
-//                                     $hoursdatanext = explode('-',$hours_valid['hours']);
-                                    
-//                                     $open_time_next_day = $hoursdatanext[0];
-                                    
-//                                 }
-                                
-//                             }
-//                             if($open_time_next_day){
-                                
-//                                             $now_date = date('Y-m-d', strtotime( $now_date . " +1 days"));
-                         
-                                
-//                                 if($tomorrow = true){
-//                                     $val['info']['timing_note'] = 'Opens tomorrow  '. $open_time_next_day ;        
-//                                 }
-//                                 else{
-//                                     $val['info']['timing_note'] = 'Opens '.$now_date.'  '. $open_time_next_day ;        
-//                                 }
-//                             }
-//                         }
-                        
-//                         // if open 
-//                         else if (strtotime($now_time) <  strtotime($validate_hours[1]) ){
-                 
-//                             $val['info']['timing_note'] = 'Closes at '.trim($validate_hours[1]);
-                   
-//                         }
-                        
-//                     }
-//                 }
-                
-//                 //hours narration set end 
-                
-//                 if (!empty($res_holiday)) {
-//                     $val['info']['holidays']= $res_holiday;
-//                 }                
-//                     //info code end             
-            
-//                     $data[] = $val;
-//                 }
-//                 $this->details = array(
-//                     'search_type' => $search_type,
-//                     'total_records' => $total_records,
-//                     'sortby_selected' => $sortby_selected,
-//                     'page_action' => $page_action,
-//                     'paginate_total' => $paginate_total,
-//                     'map_page' => isset($this->data['map_page']) ? $this->data['map_page'] : '',
-//                     'list' => $data
-//                 );
-                
-               
-                
-                
-//             } else {
-//                 if ($search_type == "byLatLong") {
-//                     $this->msg = $this->t("0 restaurant found");
-//                 } else
-//                     $this->msg = $this->t("No results");
-                    
-                 
-
-//                 $this->details = array(
-//                     'search_type' => $search_type,
-//                     'sortby_selected' => $sortby_selected,
-//                     'page_action' => $page_action,
-//                     'paginate_total' => $paginate_total,
-//                 );
-                
-             
-//             }
-//         } else {
-//             $this->msg = $this->t("invalid query");
-//             $this->details = array(
-//                 'search_type' => $search_type,
-//                 'sortby_selected' => $sortby_selected,
-//                 'page_action' => $page_action,
-//                 'paginate_total' => $paginate_total,
-//             );
-//         }
-//         $this->output();
-//     }
-
-    // END TEST
-    
-    //previous different function from present live function with code modification by zeeshan bhai that we were workin
-    
-//     public function actionsearchMerchanttest() {
-        
-        
-//         $db = new DbExt();
-//         $db->qry("SET SQL_BIG_SELECTS=1");
-
-//         $search_resp = mobileWrapper::searchMode();
-        
-//         $search_mode = $search_resp['search_mode'];
-//         $location_mode = $search_resp['location_mode'];
-
-//         $home_search_unit_type = '';
-
-//         $search_type = isset($this->data['search_type']) ? $this->data['search_type'] : '';
-//         $page_limit = mobileWrapper::paginateLimit();
-//         $enabled_distance = 1;
-
-//         $distance_results_type = mobileWrapper::getDistanceResultsType();
-        
-//         $cuisine_name = ''; 
-//         $page = $this->data['page'] * $page_limit;
-        
-//         $stmt = '';
-//         $and = ' AND a.app_status = 1 ';
-//         $where = '';
-
-//         $lat = isset($this->data['lat']) ? $this->data['lat'] : '';
-//         $lng = isset($this->data['lng']) ? $this->data['lng'] : '';
-
-
-//         $home_search_unit_type = getOptionA('home_search_unit_type');
-        
-       
-//         $home_search_unit_type_admin = $home_search_unit_type;
-        
-//         $home_search_radius = getOptionA('home_search_radius');
-//         $home_search_radius = is_numeric($home_search_radius) ? $home_search_radius : 10;
-
-//         $distance_exp = 3959;
-//         if ($home_search_unit_type == "km") {
-//             $distance_exp = 6371;
-//         }
-
-//         $lat = !empty($lat) ? $lat : 0;
-//         $lng = !empty($lng) ? $lng : 0;
-
-//         $a = "
-// 		a.merchant_id,
-// 		a.restaurant_name,				
-// 		a.cuisine,
-// 		a.logo,
-// 		a.latitude,
-// 		a.lontitude,
-// 		a.is_sponsored,
-// 		a.delivery_charges,
-// 		a.service,
-// 		a.status,
-//         concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address2,
-// 		a.is_ready,
-//                 a.app_status,
-// 		a.minimum_order,
-// 		a.minimum_order as minimum_order_raw,
-// 		a.is_featured,
-// 		";
-		
-		
-
-	
-
-//         $query_distance = "
-// 		( $distance_exp * acos( cos( radians($lat) ) * cos( radians( latitude ) ) 
-// 				* cos( radians( lontitude ) - radians($lng) ) 
-// 				+ sin( radians($lat) ) * sin( radians( latitude ) ) ) ) 
-// 				AS distance		
-// 		";
-		
-		
-
-
-//         $sort_asc_desc = isset($this->data['sort_asc_desc']) ? $this->data['sort_asc_desc'] : 'ASC';
-//         $sort_asc_desc = mobileWrapper::validateSort($sort_asc_desc);
-
-//         $sort = "ORDER BY is_sponsored DESC, distance $sort_asc_desc";
-//         if ($search_mode == "location") {
-//             $sort = "ORDER BY is_sponsored DESC, restaurant_name $sort_asc_desc";
-//         }
-        
-        		
-
-//         $sort_by = isset($this->data['sort_by']) ? $this->data['sort_by'] : '';
-//         $sortby_selected = $this->t("Distance");
-
-//         if ($sort_by == "distance") {
-//             $sort_by = '';
-//         }
-
-//         if (!empty($sort_by)) {
-//             $sort_resp = mobileWrapper::validateSortRestoList($sort_by);
-//             $sort_by = $sort_resp['key'];
-//             $sortby_selected = $sort_resp['name'];
-//             $sort = "ORDER BY " . stripslashes($sort_by) . " $sort_asc_desc";
-//         }
-        
-        	
-
-//         /* FILTER */
-//         $filter = '';
-//         if (isset($this->data['filter_delivery_fee'])) {
-//             if ($this->data['filter_delivery_fee'] >= 1) {
-//                 $filter .= " AND a.delivery_charges <= 0 ";
-//             }
-//         }
-       
-//         if (isset($this->data['filter_services'])) {
-//             if (is_array($this->data['filter_services']) && count($this->data['filter_services']) >= 1) {
-//                 $filter_services_stmt = '';
-//                 foreach ($this->data['filter_services'] as $filter_services) {
-//                     switch ($filter_services) {
-//                         case "delivery":
-//                             $filter_services_stmt .= " service='1' OR service='2' OR service='4' OR service='5' OR";
-//                             break;
-
-//                         case "pickup":
-//                             $filter_services_stmt .= " service='1' OR service='3' OR service='4' OR service='6' OR";
-//                             break;
-
-//                         case "dinein":
-//                             $filter_services_stmt .= " service='4' OR service='5' OR service='6' OR service='7' OR";
-//                             break;
-//                     }
-//                 }
-//                 $filter_services_stmt = substr($filter_services_stmt, 0, -3);
-//                 $filter .= " AND ($filter_services_stmt) ";
-//             }
-//         }
-         
-
-//         if (isset($this->data['filter_cuisine'])) {
-            
-    
-//             if (is_array($this->data['filter_cuisine']) && count($this->data['filter_cuisine']) >= 1) {
-//                 $filter_cuisine_stmt = '';
-//                 foreach ($this->data['filter_cuisine'] as $filter_cuisine) {
-//                     $filter_cuisine_stmt .= " cuisine  LIKE " . FunctionsV3::q("%$filter_cuisine%") . " OR";
-//                 }
-//                 $filter_cuisine_stmt = substr($filter_cuisine_stmt, 0, -3);
-//                 $filter .= " AND ($filter_cuisine_stmt)";
-//             }
-//         }
-
-//         if (isset($this->data['filter_minimum'])) {
-//             if ($this->data['filter_minimum'] >= 1) {
-//                 $filter .= " AND CAST(minimum_order as SIGNED) <=" . FunctionsV3::q($this->data['filter_minimum']) . " ";
-//             }
-//         }
-
-//         /* FILTER PROMOS */
-//         if (isset($this->data['filter_promos'])) {
-//             if (!empty($this->data['filter_promos']) && $search_type != "special_Offers") {
-//                 if ($this->data['filter_promos'] == "offer") {
-//                     $filter .= " AND a.merchant_id IN (
-// 					   SELECT merchant_id FROM
-// 						{{offers}}
-// 						WHERE
-// 						status in ('publish','published')
-// 						AND
-// 						now() >= valid_from and now() <= valid_to
-// 						AND merchant_id = a.merchant_id							
-// 					)";
-//                 }
-//             }
-
-//             if ($this->data['filter_promos'] == "voucher") {
-//                 $filter .= " AND a.merchant_id IN (
-// 					   SELECT merchant_id FROM
-// 						{{voucher_new}}
-// 						WHERE
-// 						status in ('publish','published')
-// 						AND
-// 						now() <= expiration
-// 						AND merchant_id = a.merchant_id								
-// 					)";
-//             }
-//         }
-
-//         $and .= $filter;
-//         /* END FILTER */
-
-
-//         $and .= "  AND a.status='active'  AND a.is_ready ='2' ";
-
-//         $show_only_current_location = getOptionA('mobile2_show_only_current_location');
-
-//         $state_id = '';
-//         $city_id = '';
-//         $area_id = '';
-//         $sub_query_filter = '';
-//         $and_location = '';
-//         $and_location_fee = '';
-
-//         $state_id = isset($this->data['state_id']) ? $this->data['state_id'] : -1;
-//         $city_id = isset($this->data['city_id']) ? $this->data['city_id'] : -1;
-//         $area_id = isset($this->data['area_id']) ? $this->data['area_id'] : -1;
-//         $postal_code = isset($this->data['postal_code']) ? $this->data['postal_code'] : -1;
-
-//         switch ($search_type) {
-            
-          
-            
-//             case "byLatLong":
-                
-                
-//                 // print("sdfs"); exit("latuu");
-//                 //  print_r($this->data);  print_r($lat, $lng); exit(LLLL);
-                
-  
-            
-//                 if (isset($this->data['map_page'])) {
-//                     if ($this->data['map_page'] == 1) {
-//                         $page_limit = 1000;
-//                     }
-//                 }
-                
-                
-//                 $R = 3960;  // earth's mean radius
-//                 $rad = '100';
-//                 // first-cut bounding box (in degrees)
-//                 $maxLat = $lat + rad2deg($rad/$R);
-                
-//                 $minLat = $lat - rad2deg($rad/$R);
-                
-//                 // compensate for degrees longitude getting smaller with increasing latitude
-//                 $maxLon = $lon + rad2deg($rad/$R/cos(deg2rad($lat)));
-//                 $minLon = $lon - rad2deg($rad/$R/cos(deg2rad($lat)));
-                
-//                 $maxLat=number_format((float)$maxLat, 6, '.', '');
-//                 $minLat=number_format((float)$minLat, 6, '.', '');
-//                 $maxLon=number_format((float)$maxLon, 6, '.', '');
-//                 $minLon=number_format((float)$minLon, 6, '.', '');
-
-
-//                 $stmt = "
-// 				SELECT SQL_CALC_FOUND_ROWS 		
-// 				$a		
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 				( $distance_exp * acos( cos( radians($lat) ) * cos( radians( latitude ) ) 
-// 				* cos( radians( lontitude ) - radians($lng) ) 
-// 				+ sin( radians($lat) ) * sin( radians( latitude ) ) ) ) 
-// 				AS distance								
-				
-// 				FROM {{view_merchant}} a 
-				
-// 				HAVING distance < $home_search_radius			
-// 				$and
-// 			 	$sort
-// 				LIMIT $page,$page_limit
-// 				";
-				
-				     
-//                 if ($search_mode == "location") {
-
-//                     if (isset($this->data['filter_delivery_fee'])) {
-//                         if ($this->data['filter_delivery_fee'] >= 1) {
-//                             $sub_query_filter .= " and fee <=0 ";
-//                         }
-//                     }
-
-//                     if ($location_mode == 1) {
-//                         $and_location = "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{location_rate}}
-// 					   	    where
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    and
-// 					   	    area_id=" . FunctionsV3::q($area_id) . "
-// 					   	    $sub_query_filter
-// 				   	    ) 
-// 						";
-//                         $and_location_fee = "
-// 						  and city_id=" . FunctionsV3::q($city_id) . "
-// 						  and area_id =" . FunctionsV3::q($area_id) . "
-// 						";
-//                     } elseif ($location_mode == 2) {
-//                         $and_location = "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{location_rate}}
-// 					   	    where
-// 					   	    state_id=" . FunctionsV3::q($state_id) . "
-// 					   	    and
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    $sub_query_filter
-// 				   	    ) 
-// 						";
-//                         $and_location_fee = "
-// 						  and state_id=" . FunctionsV3::q($state_id) . "
-// 						  and city_id=" . FunctionsV3::q($city_id) . "
-// 						";
-//                     } elseif ($location_mode == 3) {
-//                         $and_location = "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{view_location_rate}}
-// 					   	    where
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    and
-// 					   	    postal_code=" . FunctionsV3::q($postal_code) . "
-// 					   	    $sub_query_filter
-// 				   	    ) 
-// 						";
-//                         $and_location_fee = "
-// 						  and city_id=" . FunctionsV3::q($city_id) . "
-// 						  and postal_code=" . FunctionsV3::q($postal_code) . "
-// 						";
-//                     }
-
-//                     $stmt = "
-// 					  SELECT SQL_CALC_FOUND_ROWS a.*,
-// 					  $a
-// 			          concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 			          (
-// 			           select fee
-// 			           from {{view_location_rate}}
-// 			           where merchant_id = a.merchant_id
-// 			           $and_location_fee
-// 			           limit 0,1
-// 			          ) as location_fee
-			          
-// 			          FROM {{view_merchant}} a
-// 					  WHERE 1			   
-// 					  $and_location
-// 			          AND status='active'  AND is_ready ='2' 
-// 			          $and
-// 					  $sort
-// 			          LIMIT $page,$page_limit
-// 					";
-//                 }
-
-//                 break;
-
-//             case "featuredMerchant":
-
-//                 $where = "WHERE 1";
-//                 if ($show_only_current_location == 1) {
-//                     $where = "HAVING distance < $home_search_radius";
-//                 }
-
-//                 if ($search_mode == "location") {
-//                     $where = "WHERE 1";
-//                     $query_distance = 1;
-
-//                     if (isset($this->data['filter_delivery_fee'])) {
-//                         if ($this->data['filter_delivery_fee'] >= 1) {
-//                             $sub_query_filter .= " and fee <=0 ";
-//                         }
-//                     }
-
-//                     if ($show_only_current_location == 1) {
-//                         if ($location_mode == 1) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{location_rate}}
-// 						   	    where
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    and
-// 						   	    area_id=" . FunctionsV3::q($area_id) . "
-// 						   	    $sub_query_filter
-// 					   	    ) 
-// 							";
-//                         } elseif ($location_mode == 2) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{location_rate}}
-// 						   	    where
-// 						   	    state_id=" . FunctionsV3::q($state_id) . "
-// 						   	    and
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    $sub_query_filter
-// 					   	    ) 
-// 							";
-//                         } elseif ($location_mode == 3) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{view_location_rate}}
-// 						   	    where
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    and
-// 						   	    postal_code=" . FunctionsV3::q($postal_code) . "
-// 						   	    $sub_query_filter
-// 					   	    ) 
-// 							";
-//                         }
-//                     }
-//                 }
-
-//                 $stmt = "
-// 			    SELECT SQL_CALC_FOUND_ROWS 
-// 				$a
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 				$query_distance
-// 				FROM {{view_merchant}} a
-// 				$where
-// 				AND is_featured='2'				
-// 				$and
-// 				$sort
-// 				LIMIT $page,$page_limit
-// 			   ";
-
-//                 break;
-
-//             case "allMerchant":
-
-
-//                 $stmt = "
-// 			    SELECT SQL_CALC_FOUND_ROWS 
-// 				$a
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 				$query_distance
-// 				FROM {{view_merchant}} a
-// 				WHERE  status in ('active')				
-// 				AND is_ready='2'
-// 				$and
-// 				$sort
-// 				LIMIT $page,$page_limit
-// 			   ";
-//                 if ($search_mode == "location") {
-//                     if ($location_mode == 1) {
-//                         $stmt = "
-// 					   	  SELECT SQL_CALC_FOUND_ROWS a.*,
-// 						  $a
-// 						  concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 						  (
-// 						   select fee
-// 						   from {{view_location_rate}}
-// 						   where merchant_id = a.merchant_id
-// 						   and city_id =" . FunctionsV3::q($city_id) . "
-// 						   and area_id =" . FunctionsV3::q($area_id) . "
-// 						   limit 0,1
-// 						  ) as location_fee
-						  
-// 						  FROM {{view_merchant}} a
-// 						  WHERE 1		
-// 						  AND status='active'  AND is_ready ='2' 
-// 						  $and
-// 						  $sort
-// 				   	  ";
-//                     }
-//                 }
-
-//                 break;
-
-//             case "special_Offers":
-
-//                 $where = "WHERE 1";
-//                 if ($show_only_current_location == 1) {
-//                     $where = "
-// 			   	  HAVING distance < $home_search_radius
-// 			   	  AND status in ('active')	
-// 			   	  ";
-//                 }
-
-//                 if ($search_mode == "location") {
-//                     $where = "WHERE 1";
-//                     $query_distance = 1;
-//                     if ($show_only_current_location == 1) {
-//                         if ($location_mode == 1) {
-//                             $and .= "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{location_rate}}
-// 					   	    where
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    and
-// 					   	    area_id=" . FunctionsV3::q($area_id) . "					   	    
-// 				   	    ) 
-// 						";
-//                         } elseif ($location_mode == 2) {
-//                             $and .= "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{location_rate}}
-// 					   	    where
-// 					   	    state_id=" . FunctionsV3::q($state_id) . "
-// 					   	    and
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 				   	    ) 
-// 						";
-//                         } elseif ($location_mode == 3) {
-//                             $and .= "
-// 						AND a.merchant_id IN (
-// 					   	    select merchant_id 
-// 					   	    from
-// 					   	    {{view_location_rate}}
-// 					   	    where
-// 					   	    city_id=" . FunctionsV3::q($city_id) . "
-// 					   	    and
-// 					   	    postal_code=" . FunctionsV3::q($postal_code) . "
-// 				   	    ) 
-// 						";
-//                         }
-//                     }
-//                 }
-
-//                 $stmt = "
-// 			    SELECT SQL_CALC_FOUND_ROWS 
-// 				$a
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,				
-//                 $query_distance					
-// 				FROM {{view_merchant}} a
-// 				$where				
-// 				AND 
-// 				(				
-// 				   merchant_id IN (
-// 					    SELECT merchant_id FROM
-// 						{{offers}}
-// 						WHERE
-// 						status in ('publish','published')
-// 						AND
-// 						now() >= valid_from and now() <= valid_to
-// 						AND merchant_id = a.merchant_id					
-// 					)					
-// 					OR					
-// 					merchant_id IN (
-// 					    SELECT merchant_id FROM
-// 						{{voucher_new}}
-// 						WHERE
-// 						status in ('publish','published')													
-// 						AND merchant_id = a.merchant_id			
-// 						AND now() <= expiration
-// 					)									
-// 				)
-// 				$and			    
-// 				$sort
-// 				LIMIT $page,$page_limit
-// 			   ";
-
-//                 break;
-
-//             case "byCuisine":
-//                 $cuisine_id = isset($this->data['cuisine_id']) ? $this->data['cuisine_id'] : '';
-
-//                 $where = "WHERE  status in ('active')";
-//                 if ($show_only_current_location == 1) {
-//                     $where = "
-// 			    	    HAVING distance < $home_search_radius
-// 						AND a.status in ('active')			
-// 			    	";
-
-//                     if ($search_mode == "location") {
-//                         $where = "WHERE  status in ('active')";
-//                         $query_distance = '1';
-
-//                         if ($location_mode == 1) {
-//                             $and .= "
-// 			    		      AND a.merchant_id IN (
-// 								select merchant_id 
-// 								from
-// 								{{location_rate}}
-// 								where
-// 								city_id=" . FunctionsV3::q($city_id) . "
-// 								and
-// 								area_id=" . FunctionsV3::q($area_id) . "
-// 								$sub_query_filter
-// 							   ) 
-// 			    		   ";
-//                         } elseif ($location_mode == 2) {
-//                             $and .= "
-// 			    		      AND a.merchant_id IN (
-// 								select merchant_id 
-// 								from
-// 								{{location_rate}}
-// 								where
-// 								state_id=" . FunctionsV3::q($state_id) . "
-// 								and
-// 								city_id=" . FunctionsV3::q($city_id) . "
-// 								$sub_query_filter
-// 							   ) 
-// 			    		   ";
-//                         } elseif ($location_mode == 3) {
-//                             $and .= "
-// 			    		      AND a.merchant_id IN (
-// 								select merchant_id 
-// 								from
-// 								{{view_location_rate}}
-// 								where
-// 								city_id=" . FunctionsV3::q($city_id) . "
-// 								and
-// 								postal_code=" . FunctionsV3::q($postal_code) . "
-// 								$sub_query_filter
-// 							   ) 
-// 			    		   ";
-//                         }
-//                     }
-//                 }
-                
-//                 $stmt = "
-// 				    SELECT SQL_CALC_FOUND_ROWS 
-// 					$a
-// 					concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,				
-// 	                $query_distance					
-// 					FROM {{view_merchant}} a
-// 					$where  AND (";
-					
-// 					$cuisine_ids = explode(',', $cuisine_id);
-					
-// 					foreach($cuisine_ids as $key => $cuids){
-// 					    if($key == 0){
-// 					       $stmt .= "  a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%') ;        
-// 					    }else{
-// 					        $stmt .= " OR a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%') ; 
-// 					    }
-// 					}
-// 					$stmt .= ")
-// 					$and
-// 					$sort
-// 					LIMIT $page,$page_limit
-// 				";
-//                 if ($cuisin_resp = Yii::app()->functions->GetCuisine($cuisine_id)) {
-//                     $cuisine_name = $cuisin_resp['cuisine_name'];
-//                 }
-//                 break;
-
-//             case "favorites":
-
-//                 $client_id = '';
-//                 if ($res_customer = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
-//                     $client_id = $res_customer['client_id'];
-//                 }
-
-//                 $where = "WHERE 1";
-//                 if ($show_only_current_location == 1) {
-//                     $where = "HAVING distance < $home_search_radius";
-//                 }
-
-//                 if ($res_customer > 0) {
-//                     $and .= "
-// 					AND a.merchant_id IN (
-// 					   select merchant_id from {{favorites}} 
-// 					   where
-// 					   merchant_id = a.merchant_id
-// 					   and
-// 					   client_id=" . FunctionsV3::q($client_id) . "
-// 					)
-// 					";
-//                 }
-
-//                 if ($search_mode == "location") {
-//                     $where = "WHERE 1";
-//                     $query_distance = 1;
-
-//                     if (isset($this->data['filter_delivery_fee'])) {
-//                         if ($this->data['filter_delivery_fee'] >= 1) {
-//                             $sub_query_filter .= " and fee <=0 ";
-//                         }
-//                     }
-
-//                     if ($show_only_current_location == 1) {
-//                         if ($location_mode == 1) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{location_rate}}
-// 						   	    where
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    and
-// 						   	    area_id=" . FunctionsV3::q($area_id) . "		
-// 						   	    $sub_query_filter			   	    
-// 					   	    ) 
-// 							";
-//                         } elseif ($location_mode == 2) {
-
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{location_rate}}
-// 						   	    where
-// 						   	    state_id=" . FunctionsV3::q($state_id) . "
-// 						   	    and
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    $sub_query_filter			   	    
-// 					   	    ) 
-// 							";
-//                         } elseif ($location_mode == 3) {
-//                             $and .= "
-// 							AND a.merchant_id IN (
-// 						   	    select merchant_id 
-// 						   	    from
-// 						   	    {{view_location_rate}}
-// 						   	    where
-// 						   	    city_id=" . FunctionsV3::q($city_id) . "
-// 						   	    and
-// 						   	    postal_code=" . FunctionsV3::q($postal_code) . "
-// 						   	    $sub_query_filter			   	    
-// 					   	    ) 
-// 							";
-//                         }
-//                     }
-//                 }
-
-//                 $stmt = "
-// 			    SELECT SQL_CALC_FOUND_ROWS 
-// 				$a
-// 				concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code )  as address,
-// 				$query_distance
-// 				FROM {{view_merchant}} a
-// 				$where						
-// 				$and
-// 				$sort
-// 				LIMIT $page,$page_limit
-// 			   ";
-
-//                 break;
-
-//             default:
-//                 break;
-//         }
-
-//         if (isset($_GET['debug'])) {
-//             dump($stmt);
-//         }
-
-
-//         $page_action = isset($this->data['page_action']) ? $this->data['page_action'] : '';
-//         $paginate_total = 0;
-
-//         $search_options = mobileWrapper::getDataSearchOptions();
-//         if (!empty($stmt)) {
-//             if ($res = $db->rst($stmt)) {
-                
-
-//                 $total_records = 0;
-//                 $stmtc = "SELECT FOUND_ROWS() as total_records";
-//                 if ($resp = $db->rst($stmtc)) {
-//                     $total_records = $resp[0]['total_records'];
-//                 }
-
-//                 $this->code = 1;
-
-//                 switch ($search_type) {
-//                     case "allMerchant":
-//                     case "byCuisine":
-//                         $this->msg = mobileWrapper::t("[total] Restaurant Found", array(
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-
-//                     case "featuredMerchant":
-//                         $this->msg = mobileWrapper::t("[total] Featured Restaurant", array(
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-
-//                     case "special_Offers":
-//                         $this->msg = mobileWrapper::t("[total] Special Offers", array(
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-
-//                     case "favorites":
-//                         $this->msg = mobileWrapper::t("[total] Favorites", array(
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-
-//                     default:
-//                         $this->msg = mobileWrapper::t("[total] Nearby
-                      
-//                         Restaurant", array(
-                            
-//                                     '[total]' => $total_records
-//                         ));
-//                         break;
-//                 }
-
-//                 $paginate_total = ceil($total_records / $page_limit);
-
-//                 $data = array();
-
-//                 foreach ($res as $val) {
-//                     $merchant_id = $val['merchant_id'];
-//                     $val['restaurant_name'] = clearString($val['restaurant_name']);
-
-//                     $home_search_unit_type = getOption($merchant_id, 'merchant_distance_type');
-//                     if (empty($home_search_unit_type)) {
-//                         $home_search_unit_type = $home_search_unit_type_admin;
-//                     }
-
-//                     if (in_array('minimum_order', $search_options)) {
-                        
-//                         if ($search_mode == "address") {
-//                             $minimum_order = $val['minimum_order'];
-//                             $min_fees = FunctionsV3::getMinOrderByTableRates($merchant_id,
-//                                             $val['distance'],
-//                                             $home_search_unit_type,
-//                                             $val['minimum_order']
-//                             );
-//                             $val['minimum_order_raw'] = $min_fees;
-//                             $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-//                                         '[min]' => FunctionsV3::prettyPrice($min_fees)
-//                             ));
-//                         } else {
-//                             if ($val['minimum_order'] > 0.0001) {
-//                                 $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-//                                             '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
-//                                 ));
-//                             } else {
-//                                 unset($val['minimum_order']);
-//                                 unset($val['minimum_order_raw']);
-//                             }
-//                         }
-//                     } else {
-//                         unset($val['minimum_order']);
-//                         unset($val['minimum_order_raw']);
-//                     }
-
-
-//                     if (in_array('open_tag', $search_options)) {
-                        
-                  
-//                         $status = mobileWrapper::merchantStatus($merchant_id);
-//                         $val['open_status_raw'] = $status;
-//                         $val['open_status'] = mt($status);
-//                     }
-
-//                     $val['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-
-//                     if (in_array('cuisine', $search_options)) {
-//                         $val['cuisine'] = FunctionsV3::displayCuisine($val['cuisine']);
-//                         if ($search_type == "byCuisine") {
-//                             $val['cuisine'] = FunctionsV3::displayCuisine($val['cuisine']);
-//                             $val['cuisine'] = mobileWrapper::highlight_word($val['cuisine'], $cuisine_name);
-//                         }
-//                     } else
-//                         unset($val['cuisine']);
-
-//                     if (in_array('review', $search_options)) {
-//                         $ratings = Yii::app()->functions->getRatings($merchant_id);
-//                         $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-//                                     '[count]' => $ratings['votes']
-//                         ));
-//                         $val['rating'] = $ratings;
-//                     }
-
-//                     $val['logo'] = mobileWrapper::getImage($val['logo']);
-
-//                     //$home_search_unit_type = getOption($merchant_id,'merchant_distance_type');
-//                     $unit_pretty = mobileWrapper::unitPretty($home_search_unit_type);
-
-//                     $distance = isset($val['distance']) ? $val['distance'] : '';
-
-//                     if (isset($this->data['with_distance']) && $search_mode == "address") {
-//                         if (in_array('distace', $search_options)) {
-
-//                             $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-//                                         '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
-//                             ));
-
-//                             if ($distance_results_type == 2) {
-//                                 if ($resp_lat = FunctionsV3::getDistanceBetweenPlot($lat, $lng, $val['latitude'], $val['lontitude'], $home_search_unit_type)) {
-//                                     $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-//                                                 '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
-//                                     ));
-//                                     $distance = number_format($resp_lat, 1);
-//                                 } else
-//                                     $val['distance_plot'] = $this->t("Distance : not available");
-//                             }
-//                         }
-//                     } else {
-//                         $val['distance_plot'] = '';
-//                     }
-
-//                     if ($val['is_sponsored'] == 2) {
-//                         $val['sponsored'] = $this->t("Sponsored");
-//                     }
-
-//                     if (!in_array('address', $search_options)) {
-//                         $val['address'] = '';
-//                     }
-
-//                     if ($search_mode == "address") {
-//                         if (in_array('delivery_estimation', $search_options)) {
-//                             $estimation = FunctionsV3::getDeliveryEstimation($merchant_id);
-//                             $val['delivery_estimation'] = mobileWrapper::t("Delivery Est: [estimation]", array(
-//                                         '[estimation]' => mt($estimation)
-//                             ));
-//                         }
-//                         if (in_array('delivery_distance', $search_options)) {
-//                             $delivery_distance = getOption($merchant_id, 'merchant_delivery_miles');
-//                             if ($delivery_distance >= 0.001) {
-//                                 $val['delivery_distance'] = mobileWrapper::t("Delivery Distance: [delivery_distance]", array(
-//                                             '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
-//                                 ));
-//                             }
-//                         }
-//                     }
-
-//                     if (in_array('delivery_fee', $search_options)) {
-//                         $delivery_fee = 0;
-//                         if ($search_mode == "location") {
-//                             $delivery_fee = isset($val['location_fee']) ? $val['location_fee'] : 0;
-//                         } else {
-//                             $delivery_fee = FunctionsV3::getMerchantDeliveryFee(
-//                                             $merchant_id,
-//                                             $val['delivery_charges'],
-//                                             $distance,
-//                                             $home_search_unit_type);
-//                         }
-
-//                         if ($delivery_fee >= 0.001) {
-//                             $val['delivery_fee'] = mobileWrapper::t("Delivery Fee: [fee]", array(
-//                                         '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
-//                             ));
-//                         }
-//                     }
-
-//                     if (in_array('offers', $search_options)) {
-//                         $offers = array();
-//                         if (method_exists('FunctionsV3', 'getOffersByMerchantNew')) {
-//                             if ($offer = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-//                                 foreach ($offer as $offer_val) {
-//                                     $offers[] = $offer_val;
-//                                 }
-//                             }
-//                         }
-//                         $free_delivery_above = getOption($merchant_id, 'free_delivery_above_price');
-//                         if ($free_delivery_above > 0.001) {
-//                             $free_above = mobileWrapper::t("Free Delivery On Orders Over [subtotal]", array(
-//                                         '[subtotal]' => $free_delivery_above
-//                             ));
-//                             $offers[] = array(
-//                                 'raw' => mt("Free[fee]", array('[fee]' => FunctionsV3::prettyPrice($free_delivery_above))),
-//                                 'full' => $free_above
-//                             );
-//                         }
-//                         $val['offers'] = $offers;
-//                     }
-
-//                     if (in_array('voucher', $search_options)) {
-//                         $vouchers = array();
-//                         if (method_exists("FunctionsV3", "merchantActiveVoucher")) {
-//                             if ($voucher = FunctionsV3::merchantActiveVoucher($merchant_id)) {
-//                                 foreach ($voucher as $voucher_val) {
-//                                     if ($voucher_val['voucher_type'] == "fixed amount") {
-//                                         $v_amount = FunctionsV3::prettyPrice($voucher_val['amount']);
-//                                     } else
-//                                         $v_amount = number_format(($voucher_val['amount'] / 100) * 100) . "%";
-
-//                                     $vouchers[] = mt("[discount] off | Use coupon [code]", array(
-//                                         '[discount]' => $v_amount,
-//                                         '[code]' => $voucher_val['voucher_name']
-//                                     ));
-//                                 }
-//                                 $val['vouchers'] = $vouchers;
-//                             }
-//                         }
-//                     }
-
-//                     if (in_array('services', $search_options)) {
-//                         $services_list = array();
-//                         if ($services = mobileWrapper::getMerchantServicesList($val['service'])) {
-//                             foreach ($services as $services_val) {
-//                                 $services_list[] = $services_val;
-//                             }
-//                             $val['services'] = $services_list;
-//                         }
-//                     }
-
-//                     if (in_array('payment_option', $search_options)) {
-//                         $paymet_method_list = array();
-//                         if ($paymet_method = FunctionsV3::getMerchantPaymentListNew($merchant_id)) {
-//                             if (array_key_exists('cod', $paymet_method)) {
-//                                 $paymet_method_list[] = mobileWrapper::getImage("icon-cod.png", "icon-cod.png");
-//                             }
-//                             if (array_key_exists('obd', $paymet_method)) {
-//                                 $paymet_method_list[] = mobileWrapper::getImage("icon-obd.png", "icon-obd.png");
-//                             }
-//                             if (array_key_exists('ocr', $paymet_method)) {
-//                                 $paymet_method_list[] = mobileWrapper::getImage("icon-ocr.png", "icon-ocr.png");
-//                             }
-//                             $val['paymet_method_icon'] = $paymet_method_list;
-//                         }
-//                     }
-            
-//             //info code start
-
-//             if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
-
-//                 $this->code = 1;
-//                 $this->msg = "ok";
-
-//                 $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-//                 $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-//                 $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
-                
-//                 $store_start_date=getOption($merchant_id,'store_start_date');
-//                 $store_close_date=getOption($merchant_id,'store_close_date');
-
-//                     if( $store_start_date !='' && $store_close_date !='')
-//                     {
-//                         $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
-//                         $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
-
-//                     }
-                
-//                 $dataInfo['services'] = $services; 
-//                 $dataInfo['count_services'] = count($services); 
-//                 $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
-//                 $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
-
-//                 $dataInfo['latitude'] = $resInfo['latitude'];
-//                 $dataInfo['lontitude'] = $resInfo['lontitude'];
-
-//                 $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
-//                 $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
-//                 $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-
-//                 $status = mobileWrapper::merchantStatus($merchant_id);
-
-//                 $dataInfo['close_message'] = '';
-//                 if ($status == "close") {
-//                     //$date_close=date("F,d l Y h:ia");
-//                     $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
-//                     $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-//                                 '[date_close]' => $date_close
-//                     ));
-//                 }
-
-//                 $dataInfo['status_raw'] = $status;
-//                 $dataInfo['status'] = mt($status);
-
-
-//                 $dataInfo['gallery'] = 2;
-//                 $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
-//                 $banner_enabled = getOption($merchant_id, 'banner_enabled');
-//                 if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
-//                     $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
-//                 }
-
-//                 $ratings = Yii::app()->functions->getRatings($merchant_id);
-//                 $dataInfo['rating'] = $ratings;
-//                 $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-//                             '[count]' => $ratings['votes']
-//                 ));
-//                 $dataInfo['rating'] = $ratings;
-
-//                 $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
-
-//                 if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-//                     $dataInfo['offers'] = $offers;
-//                 }
-
-//                 if ($resInfo['is_sponsored'] == 2) {
-//                     $dataInfo['sponsored'] = $this->t("Sponsored");
-//                 }
-
-//                 //dump($ratings);
-//                 $dataInfo['tab_menu_enabled'] = 1;
-//                 $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
-
-//                 $dataInfo['share_options'] = array(
-//                     'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
-//                         '[website_name]' => getOptionA('website_title'),
-//                         '[merchant_address]' => $resInfo['complete_address']
-//                     )),
-//                     'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
-//                     'subject' => $resInfo['restaurant_name'],
-//                     'files' => ''
-//                 );
-                
-//                 $val['info'] = $dataInfo;
-               
-//             }
-                
-//                 //hours narration set
-                
-                
-//                 $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
-                
-//                 if(empty($val['info']['hours'])){
-//                     $val['info']['hours']  = array();
-//                 }
-                
-                
-                
-                
-//                 $val['info']['holidays']  = array();
-//                 $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
-                
-
-//                 /////////start opening time management ////////
-                
-//                 $today_date = date('Y-m-d');
-                
-//                 $today_time = date('h:i A');
-//                 //  $today_time = date('12:55 PM');
-                
-//                 $today_day = strtolower(date('l',strtotime($today_date)));
-                
-                
-//                 $ondays = array();
-                
-//                 foreach($val['info']['hours'] as $ondaykey => $onday){
-//                     array_push($ondays, $onday['day']);
-                    
-//                     // valid day    
-//                     if( trim($today_day) ==  trim($onday['day'] )){
-
-//                         //check double shift start
-//                             $shifts = explode('/', $onday['hours']);
-//                             if(isset($shifts[1])){
-//                                 $oneshift = explode('-', $shifts['0']);
-//                                 $twoshift = explode('-', $shifts['1']);
-                                
-//                                 // incase of 1st shift fall
-//                                 if( strtotime($today_time)  < strtotime($oneshift[0])){
-//                                     $onday['hours'] = $shifts[0]; 
-//                                 }
-//                                 else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-//                                     $onday['hours'] = $shifts[0]; 
-//                                 }
-//                                 // incase of 2nd shift fall
-//                                 else if( strtotime($today_time)  < strtotime($twoshift[0])){
-//                                     $onday['hours'] = $shifts[1]; 
-//                                 }                                
-//                                 else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-//                                     $onday['hours'] = $shifts[1]; 
-//                                 }                                                  
-//                             }
-                        
-//                         //check double shift end
-
-//                         $validate_hoursdata = explode('-', $onday['hours']);
-//                         $valid_closetime =$validate_hoursdata[1];    
-//                         if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
-//                                 $today_date = date('Y-m-d');
-                                
-//                                 $today_time = date('h:i A');
-                                
-//                                 $today_day = strtolower(date('l',strtotime($today_date)));
-                                
-//                                 // next day due to close
-                                
-//                                 $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                                
-//                                 $today_day = date('l', strtotime($today_date));
-                                
-//                         }    
-//                     }                    
-//                     // valid day end
-                    
-//                 }
-                
-//                 // if day not enable
-                
-//                 foreach($val['info']['hours'] as $ondayEnablekey => $ondayEnable){
-
-    
-//                     if(!in_array(strtolower($today_day), $ondays)){
-
-//                         $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-//                         $today_day = date('l', strtotime($today_date));  
-//                         continue;
-                        
-//                     }
-//                     // valid day    
-//                     if( trim($today_day) ==  trim($ondayEnable['day'] )){
-
-//                         $validate_hoursdata = explode('-', $onday['hours']);
-//                         $valid_closetime =$validate_hoursdata[1];    
-//                         if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
-//                                 $today_date = date('Y-m-d');
-                                
-//                                 $today_time = date('h:i A');
-                                
-//                                 $today_day = strtolower(date('l',strtotime($today_date)));
-                                
-//                                 // next day due to close
-                                
-//                                 $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                                
-//                                 $today_day = date('l', strtotime($today_date));
-                                
-                                
-//                         }    
-//                     }
-                    
-//                     // valid day end
-                    
-//                 }
-                
-//                 //total numbers of holidays
-                
-//                 $alldates = [0,1,2,3,4,5,6];
-//                 $valid_date =''; 
-                
-                
-//                 foreach ($alldates as $dates) {
-
-//                 if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) {
-//                      $valid_date = $today_date;
-//                      break;
-//                 }
-                
-//                 else if (!in_array($today_date, $res_holiday)) {
-
-//                     if (!in_array($today_day, $ondays)) {
-//                       $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-//                     } 
-//                     else {
-//                       $valid_date = $today_date;
-//                       break;
-//                     }
-//                  } 
-//                 else {
-//                         $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-//                     }
-//             }
-          
-//                 $timestampForday = strtotime($valid_date);
-                
-//                 $valid_day = date('l', $timestampForday);
-                
-//                 $valid_day = strtolower($valid_day);
-
-//                 $val['info']['timing_note'] = '';
-                
-//                 foreach($val['info']['hours'] as $hordata){
-                    
-//                     if( trim(strtolower($valid_day)) ==  trim(strtolower($hordata['day']) )){
-                     
-//                             //check double shift start
-//                                 $shifts = explode('/', $hordata['hours']);
-//                                 if(isset($shifts[1])){
-//                                     $oneshift = explode('-', $shifts['0']);
-//                                     $twoshift = explode('-', $shifts['1']);
-                                    
-//                                     // incase of 1st shift fall
-//                                     if( strtotime($today_time)  < strtotime($oneshift[0])){
-//                                         $hordata['hours'] = $shifts[0]; 
-//                                     }
-//                                     else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-//                                         $hordata['hours'] = $shifts[0]; 
-//                                     }
-//                                     // incase of 2nd shift fall
-//                                     else if( strtotime($today_time)  < strtotime($twoshift[0])){
-//                                         $hordata['hours'] = $shifts[1]; 
-//                                     }                                
-//                                     else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-//                                         $hordata['hours'] = $shifts[1]; 
-//                                     }                                                  
-//                                 }        
-                        
-//                             //check double shift end                     
-                     
-//                         if(strtolower($today_day) != strtolower($valid_day)){
-//                             $validate_hours = explode('-', $hordata['hours']);
-//                             $valid_opentime =$validate_hours[0];
-//                             $valid_closetime =$validate_hours[1];
-                            
-//                             $now_date_test = date('Y-m-d');
-                            
-//                             $now_date_check = strtolower(date('l', strtotime( $now_date_test . " +1 days")));
-
-//                         if($now_date_check == $valid_day){
-                         
-//                                 $val['info']['timing_note'] = 'Opens tomorrow from '. $valid_opentime. 'to'.$valid_closetime; 
-//                             }
-//                             else{
-//                                 $val['info']['timing_note'] = 'Opens '.$valid_day. ' from '. $valid_opentime.'to'.$valid_closetime;
-//                             }                            
-                                                       
-//                             continue;
-//                         }                        
-                        
-//                   //hours formate Start
-                        
-//                     $now_time = date('H:i A');
-                    
-//                     $now_hours = date('H');
-//                     $now_mins = date('i');
-//                     $now_timezone = date('A');
-                
-//                     if($now_hours == '00'){
-//                         $now_hours = '12';
-//                     }
-                    
-//                     if($now_hours == '12'){
-//                         $now_hours = '12';
-//                     }
-                    
-//                       if($now_hours > '12'){
-                          
-                         
-//                         if($now_hours == '13'){
-//                                 $now_hours = '1';
-//                           }
-//                           else if($now_hours == '14'){
-//                                 $now_hours = '2';
-//                           }
-//                           else if($now_hours == '15'){
-//                                 $now_hours = '3';
-//                           }
-//                           else if($now_hours == '16'){
-//                                 $now_hours = '4';
-//                           }
-//                           else if($now_hours == '17'){
-//                                 $now_hours = '5';
-//                           }
-//                           else if($now_hours == '18'){
-//                                 $now_hours = '6';
-//                           }
-//                           else if($now_hours == '19'){
-//                                 $now_hours = '7';
-//                           }
-//                           else if($now_hours == '20'){
-//                                 $now_hours = '8';
-//                           }
-//                           else if($now_hours == '20'){
-//                                 $now_hours = '8';
-//                           }
-//                           else if($now_hours == '21'){
-//                                 $now_hours = '9';
-//                           }
-//                           else if($now_hours == '22'){
-//                                 $now_hours = '10';
-//                           }
-//                           else if($now_hours == '23'){
-//                                 $now_hours = '11';
-//                           }
-//                           else if($now_hours == '24'){
-//                                 $now_hours = '12';
-//                           }
-//                     }
-                    
-                    
-//                 //    hours formate end
-                    
-//                     $now_time = $now_hours. ':'. $now_mins. ' '. $now_timezone;
-                    
-//                         $validate_hours = explode('-', $hordata['hours']);
-                        
-//                         $valid_opentime =$validate_hours[0];
-                        
-//                         $valid_closetime =$validate_hours[1];
-                        
-                
-//                         if(strtotime($now_time) <  strtotime($validate_hours[0])){
-                            
-//                           $datetime1 = new DateTime($now_time);
-//                           $datetime2 = new DateTime($valid_opentime);
-//                             $interval = $datetime1->diff($datetime2);
-//                             $hour_diff =  $interval->format('%h');
-//                             $mint_diff =  $interval->format('%i'); 
-                            
-//                             //if the hours are zero
-//                             if($hour_diff == 0){
-                                 
-//                               $will_open =   $mint_diff  .' '. 'minutes'; 
-                              
-//                               $val['info']['timing_note'] = 'Opens in '.$mint_diff  .' '. 'minutes';
-                              
-//                             }
-
-//                             //if the minute are zero
-
-//                             if($mint_diff == 0){
-                            
-//                                 $will_open =  $hour_diff .' '. 'hours'; 
-                                
-//                                 // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
-//                                  $val['info']['timing_note'] = 'Opens today at  '. $validate_hours[0];
-//                             }
-                            
-//                              //if both hours and minutes are present
-//                             if(($hour_diff != 0) && ($mint_diff != 0) ){
-                                
-//                                 $will_open =  $hour_diff .' '. 'hours'; 
-                                
-//                                 // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
-//                                   $val['info']['timing_note'] = 'Opens today at '. $validate_hours[0];
-                                
-//                             }
-                   
-//                         }
-                        
-//                         //Case when customer is came after Close time.
-                     
-//                         else if (strtotime($now_time) >  strtotime($validate_hours[1]) ){
-                        
-//                             //for open tomorrow
-                            
-//                             $alldates = [0,1,2,3,4,5,6];
-//                             $valid_date =''; 
-//                             $tomorrow = false;
-//                             foreach($alldates as $keydate => $dates){
-
-//                             //Adding 1 Day if that day is holiday
-                                
-//                                 $now_date = date('Y-m-d', strtotime( $now_date . " +1 days"));
-
-//                                 if($keydate == 0){
-//                                     $tomorrow = true ;        
-//                                 }
-//                                 else{
-//                                     $tomorrow = false ;
-//                                 }
-                                
-//                                 if (!in_array($now_date, $res_holiday)) {
-//                                     $valid_date =$now_date;
-//                                     break; 
-//                                 }
-//                             }
-                            
-//                             //get the day According to the date
-                            
-//                             $now_date = date('l', strtotime($now_date) ); 
-                            
-//                             $now_date = strtolower($now_date) ;
-                            
-//                             $open_time_next_day = '';
-//                             foreach($val['info']['hours'] as $hours_valid){
-//                                 if($hours_valid['day'] ==  $now_date){
-                                    
-//                                     $hoursdatanext = explode('-',$hours_valid['hours']);
-                                    
-//                                     $open_time_next_day = $hoursdatanext[0];
-                                    
-//                                 }
-                                
-//                             }
-//                             if($open_time_next_day){
-                                
-                                
-//                                 if($tomorrow = true){
-//                                     $val['info']['timing_note'] = 'Opens tomorrow  '. $open_time_next_day ;        
-//                                 }
-//                                 else{
-//                                     $val['info']['timing_note'] = 'Opens '.$now_date.'  '. $open_time_next_day ;        
-//                                 }
-//                             }
-//                         }
-                        
-//                         // if open 
-//                         else if (strtotime($now_time) <  strtotime($validate_hours[1]) ){
-//                             $val['info']['timing_note'] = 'Closes at '.trim($validate_hours[1]);
-//                         }
-                        
-//                     }
-//                 }
-                
-//                 //hours narration set end 
-                
-//                 if (!empty($res_holiday)) {
-//                     $val['info']['holidays']= $res_holiday;
-//                 }                
-//                     //info code end             
-            
-//                     $data[] = $val;
-//                 }
-//                 $this->details = array(
-//                     'search_type' => $search_type,
-//                     'total_records' => $total_records,
-//                     'sortby_selected' => $sortby_selected,
-//                     'page_action' => $page_action,
-//                     'paginate_total' => $paginate_total,
-//                     'map_page' => isset($this->data['map_page']) ? $this->data['map_page'] : '',
-//                     'list' => $data
-//                 );
-                
-               
-                
-                
-//             } else {
-//                 if ($search_type == "byLatLong") {
-//                     $this->msg = $this->t("0 restaurant found");
-//                 } else
-//                     $this->msg = $this->t("No results");
-                    
-                 
-
-//                 $this->details = array(
-//                     'search_type' => $search_type,
-//                     'sortby_selected' => $sortby_selected,
-//                     'page_action' => $page_action,
-//                     'paginate_total' => $paginate_total,
-//                 );
-                
-             
-//             }
-//         } else {
-//             $this->msg = $this->t("invalid query");
-//             $this->details = array(
-//                 'search_type' => $search_type,
-//                 'sortby_selected' => $sortby_selected,
-//                 'page_action' => $page_action,
-//                 'paginate_total' => $paginate_total,
-//             );
-//         }
-//         $this->output();
-//     }
-
-
-      //test function startt
     //changin previous to live
-      
-      public function actionsearchMerchantPreviousonworking() {
-        
+
+    public function actionsearchMerchantPreviousonworking()
+    {
+
         $db = new DbExt();
         $db->qry("SET SQL_BIG_SELECTS=1");
 
         $search_resp = mobileWrapper::searchMode();
-        
+
         $search_mode = $search_resp['search_mode'];
         $location_mode = $search_resp['location_mode'];
 
@@ -6945,10 +3196,10 @@ class ApiController extends CController {
         $enabled_distance = 1;
 
         $distance_results_type = mobileWrapper::getDistanceResultsType();
-        
-        $cuisine_name = ''; 
+
+        $cuisine_name = '';
         $page = $this->data['page'] * $page_limit;
-        
+
         $stmt = '';
         $and = ' AND a.app_status = 1 ';
         $where = '';
@@ -6958,10 +3209,10 @@ class ApiController extends CController {
 
 
         $home_search_unit_type = getOptionA('home_search_unit_type');
-        
-       
+
+
         $home_search_unit_type_admin = $home_search_unit_type;
-        
+
         $home_search_radius = getOptionA('home_search_radius');
         $home_search_radius = is_numeric($home_search_radius) ? $home_search_radius : 10;
 
@@ -6991,10 +3242,10 @@ class ApiController extends CController {
 		a.minimum_order as minimum_order_raw,
 		a.is_featured,
 		";
-		
-		
 
-	
+
+
+
 
         $query_distance = "
 		( $distance_exp * acos( cos( radians($lat) ) * cos( radians( latitude ) ) 
@@ -7002,8 +3253,8 @@ class ApiController extends CController {
 				+ sin( radians($lat) ) * sin( radians( latitude ) ) ) ) 
 				AS distance		
 		";
-		
-		
+
+
 
 
         $sort_asc_desc = isset($this->data['sort_asc_desc']) ? $this->data['sort_asc_desc'] : 'ASC';
@@ -7013,8 +3264,8 @@ class ApiController extends CController {
         if ($search_mode == "location") {
             $sort = "ORDER BY is_sponsored DESC, restaurant_name $sort_asc_desc";
         }
-        
-        		
+
+
 
         $sort_by = isset($this->data['sort_by']) ? $this->data['sort_by'] : '';
         $sortby_selected = $this->t("Distance");
@@ -7029,8 +3280,8 @@ class ApiController extends CController {
             $sortby_selected = $sort_resp['name'];
             $sort = "ORDER BY " . stripslashes($sort_by) . " $sort_asc_desc";
         }
-        
-        	
+
+
 
         /* FILTER */
         $filter = '';
@@ -7039,7 +3290,7 @@ class ApiController extends CController {
                 $filter .= " AND a.delivery_charges <= 0 ";
             }
         }
-       
+
         if (isset($this->data['filter_services'])) {
             if (is_array($this->data['filter_services']) && count($this->data['filter_services']) >= 1) {
                 $filter_services_stmt = '';
@@ -7062,11 +3313,11 @@ class ApiController extends CController {
                 $filter .= " AND ($filter_services_stmt) ";
             }
         }
-         
+
 
         if (isset($this->data['filter_cuisine'])) {
-            
-    
+
+
             if (is_array($this->data['filter_cuisine']) && count($this->data['filter_cuisine']) >= 1) {
                 $filter_cuisine_stmt = '';
                 foreach ($this->data['filter_cuisine'] as $filter_cuisine) {
@@ -7133,39 +3384,39 @@ class ApiController extends CController {
         $postal_code = isset($this->data['postal_code']) ? $this->data['postal_code'] : -1;
 
         switch ($search_type) {
-            
-          
-            
+
+
+
             case "byLatLong":
-                
-                
+
+
                 // print("sdfs"); exit("latuu");
                 //  print_r($this->data);  print_r($lat, $lng); exit(LLLL);
-                
-  
-            
+
+
+
                 if (isset($this->data['map_page'])) {
                     if ($this->data['map_page'] == 1) {
                         $page_limit = 1000;
                     }
                 }
-                
-                
+
+
                 $R = 3960;  // earth's mean radius
                 $rad = '100';
                 // first-cut bounding box (in degrees)
-                $maxLat = $lat + rad2deg($rad/$R);
-                
-                $minLat = $lat - rad2deg($rad/$R);
-                
+                $maxLat = $lat + rad2deg($rad / $R);
+
+                $minLat = $lat - rad2deg($rad / $R);
+
                 // compensate for degrees longitude getting smaller with increasing latitude
-                $maxLon = $lon + rad2deg($rad/$R/cos(deg2rad($lat)));
-                $minLon = $lon - rad2deg($rad/$R/cos(deg2rad($lat)));
-                
-                $maxLat=number_format((float)$maxLat, 6, '.', '');
-                $minLat=number_format((float)$minLat, 6, '.', '');
-                $maxLon=number_format((float)$maxLon, 6, '.', '');
-                $minLon=number_format((float)$minLon, 6, '.', '');
+                $maxLon = $lon + rad2deg($rad / $R / cos(deg2rad($lat)));
+                $minLon = $lon - rad2deg($rad / $R / cos(deg2rad($lat)));
+
+                $maxLat = number_format((float) $maxLat, 6, '.', '');
+                $minLat = number_format((float) $minLat, 6, '.', '');
+                $maxLon = number_format((float) $maxLon, 6, '.', '');
+                $minLon = number_format((float) $minLon, 6, '.', '');
 
 
                 $stmt = "
@@ -7184,8 +3435,8 @@ class ApiController extends CController {
 			 	$sort
 				LIMIT $page,$page_limit
 				";
-				
-				     
+
+
                 if ($search_mode == "location") {
 
                     if (isset($this->data['filter_delivery_fee'])) {
@@ -7533,7 +3784,7 @@ class ApiController extends CController {
                         }
                     }
                 }
-                
+
                 $stmt = "
 				    SELECT SQL_CALC_FOUND_ROWS 
 					$a
@@ -7541,17 +3792,17 @@ class ApiController extends CController {
 	                $query_distance					
 					FROM {{view_merchant}} a
 					$where  AND (";
-					
-					$cuisine_ids = explode(',', $cuisine_id);
-					
-					foreach($cuisine_ids as $key => $cuids){
-					    if($key == 0){
-					       $stmt .= "  a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%') ;        
-					    }else{
-					        $stmt .= " OR a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%') ; 
-					    }
-					}
-					$stmt .= ")
+
+                $cuisine_ids = explode(',', $cuisine_id);
+
+                foreach ($cuisine_ids as $key => $cuids) {
+                    if ($key == 0) {
+                        $stmt .= "  a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%');
+                    } else {
+                        $stmt .= " OR a.cuisine LIKE " . FunctionsV3::q('%"' . $cuids . '"%');
+                    }
+                }
+                $stmt .= ")
 					$and
 					$sort
 					LIMIT $page,$page_limit
@@ -7669,7 +3920,7 @@ class ApiController extends CController {
         $search_options = mobileWrapper::getDataSearchOptions();
         if (!empty($stmt)) {
             if ($res = $db->rst($stmt)) {
-                
+
 
                 $total_records = 0;
                 $stmtc = "SELECT FOUND_ROWS() as total_records";
@@ -7683,35 +3934,40 @@ class ApiController extends CController {
                     case "allMerchant":
                     case "byCuisine":
                         $this->msg = mobileWrapper::t("[total] Restaurant Found", array(
-                                    '[total]' => $total_records
-                        ));
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
 
                     case "featuredMerchant":
                         $this->msg = mobileWrapper::t("[total] Featured Restaurant", array(
-                                    '[total]' => $total_records
-                        ));
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
 
                     case "special_Offers":
                         $this->msg = mobileWrapper::t("[total] Special Offers", array(
-                                    '[total]' => $total_records
-                        ));
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
 
                     case "favorites":
                         $this->msg = mobileWrapper::t("[total] Favorites", array(
-                                    '[total]' => $total_records
-                        ));
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
 
                     default:
                         $this->msg = mobileWrapper::t("[total] Nearby
                       
                         Restaurant", array(
-                            
-                                    '[total]' => $total_records
-                        ));
+
+                            '[total]' => $total_records
+                        )
+                        );
                         break;
                 }
 
@@ -7729,23 +3985,26 @@ class ApiController extends CController {
                     }
 
                     if (in_array('minimum_order', $search_options)) {
-                        
+
                         if ($search_mode == "address") {
                             $minimum_order = $val['minimum_order'];
-                            $min_fees = FunctionsV3::getMinOrderByTableRates($merchant_id,
-                                            $val['distance'],
-                                            $home_search_unit_type,
-                                            $val['minimum_order']
+                            $min_fees = FunctionsV3::getMinOrderByTableRates(
+                                $merchant_id,
+                                $val['distance'],
+                                $home_search_unit_type,
+                                $val['minimum_order']
                             );
                             $val['minimum_order_raw'] = $min_fees;
                             $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-                                        '[min]' => FunctionsV3::prettyPrice($min_fees)
-                            ));
+                                '[min]' => FunctionsV3::prettyPrice($min_fees)
+                            )
+                            );
                         } else {
                             if ($val['minimum_order'] > 0.0001) {
                                 $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-                                            '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
-                                ));
+                                    '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
+                                )
+                                );
                             } else {
                                 unset($val['minimum_order']);
                                 unset($val['minimum_order_raw']);
@@ -7758,8 +4017,8 @@ class ApiController extends CController {
 
 
                     if (in_array('open_tag', $search_options)) {
-                        
-                  
+
+
                         $status = mobileWrapper::merchantStatus($merchant_id);
                         $val['open_status_raw'] = $status;
                         $val['open_status'] = mt($status);
@@ -7779,8 +4038,9 @@ class ApiController extends CController {
                     if (in_array('review', $search_options)) {
                         $ratings = Yii::app()->functions->getRatings($merchant_id);
                         $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-                                    '[count]' => $ratings['votes']
-                        ));
+                            '[count]' => $ratings['votes']
+                        )
+                        );
                         $val['rating'] = $ratings;
                     }
 
@@ -7795,14 +4055,16 @@ class ApiController extends CController {
                         if (in_array('distace', $search_options)) {
 
                             $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-                                        '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
-                            ));
+                                '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
+                            )
+                            );
 
                             if ($distance_results_type == 2) {
                                 if ($resp_lat = FunctionsV3::getDistanceBetweenPlot($lat, $lng, $val['latitude'], $val['lontitude'], $home_search_unit_type)) {
                                     $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-                                                '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
-                                    ));
+                                        '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
+                                    )
+                                    );
                                     $distance = number_format($resp_lat, 1);
                                 } else
                                     $val['distance_plot'] = $this->t("Distance : not available");
@@ -7824,15 +4086,17 @@ class ApiController extends CController {
                         if (in_array('delivery_estimation', $search_options)) {
                             $estimation = FunctionsV3::getDeliveryEstimation($merchant_id);
                             $val['delivery_estimation'] = mobileWrapper::t("Delivery Est: [estimation]", array(
-                                        '[estimation]' => mt($estimation)
-                            ));
+                                '[estimation]' => mt($estimation)
+                            )
+                            );
                         }
                         if (in_array('delivery_distance', $search_options)) {
                             $delivery_distance = getOption($merchant_id, 'merchant_delivery_miles');
                             if ($delivery_distance >= 0.001) {
                                 $val['delivery_distance'] = mobileWrapper::t("Delivery Distance: [delivery_distance]", array(
-                                            '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
-                                ));
+                                    '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
+                                )
+                                );
                             }
                         }
                     }
@@ -7843,16 +4107,18 @@ class ApiController extends CController {
                             $delivery_fee = isset($val['location_fee']) ? $val['location_fee'] : 0;
                         } else {
                             $delivery_fee = FunctionsV3::getMerchantDeliveryFee(
-                                            $merchant_id,
-                                            $val['delivery_charges'],
-                                            $distance,
-                                            $home_search_unit_type);
+                                $merchant_id,
+                                $val['delivery_charges'],
+                                $distance,
+                                $home_search_unit_type
+                            );
                         }
 
                         if ($delivery_fee >= 0.001) {
                             $val['delivery_fee'] = mobileWrapper::t("Delivery Fee: [fee]", array(
-                                        '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
-                            ));
+                                '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
+                            )
+                            );
                         }
                     }
 
@@ -7868,8 +4134,9 @@ class ApiController extends CController {
                         $free_delivery_above = getOption($merchant_id, 'free_delivery_above_price');
                         if ($free_delivery_above > 0.001) {
                             $free_above = mobileWrapper::t("Free Delivery On Orders Over [subtotal]", array(
-                                        '[subtotal]' => $free_delivery_above
-                            ));
+                                '[subtotal]' => $free_delivery_above
+                            )
+                            );
                             $offers[] = array(
                                 'raw' => mt("Free[fee]", array('[fee]' => FunctionsV3::prettyPrice($free_delivery_above))),
                                 'full' => $free_above
@@ -7891,7 +4158,8 @@ class ApiController extends CController {
                                     $vouchers[] = mt("[discount] off | Use coupon [code]", array(
                                         '[discount]' => $v_amount,
                                         '[code]' => $voucher_val['voucher_name']
-                                    ));
+                                    )
+                                    );
                                 }
                                 $val['vouchers'] = $vouchers;
                             }
@@ -7923,518 +4191,497 @@ class ApiController extends CController {
                             $val['paymet_method_icon'] = $paymet_method_list;
                         }
                     }
-            
-            //info code start
 
-            if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
+                    //info code start
 
-                $this->code = 1;
-                $this->msg = "ok";
+                    if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
 
-                $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-                $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-                $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
-                
-                $store_start_date=getOption($merchant_id,'store_start_date');
-                $store_close_date=getOption($merchant_id,'store_close_date');
+                        $this->code = 1;
+                        $this->msg = "ok";
 
-                    if( $store_start_date !='' && $store_close_date !='')
-                    {
-                        $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
-                        $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
+                        $dataInfo['merchant_id'] = $resInfo['merchant_id'];
+                        $dataInfo['merchant_id'] = $resInfo['merchant_id'];
+                        $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
+
+                        $store_start_date = getOption($merchant_id, 'store_start_date');
+                        $store_close_date = getOption($merchant_id, 'store_close_date');
+
+                        if ($store_start_date != '' && $store_close_date != '') {
+                            $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
+                            $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
+
+                        }
+
+                        $dataInfo['services'] = $services;
+                        $dataInfo['count_services'] = count($services);
+                        $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
+                        $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
+
+                        $dataInfo['latitude'] = $resInfo['latitude'];
+                        $dataInfo['lontitude'] = $resInfo['lontitude'];
+
+                        $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
+                        $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
+                        $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
+
+                        $status = mobileWrapper::merchantStatus($merchant_id);
+
+                        $dataInfo['close_message'] = '';
+                        if ($status == "close") {
+                            //$date_close=date("F,d l Y h:ia");
+                            $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
+                            $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
+                                '[date_close]' => $date_close
+                            )
+                            );
+                        }
+
+                        $dataInfo['status_raw'] = $status;
+                        $dataInfo['status'] = mt($status);
+
+
+                        $dataInfo['gallery'] = 2;
+                        $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
+                        $banner_enabled = getOption($merchant_id, 'banner_enabled');
+                        if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
+                            $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
+                        }
+
+                        $ratings = Yii::app()->functions->getRatings($merchant_id);
+                        $dataInfo['rating'] = $ratings;
+                        $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
+                            '[count]' => $ratings['votes']
+                        )
+                        );
+                        $dataInfo['rating'] = $ratings;
+
+                        $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
+
+                        if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
+                            $dataInfo['offers'] = $offers;
+                        }
+
+                        if ($resInfo['is_sponsored'] == 2) {
+                            $dataInfo['sponsored'] = $this->t("Sponsored");
+                        }
+
+                        //dump($ratings);
+                        $dataInfo['tab_menu_enabled'] = 1;
+                        $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
+
+                        $dataInfo['share_options'] = array(
+                            'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
+                                '[website_name]' => getOptionA('website_title'),
+                                '[merchant_address]' => $resInfo['complete_address']
+                            )
+                            ),
+                            'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
+                            'subject' => $resInfo['restaurant_name'],
+                            'files' => ''
+                        );
+
+                        $val['info'] = $dataInfo;
 
                     }
-                
-                $dataInfo['services'] = $services; 
-                $dataInfo['count_services'] = count($services); 
-                $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
-                $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
 
-                $dataInfo['latitude'] = $resInfo['latitude'];
-                $dataInfo['lontitude'] = $resInfo['lontitude'];
-
-                $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
-                $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
-                $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-
-                $status = mobileWrapper::merchantStatus($merchant_id);
-
-                $dataInfo['close_message'] = '';
-                if ($status == "close") {
-                    //$date_close=date("F,d l Y h:ia");
-                    $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
-                    $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-                                '[date_close]' => $date_close
-                    ));
-                }
-
-                $dataInfo['status_raw'] = $status;
-                $dataInfo['status'] = mt($status);
+                    //hours narration set
 
 
-                $dataInfo['gallery'] = 2;
-                $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
-                $banner_enabled = getOption($merchant_id, 'banner_enabled');
-                if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
-                    $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
-                }
+                    $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
 
-                $ratings = Yii::app()->functions->getRatings($merchant_id);
-                $dataInfo['rating'] = $ratings;
-                $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-                            '[count]' => $ratings['votes']
-                ));
-                $dataInfo['rating'] = $ratings;
+                    if (empty($val['info']['hours'])) {
+                        $val['info']['hours'] = array();
+                    }
 
-                $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
 
-                if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-                    $dataInfo['offers'] = $offers;
-                }
+                    $val['info']['holidays'] = array();
+                    $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
 
-                if ($resInfo['is_sponsored'] == 2) {
-                    $dataInfo['sponsored'] = $this->t("Sponsored");
-                }
+                    /////////start opening time management ////////
 
-                //dump($ratings);
-                $dataInfo['tab_menu_enabled'] = 1;
-                $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
 
-                $dataInfo['share_options'] = array(
-                    'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
-                        '[website_name]' => getOptionA('website_title'),
-                        '[merchant_address]' => $resInfo['complete_address']
-                    )),
-                    'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
-                    'subject' => $resInfo['restaurant_name'],
-                    'files' => ''
-                );
-                
-                $val['info'] = $dataInfo;
-               
-            }
-                
-                //hours narration set
-                
-                
-                $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
-                
-                if(empty($val['info']['hours'])){
-                    $val['info']['hours']  = array();
-                }
-                
-                
-                $val['info']['holidays']  = array();
-                $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
+                    //   if($val['info']['merchant_id'] == 249){
+                    //     print_r($val['info']['hours']);
+                    //      exit('sdfds');
+                    // }
 
-                /////////start opening time management ////////
-                
-                    
-                //   if($val['info']['merchant_id'] == 249){
-                //     print_r($val['info']['hours']);
-                //      exit('sdfds');
-                // }
-                
-                $today_date = date('Y-m-d');
-                
-                $today_time = date('h:i A');
-                //  $today_time = date('12:55 PM');
-                
-                $today_day = strtolower(date('l',strtotime($today_date)));
-            
-                $ondays = array();
-                
-                //   if($val['info']['merchant_id'] == 249){
-                //     print_r($val['info']['hours']);
-                //      exit('sdfds');
-                // }
+                    $today_date = date('Y-m-d');
 
-                foreach($val['info']['hours'] as $ondaykey => $onday){
-                    
-                              
+                    $today_time = date('h:i A');
+                    //  $today_time = date('12:55 PM');
 
-                    array_push($ondays, $onday['day']);
-                 
-                    // valid day    
-                    if( trim($today_day) ==  trim($onday['day'] )){
-                        
-                        //check double shift start
+                    $today_day = strtolower(date('l', strtotime($today_date)));
+
+                    $ondays = array();
+
+                    //   if($val['info']['merchant_id'] == 249){
+                    //     print_r($val['info']['hours']);
+                    //      exit('sdfds');
+                    // }
+
+                    foreach ($val['info']['hours'] as $ondaykey => $onday) {
+
+
+
+                        array_push($ondays, $onday['day']);
+
+                        // valid day    
+                        if (trim($today_day) == trim($onday['day'])) {
+
+                            //check double shift start
                             $shifts = explode('/', $onday['hours']);
-                            if(isset($shifts[1])){
+                            if (isset($shifts[1])) {
                                 $oneshift = explode('-', $shifts['0']);
                                 $twoshift = explode('-', $shifts['1']);
-                                
+
                                 // incase of 1st shift fall
-                                if( strtotime($today_time)  < strtotime($oneshift[0])){
-                                    $onday['hours'] = $shifts[0]; 
-                                }
-                                else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-                                    $onday['hours'] = $shifts[0]; 
+                                if (strtotime($today_time) < strtotime($oneshift[0])) {
+                                    $onday['hours'] = $shifts[0];
+                                } else if ((strtotime($today_time) > strtotime($oneshift[0])) && (strtotime($today_time) < strtotime($oneshift[1]))) {
+                                    $onday['hours'] = $shifts[0];
                                 }
                                 // incase of 2nd shift fall
-                                else if( strtotime($today_time)  < strtotime($twoshift[0])){
-                                    $onday['hours'] = $shifts[1]; 
-                                }                                
-                                else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-                                    $onday['hours'] = $shifts[1]; 
-                                }                                                  
+                                else if (strtotime($today_time) < strtotime($twoshift[0])) {
+                                    $onday['hours'] = $shifts[1];
+                                } else if ((strtotime($today_time) > strtotime($twoshift[0])) && (strtotime($today_time) < strtotime($twoshift[1]))) {
+                                    $onday['hours'] = $shifts[1];
+                                }
                             }
-                        
-                        //check double shift end
-                        
-                        $validate_hoursdata = explode('-', $onday['hours']);
-                        $valid_closetime =$validate_hoursdata[1];    
-                        if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
+
+                            //check double shift end
+
+                            $validate_hoursdata = explode('-', $onday['hours']);
+                            $valid_closetime = $validate_hoursdata[1];
+                            if (strtotime($today_time) > strtotime($valid_closetime)) {
+
                                 $today_date = date('Y-m-d');
-                                
+
                                 $today_time = date('h:i A');
-                                
-                                $today_day = strtolower(date('l',strtotime($today_date)));
-                                
+
+                                $today_day = strtolower(date('l', strtotime($today_date)));
+
                                 // next day due to close
-                                
+
                                 $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                                
+
                                 $today_day = date('l', strtotime($today_date));
-                                
-                        }    
-                    }                    
-                    // valid day end
-                    
-                }
-                
-                // if day not enable
-                
-                $weekdays = array(
-                    1=>'monday',
-                    2=>'tuesday',
-                    3=>'wednesday',
-                    4=>'thrusday',
-                    5=>'friday',
-                    6=>'saturday',
-                    7=>'sunday');
-                    
 
-                $remaining_days = $ondays;
-                
-                foreach($val['info']['hours'] as $ondayEnablekey => $ondayEnable){
+                            }
+                        }
+                        // valid day end
 
-                //this is for day
+                    }
 
-                    
-                    if(!in_array( strtolower($today_day), $ondays )){
-                       
-                        $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                        $today_day = date('l', strtotime($today_date));  
+                    // if day not enable
 
-                        continue;
-                    } 
-                    
-                    // valid day    
-                    if( trim($today_day) ==  trim($ondayEnable['day'] )){
+                    $weekdays = array(
+                        1 => 'monday',
+                        2 => 'tuesday',
+                        3 => 'wednesday',
+                        4 => 'thrusday',
+                        5 => 'friday',
+                        6 => 'saturday',
+                        7 => 'sunday'
+                    );
 
-                        $validate_hoursdata = explode('-', $onday['hours']);
-                        $valid_closetime =$validate_hoursdata[1];    
-                        if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
+
+                    $remaining_days = $ondays;
+
+                    foreach ($val['info']['hours'] as $ondayEnablekey => $ondayEnable) {
+
+                        //this is for day
+
+
+                        if (!in_array(strtolower($today_day), $ondays)) {
+
+                            $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
+                            $today_day = date('l', strtotime($today_date));
+
+                            continue;
+                        }
+
+                        // valid day    
+                        if (trim($today_day) == trim($ondayEnable['day'])) {
+
+                            $validate_hoursdata = explode('-', $onday['hours']);
+                            $valid_closetime = $validate_hoursdata[1];
+                            if (strtotime($today_time) > strtotime($valid_closetime)) {
+
                                 $today_date = date('Y-m-d');
-                                
+
                                 $today_time = date('h:i A');
-                                
-                                $today_day = strtolower(date('l',strtotime($today_date)));
-                                
+
+                                $today_day = strtolower(date('l', strtotime($today_date)));
+
                                 // next day due to close    here i was checking 
-                                
+
                                 $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                                
+
                                 $today_day = date('l', strtotime($today_date));
-                                
-                                
-                        }    
-                    }
-                    
-                    // valid day end
-                    
-                }
-                
 
-                
-                //total numbers of holidays
-                
-                $alldates = [0,1,2,3,4,5,6];
-                $valid_date =''; 
-                
-                
-                foreach ($alldates as $dates) {
 
-                if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) {
-                     $valid_date = $today_date;
-                     break;
-                }
-                
-                else if (!in_array($today_date, $res_holiday)) {
+                            }
+                        }
 
-                    if (!in_array($today_day, $ondays)) {
-                      $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                    } 
-                    else {
-                      $valid_date = $today_date;
-                      break;
+                        // valid day end
+
                     }
-                 } 
-                else {
-                        $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+
+
+
+                    //total numbers of holidays
+
+                    $alldates = [0, 1, 2, 3, 4, 5, 6];
+                    $valid_date = '';
+
+
+                    foreach ($alldates as $dates) {
+
+                        if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) {
+                            $valid_date = $today_date;
+                            break;
+                        } else if (!in_array($today_date, $res_holiday)) {
+
+                            if (!in_array($today_day, $ondays)) {
+                                $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+                            } else {
+                                $valid_date = $today_date;
+                                break;
+                            }
+                        } else {
+                            $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+                        }
                     }
-            }
-          
-                $timestampForday = strtotime($valid_date);
-                $valid_day = date('l', $timestampForday);
-                $valid_day = strtolower($valid_day);
-                
-                $val['info']['timing_note'] = '';
-                
-                foreach($val['info']['hours'] as $hordata){
-                 
-                    if( trim($valid_day) ==  trim($hordata['day'] )){
-                     
-                        if(strtolower($today_day) != strtolower($valid_day)){
-                        
-                            //check double shift start
+
+                    $timestampForday = strtotime($valid_date);
+                    $valid_day = date('l', $timestampForday);
+                    $valid_day = strtolower($valid_day);
+
+                    $val['info']['timing_note'] = '';
+
+                    foreach ($val['info']['hours'] as $hordata) {
+
+                        if (trim($valid_day) == trim($hordata['day'])) {
+
+                            if (strtolower($today_day) != strtolower($valid_day)) {
+
+                                //check double shift start
                                 $shifts = explode('/', $hordata['hours']);
-                                if(isset($shifts[1])){
+                                if (isset($shifts[1])) {
                                     $oneshift = explode('-', $shifts['0']);
                                     $twoshift = explode('-', $shifts['1']);
-                                    
+
                                     // incase of 1st shift fall
-                                    if( strtotime($today_time)  < strtotime($oneshift[0])){
-                                        $hordata['hours'] = $shifts[0]; 
-                                    }
-                                    else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-                                        $hordata['hours'] = $shifts[0]; 
+                                    if (strtotime($today_time) < strtotime($oneshift[0])) {
+                                        $hordata['hours'] = $shifts[0];
+                                    } else if ((strtotime($today_time) > strtotime($oneshift[0])) && (strtotime($today_time) < strtotime($oneshift[1]))) {
+                                        $hordata['hours'] = $shifts[0];
                                     }
                                     // incase of 2nd shift fall
-                                    else if( strtotime($today_time)  < strtotime($twoshift[0])){
-                                        $hordata['hours'] = $shifts[1]; 
-                                    }                                
-                                    else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-                                        $hordata['hours'] = $shifts[1]; 
-                                    }                                                  
-                                }        
-                        
-                            //check double shift end
-                
-                            $validate_hours = explode('-', $hordata['hours']);
-                            $valid_opentime =$validate_hours[0];
-                            $valid_closetime =$validate_hours[1];
-                            
-                            $now_date_test = date('Y-m-d');
-                            
-                            $now_date_check = strtolower(date('l', strtotime( $now_date_test . " +1 days")));
+                                    else if (strtotime($today_time) < strtotime($twoshift[0])) {
+                                        $hordata['hours'] = $shifts[1];
+                                    } else if ((strtotime($today_time) > strtotime($twoshift[0])) && (strtotime($today_time) < strtotime($twoshift[1]))) {
+                                        $hordata['hours'] = $shifts[1];
+                                    }
+                                }
 
-                            if($now_date_check == $valid_day){
-                                $val['info']['timing_note'] = 'Opens tomorrow from '. $valid_opentime. 'to'.$valid_closetime; 
+                                //check double shift end
+
+                                $validate_hours = explode('-', $hordata['hours']);
+                                $valid_opentime = $validate_hours[0];
+                                $valid_closetime = $validate_hours[1];
+
+                                $now_date_test = date('Y-m-d');
+
+                                $now_date_check = strtolower(date('l', strtotime($now_date_test . " +1 days")));
+
+                                if ($now_date_check == $valid_day) {
+                                    $val['info']['timing_note'] = 'Opens tomorrow from ' . $valid_opentime . 'to' . $valid_closetime;
+                                } else {
+                                    $val['info']['timing_note'] = 'Opens ' . $valid_day . ' from ' . $valid_opentime . 'to' . $valid_closetime;
+                                }
+
+                                continue;
                             }
-                            else{
-                                $val['info']['timing_note'] = 'Opens '.$valid_day. ' from '. $valid_opentime.'to'.$valid_closetime;
-                            }                            
-                                                       
-                            continue;
-                        }                        
-                        
-                  //hours formate Start
-                        
-                    $now_time = date('H:i A');
-                    
-                    $now_hours = date('H');
-                    $now_mins = date('i');
-                    $now_timezone = date('A');
-                
-                    if($now_hours == '00'){
-                        $now_hours = '12';
-                    }
-                    
-                    if($now_hours == '12'){
-                        $now_hours = '12';
-                    }
-                    
-                      if($now_hours > '12'){
-                          
-                         
-                        if($now_hours == '13'){
-                                $now_hours = '1';
-                          }
-                          else if($now_hours == '14'){
-                                $now_hours = '2';
-                          }
-                          else if($now_hours == '15'){
-                                $now_hours = '3';
-                          }
-                          else if($now_hours == '16'){
-                                $now_hours = '4';
-                          }
-                          else if($now_hours == '17'){
-                                $now_hours = '5';
-                          }
-                          else if($now_hours == '18'){
-                                $now_hours = '6';
-                          }
-                          else if($now_hours == '19'){
-                                $now_hours = '7';
-                          }
-                          else if($now_hours == '20'){
-                                $now_hours = '8';
-                          }
-                          else if($now_hours == '20'){
-                                $now_hours = '8';
-                          }
-                          else if($now_hours == '21'){
-                                $now_hours = '9';
-                          }
-                          else if($now_hours == '22'){
-                                $now_hours = '10';
-                          }
-                          else if($now_hours == '23'){
-                                $now_hours = '11';
-                          }
-                          else if($now_hours == '24'){
+
+                            //hours formate Start
+
+                            $now_time = date('H:i A');
+
+                            $now_hours = date('H');
+                            $now_mins = date('i');
+                            $now_timezone = date('A');
+
+                            if ($now_hours == '00') {
                                 $now_hours = '12';
-                          }
-                    }
-                    
-                    
-                //    hours formate end
-                    
-                    $now_time = $now_hours. ':'. $now_mins. ' '. $now_timezone;
-                    
-                        $validate_hours = explode('-', $hordata['hours']);
-                        
-                        $valid_opentime =$validate_hours[0];
-                        
-                        $valid_closetime =$validate_hours[1];
-                        
-                
-                        if(strtotime($now_time) <  strtotime($validate_hours[0])){
-             
-                          $datetime1 = new DateTime($now_time);
-                          $datetime2 = new DateTime($valid_opentime);
-                            $interval = $datetime1->diff($datetime2);
-                            $hour_diff =  $interval->format('%h');
-                            $mint_diff =  $interval->format('%i'); 
-                            
-                            //if the hours are zero
-                            if($hour_diff == 0){
-                                 
-                              $will_open =   $mint_diff  .' '. 'minutes'; 
-                              
-                              $val['info']['timing_note'] = 'Opens in '.$mint_diff  .' '. 'minutes';
-                              
                             }
 
-                            //if the minute are zero
-
-                            if($mint_diff == 0){
-                            
-                                $will_open =  $hour_diff .' '. 'hours'; 
-                                
-                                // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
-                                 $val['info']['timing_note'] = 'Opens today at  '. $validate_hours[0];
-                                 
+                            if ($now_hours == '12') {
+                                $now_hours = '12';
                             }
-                            
-                            // $nowday = strtolower(date('l')); 
-                             //if both hours and minutes are present
-                            if(($hour_diff != 0) && ($mint_diff != 0)){
-                                
+
+                            if ($now_hours > '12') {
+
+
+                                if ($now_hours == '13') {
+                                    $now_hours = '1';
+                                } else if ($now_hours == '14') {
+                                    $now_hours = '2';
+                                } else if ($now_hours == '15') {
+                                    $now_hours = '3';
+                                } else if ($now_hours == '16') {
+                                    $now_hours = '4';
+                                } else if ($now_hours == '17') {
+                                    $now_hours = '5';
+                                } else if ($now_hours == '18') {
+                                    $now_hours = '6';
+                                } else if ($now_hours == '19') {
+                                    $now_hours = '7';
+                                } else if ($now_hours == '20') {
+                                    $now_hours = '8';
+                                } else if ($now_hours == '20') {
+                                    $now_hours = '8';
+                                } else if ($now_hours == '21') {
+                                    $now_hours = '9';
+                                } else if ($now_hours == '22') {
+                                    $now_hours = '10';
+                                } else if ($now_hours == '23') {
+                                    $now_hours = '11';
+                                } else if ($now_hours == '24') {
+                                    $now_hours = '12';
+                                }
+                            }
+
+
+                            //    hours formate end
+
+                            $now_time = $now_hours . ':' . $now_mins . ' ' . $now_timezone;
+
+                            $validate_hours = explode('-', $hordata['hours']);
+
+                            $valid_opentime = $validate_hours[0];
+
+                            $valid_closetime = $validate_hours[1];
+
+
+                            if (strtotime($now_time) < strtotime($validate_hours[0])) {
+
+                                $datetime1 = new DateTime($now_time);
+                                $datetime2 = new DateTime($valid_opentime);
+                                $interval = $datetime1->diff($datetime2);
+                                $hour_diff = $interval->format('%h');
+                                $mint_diff = $interval->format('%i');
+
+                                //if the hours are zero
+                                if ($hour_diff == 0) {
+
+                                    $will_open = $mint_diff . ' ' . 'minutes';
+
+                                    $val['info']['timing_note'] = 'Opens in ' . $mint_diff . ' ' . 'minutes';
+
+                                }
+
+                                //if the minute are zero
+
+                                if ($mint_diff == 0) {
+
+                                    $will_open = $hour_diff . ' ' . 'hours';
+
+                                    // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
+                                    $val['info']['timing_note'] = 'Opens today at  ' . $validate_hours[0];
+
+                                }
+
+                                // $nowday = strtolower(date('l')); 
+                                //if both hours and minutes are present
+                                if (($hour_diff != 0) && ($mint_diff != 0)) {
+
                                     // if($val['info']['merchant_id'] == 249){
                                     //     echo strtolower($today_day);
                                     //     echo strtolower($valid_day) ;   
                                     //     exit('jijijs'); 
                                     // }                  
-                                $will_open =  $hour_diff .' '. 'hours'; 
-                                
-                                // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
-                                  $val['info']['timing_note'] = 'Opens today at '. $validate_hours[0];
-                                
-                            }
-                            // if($nowday != $valid_day){
-                            //     $val['info']['timing_note'] = 'Opens tomorrow at '. $validate_hours[0];
-                            // }
-                   
-                        }
-                        
-                        //Case when customer is came after Close time.
-                     
-                        else if (strtotime($now_time) >  strtotime($validate_hours[1]) ){
-                        
-                            //for open tomorrow
-                            
-                            $alldates = [0,1,2,3,4,5,6];
-                            $valid_date =''; 
-                            $tomorrow = false;
-                            foreach($alldates as $keydate => $dates){
+                                    $will_open = $hour_diff . ' ' . 'hours';
 
-                            //Adding 1 Day if that day is holiday
-                                
-                                $now_date = date('Y-m-d', strtotime( $now_date . " +1 days"));
+                                    // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
+                                    $val['info']['timing_note'] = 'Opens today at ' . $validate_hours[0];
 
-                                if($keydate == 0){
-                                    $tomorrow = true ;        
                                 }
-                                else{
-                                    $tomorrow = false ;
+                                // if($nowday != $valid_day){
+                                //     $val['info']['timing_note'] = 'Opens tomorrow at '. $validate_hours[0];
+                                // }
+
+                            }
+
+                            //Case when customer is came after Close time.
+                            else if (strtotime($now_time) > strtotime($validate_hours[1])) {
+
+                                //for open tomorrow
+
+                                $alldates = [0, 1, 2, 3, 4, 5, 6];
+                                $valid_date = '';
+                                $tomorrow = false;
+                                foreach ($alldates as $keydate => $dates) {
+
+                                    //Adding 1 Day if that day is holiday
+
+                                    $now_date = date('Y-m-d', strtotime($now_date . " +1 days"));
+
+                                    if ($keydate == 0) {
+                                        $tomorrow = true;
+                                    } else {
+                                        $tomorrow = false;
+                                    }
+
+                                    if (!in_array($now_date, $res_holiday)) {
+                                        $valid_date = $now_date;
+                                        break;
+                                    }
                                 }
-                                
-                                if (!in_array($now_date, $res_holiday)) {
-                                    $valid_date =$now_date;
-                                    break; 
+
+                                //get the day According to the date
+
+                                $now_date = date('l', strtotime($now_date));
+
+                                $now_date = strtolower($now_date);
+
+                                $open_time_next_day = '';
+                                foreach ($val['info']['hours'] as $hours_valid) {
+                                    if ($hours_valid['day'] == $now_date) {
+
+                                        $hoursdatanext = explode('-', $hours_valid['hours']);
+
+                                        $open_time_next_day = $hoursdatanext[0];
+
+                                    }
+
+                                }
+                                if ($open_time_next_day) {
+
+
+                                    if ($tomorrow = true) {
+                                        $val['info']['timing_note'] = 'Opens tomorrow  ' . $open_time_next_day;
+                                    } else {
+                                        $val['info']['timing_note'] = 'Opens ' . $now_date . '  ' . $open_time_next_day;
+                                    }
                                 }
                             }
-                            
-                            //get the day According to the date
-                            
-                            $now_date = date('l', strtotime($now_date) ); 
-                            
-                            $now_date = strtolower($now_date) ;
-                            
-                            $open_time_next_day = '';
-                            foreach($val['info']['hours'] as $hours_valid){
-                                if($hours_valid['day'] ==  $now_date){
-                                    
-                                    $hoursdatanext = explode('-',$hours_valid['hours']);
-                                    
-                                    $open_time_next_day = $hoursdatanext[0];
-                                    
-                                }
-                                
+
+                            // if open 
+                            else if (strtotime($now_time) < strtotime($validate_hours[1])) {
+                                $val['info']['timing_note'] = 'Closes at ' . trim($validate_hours[1]);
                             }
-                            if($open_time_next_day){
-                                
-                                
-                                if($tomorrow = true){
-                                    $val['info']['timing_note'] = 'Opens tomorrow  '. $open_time_next_day ;        
-                                }
-                                else{
-                                    $val['info']['timing_note'] = 'Opens '.$now_date.'  '. $open_time_next_day ;        
-                                }
-                            }
+
                         }
-                        
-                        // if open 
-                        else if (strtotime($now_time) <  strtotime($validate_hours[1]) ){
-                            $val['info']['timing_note'] = 'Closes at '.trim($validate_hours[1]);
-                        }
-                        
                     }
-                }
-                
-                //hours narration set end 
-                
-                if (!empty($res_holiday)) {
-                    $val['info']['holidays']= $res_holiday;
-                }                
+
+                    //hours narration set end 
+
+                    if (!empty($res_holiday)) {
+                        $val['info']['holidays'] = $res_holiday;
+                    }
                     //info code end             
-            
+
                     $data[] = $val;
                 }
                 $this->details = array(
@@ -8446,17 +4693,17 @@ class ApiController extends CController {
                     'map_page' => isset($this->data['map_page']) ? $this->data['map_page'] : '',
                     'list' => $data
                 );
-                
-               
-                
-                
+
+
+
+
             } else {
                 if ($search_type == "byLatLong") {
                     $this->msg = $this->t("0 restaurant found");
                 } else
                     $this->msg = $this->t("No results");
-                    
-                 
+
+
 
                 $this->details = array(
                     'search_type' => $search_type,
@@ -8464,8 +4711,8 @@ class ApiController extends CController {
                     'page_action' => $page_action,
                     'paginate_total' => $paginate_total,
                 );
-                
-             
+
+
             }
         } else {
             $this->msg = $this->t("invalid query");
@@ -8478,8 +4725,9 @@ class ApiController extends CController {
         }
         $this->output();
     }
- 
-    public function actioncustomerLogin() {
+
+    public function actioncustomerLogin()
+    {
         $this->details = array();
         $user_mobile = isset($this->data['user_mobile']) ? trim($this->data['user_mobile']) : '';
         $password = isset($this->data['password']) ? trim($this->data['password']) : '';
@@ -8487,9 +4735,9 @@ class ApiController extends CController {
 
             $res = array();
             if ($res = mobileWrapper::loginByEmail($user_mobile, $password)) {
-                
+
                 // print_r($res); exit('ds');
-                
+
             } else {
                 $res = mobileWrapper::loginByMobile($user_mobile, $password);
                 //  print_r($res); exit('dsf');
@@ -8548,8 +4796,9 @@ class ApiController extends CController {
 
                     default:
                         $this->msg = mobileWrapper::t("login failed. your account status is [status]", array(
-                                    '[status]' => $this->t($res['status'])
-                        ));
+                            '[status]' => $this->t($res['status'])
+                        )
+                        );
                         break;
                 }
             } else
@@ -8559,7 +4808,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actioncuisineList() {
+    public function actioncuisineList()
+    {
         $db = new DbExt();
         $db->qry("SET SQL_BIG_SELECTS=1");
 
@@ -8624,24 +4874,25 @@ class ApiController extends CController {
 
             foreach ($res as $val) {
                 $cuisine_json['cuisine_name_trans'] = !empty($val['cuisine_name_trans']) ?
-                        json_decode($val['cuisine_name_trans'], true) : '';
+                    json_decode($val['cuisine_name_trans'], true) : '';
 
-                $total = mobileWrapper::getTotalCuisine($val['cuisine_id'],
-                                $home_search_radius,
-                                $home_search_unit_type,
-                                $show_only_current_location,
-                                $lat,
-                                $lng,
-                                array(
-                                    'state_id' => isset($this->data['state_id']) ? $this->data['state_id'] : '',
-                                    'city_id' => isset($this->data['city_id']) ? $this->data['city_id'] : '',
-                                    'area_id' => isset($this->data['area_id']) ? $this->data['area_id'] : '',
-                                    'postal_code' => isset($this->data['postal_code']) ? $this->data['postal_code'] : '',
-                                )
+                $total = mobileWrapper::getTotalCuisine(
+                    $val['cuisine_id'],
+                    $home_search_radius,
+                    $home_search_unit_type,
+                    $show_only_current_location,
+                    $lat,
+                    $lng,
+                    array(
+                        'state_id' => isset($this->data['state_id']) ? $this->data['state_id'] : '',
+                        'city_id' => isset($this->data['city_id']) ? $this->data['city_id'] : '',
+                        'area_id' => isset($this->data['area_id']) ? $this->data['area_id'] : '',
+                        'postal_code' => isset($this->data['postal_code']) ? $this->data['postal_code'] : '',
+                    )
                 );
-                
+
                 $cuisine_name_trans = qTranslate($val['cuisine_name'], 'cuisine_name', $cuisine_json);
-                
+
                 // $cuisine_name_trans = mobileWrapper::highlight_word($cuisine_name_trans, $cuisine_name);
                 $lists[] = array(
                     'id' => $val['cuisine_id'],
@@ -8650,12 +4901,13 @@ class ApiController extends CController {
                     'total_merchant' => mobileWrapper::t("[total] restaurant", array('[total]' => $total))
                 );
             }
-            
-            
+
+
 
             $this->msg = mobileWrapper::t("[found] cuisine found", array(
-                        '[found]' => $total_records
-            ));
+                '[found]' => $total_records
+            )
+            );
 
             $paginate_total = ceil($total_records / $page_limit);
 
@@ -8677,727 +4929,18 @@ class ApiController extends CController {
                 'list' => ''
             );
         }
-       
+
         $this->output();
     }
-    
-    //live working code
+    public function actionsearchByMerchantName()
+    {
 
-    // public function actionsearchByMerchantName() {
-        
-    //     $merchant_name = isset($this->data['merchant_name']) ? $this->data['merchant_name'] : '';
-    //     $cuisine_id = isset($this->data['cuisine_id']) ? $this->data['cuisine_id'] : '';
-        
-    //     if (!empty($merchant_name)) {
-    //         $db = new DbExt();
-            
-    //         $stmt = "SELECT SQL_CALC_FOUND_ROWS
-    //         a.merchant_id,
-    //         a.restaurant_name,
-    //         a.cuisine,
-    //         a.logo,
-    //         a.latitude,
-    //         a.lontitude,
-    //         a.is_sponsored,
-    //         a.delivery_charges,
-    //         a.service,
-    //         a.status,
-    //         concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code ) as address2,
-    //         a.is_ready,
-    //         a.app_status,
-    //         a.minimum_order,
-    //         a.minimum_order as minimum_order_raw,
-    //         a.is_featured,
-    //         concat( a.street,' ', a.city, ' ', a.state, ' ',a.post_code ) as address,
-    //         ( 3959 * acos( cos( radians(47.0) ) * cos( radians( latitude ) )
-    //         * cos( radians( lontitude ) - radians(-122.406417) )
-    //         + sin( radians(47.0) ) * sin( radians( latitude ) ) ) )
-    //         AS distance
-    //         FROM mt_view_merchant a
-    //         WHERE status = 'active'
-    //         and restaurant_name LIKE " . FunctionsV3::q("%" . $merchant_name . "%") ;
-    //         if($cuisine_id){
-    //             $stmt .="AND a.cuisine LIKE " . FunctionsV3::q('%"' . $cuisine_id . '"%') ;      
-    //         }
-            
-            
-    //         $search_options = mobileWrapper::getDataSearchOptions();
-    //         $res = $db->rst($stmt);
-            
-    //         if($res){
-            
-    //             foreach ($res as $val) {
-    //                 $merchant_id = $val['merchant_id'];
-    //                 $val['restaurant_name'] = clearString($val['restaurant_name']);
-
-    //                 $home_search_unit_type = getOption($merchant_id, 'merchant_distance_type');
-    //                 if (empty($home_search_unit_type)) {
-    //                     $home_search_unit_type = $home_search_unit_type_admin;
-    //                 }
-
-    //                 if (in_array('minimum_order', $search_options)) {
-    //                     //if(in_array('minimum_order',$search_options)){
-    //                     if ($search_mode == "address") {
-    //                         $minimum_order = $val['minimum_order'];
-    //                         $min_fees = FunctionsV3::getMinOrderByTableRates($merchant_id,
-    //                                         $val['distance'],
-    //                                         $home_search_unit_type,
-    //                                         $val['minimum_order']
-    //                         );
-    //                         $val['minimum_order_raw'] = $min_fees;
-    //                         $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-    //                                     '[min]' => FunctionsV3::prettyPrice($min_fees)
-    //                         ));
-    //                     } else {
-    //                         if ($val['minimum_order'] > 0.0001) {
-    //                             $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-    //                                         '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
-    //                             ));
-    //                         } else {
-    //                             unset($val['minimum_order']);
-    //                             unset($val['minimum_order_raw']);
-    //                         }
-    //                     }
-    //                 } else {
-    //                     unset($val['minimum_order']);
-    //                     unset($val['minimum_order_raw']);
-    //                 }
-
-
-    //                 if (in_array('open_tag', $search_options)) {
-    //                     $status = mobileWrapper::merchantStatus($merchant_id);
-    //                     $val['open_status_raw'] = $status;
-    //                     $val['open_status'] = mt($status);
-    //                 }
-
-    //                 $val['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-
-    //                 if (in_array('cuisine', $search_options)) {
-    //                     $val['cuisine'] = FunctionsV3::displayCuisine($val['cuisine']);
-    //                     if ($search_type == "byCuisine") {
-    //                         $val['cuisine'] = FunctionsV3::displayCuisine($val['cuisine']);
-    //                         $val['cuisine'] = mobileWrapper::highlight_word($val['cuisine'], $cuisine_name);
-    //                     }
-    //                 } else
-    //                     unset($val['cuisine']);
-
-    //                 if (in_array('review', $search_options)) {
-    //                     $ratings = Yii::app()->functions->getRatings($merchant_id);
-    //                     $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-    //                                 '[count]' => $ratings['votes']
-    //                     ));
-    //                     $val['rating'] = $ratings;
-    //                 }
-
-    //                 $val['logo'] = mobileWrapper::getImage($val['logo']);
-
-    //                 $unit_pretty = mobileWrapper::unitPretty($home_search_unit_type);
-
-    //                 $distance = isset($val['distance']) ? $val['distance'] : '';
-
-    //                 if (isset($this->data['with_distance']) && $search_mode == "address") {
-    //                     if (in_array('distace', $search_options)) {
-
-    //                         $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-    //                                     '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
-    //                         ));
-
-    //                         if ($distance_results_type == 2) {
-    //                             if ($resp_lat = FunctionsV3::getDistanceBetweenPlot($lat, $lng, $val['latitude'], $val['lontitude'], $home_search_unit_type)) {
-    //                                 $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-    //                                             '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
-    //                                 ));
-    //                                 $distance = number_format($resp_lat, 1);
-    //                             } else
-    //                                 $val['distance_plot'] = $this->t("Distance : not available");
-    //                         }
-    //                     }
-    //                 } else {
-    //                     $val['distance_plot'] = '';
-    //                 }
-
-    //                 if ($val['is_sponsored'] == 2) {
-    //                     $val['sponsored'] = $this->t("Sponsored");
-    //                 }
-
-    //                 if (!in_array('address', $search_options)) {
-    //                     $val['address'] = '';
-    //                 }
-
-    //                 if ($search_mode == "address") {
-    //                     if (in_array('delivery_estimation', $search_options)) {
-    //                         $estimation = FunctionsV3::getDeliveryEstimation($merchant_id);
-    //                         $val['delivery_estimation'] = mobileWrapper::t("Delivery Est: [estimation]", array(
-    //                                     '[estimation]' => mt($estimation)
-    //                         ));
-    //                     }
-    //                     if (in_array('delivery_distance', $search_options)) {
-    //                         $delivery_distance = getOption($merchant_id, 'merchant_delivery_miles');
-    //                         if ($delivery_distance >= 0.001) {
-    //                             $val['delivery_distance'] = mobileWrapper::t("Delivery Distance: [delivery_distance]", array(
-    //                                         '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
-    //                             ));
-    //                         }
-    //                     }
-    //                 }
-
-    //                 if (in_array('delivery_fee', $search_options)) {
-    //                     $delivery_fee = 0;
-    //                     if ($search_mode == "location") {
-    //                         $delivery_fee = isset($val['location_fee']) ? $val['location_fee'] : 0;
-    //                     } else {
-    //                         $delivery_fee = FunctionsV3::getMerchantDeliveryFee(
-    //                                         $merchant_id,
-    //                                         $val['delivery_charges'],
-    //                                         $distance,
-    //                                         $home_search_unit_type);
-    //                     }
-
-    //                     if ($delivery_fee >= 0.001) {
-    //                         $val['delivery_fee'] = mobileWrapper::t("Delivery Fee: [fee]", array(
-    //                                     '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
-    //                         ));
-    //                     }
-    //                 }
-
-    //                 if (in_array('offers', $search_options)) {
-    //                     $offers = array();
-    //                     if (method_exists('FunctionsV3', 'getOffersByMerchantNew')) {
-    //                         if ($offer = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-    //                             foreach ($offer as $offer_val) {
-    //                                 $offers[] = $offer_val;
-    //                             }
-    //                         }
-    //                     }
-    //                     $free_delivery_above = getOption($merchant_id, 'free_delivery_above_price');
-    //                     if ($free_delivery_above > 0.001) {
-    //                         $free_above = mobileWrapper::t("Free Delivery On Orders Over [subtotal]", array(
-    //                                     '[subtotal]' => $free_delivery_above
-    //                         ));
-    //                         $offers[] = array(
-    //                             'raw' => mt("Free[fee]", array('[fee]' => FunctionsV3::prettyPrice($free_delivery_above))),
-    //                             'full' => $free_above
-    //                         );
-    //                     }
-    //                     $val['offers'] = $offers;
-    //                 }
-
-    //                 if (in_array('voucher', $search_options)) {
-    //                     $vouchers = array();
-    //                     if (method_exists("FunctionsV3", "merchantActiveVoucher")) {
-    //                         if ($voucher = FunctionsV3::merchantActiveVoucher($merchant_id)) {
-    //                             foreach ($voucher as $voucher_val) {
-    //                                 if ($voucher_val['voucher_type'] == "fixed amount") {
-    //                                     $v_amount = FunctionsV3::prettyPrice($voucher_val['amount']);
-    //                                 } else
-    //                                     $v_amount = number_format(($voucher_val['amount'] / 100) * 100) . "%";
-
-    //                                 $vouchers[] = mt("[discount] off | Use coupon [code]", array(
-    //                                     '[discount]' => $v_amount,
-    //                                     '[code]' => $voucher_val['voucher_name']
-    //                                 ));
-    //                             }
-    //                             $val['vouchers'] = $vouchers;
-    //                         }
-    //                     }
-    //                 }
-
-    //                 if (in_array('services', $search_options)) {
-    //                     $services_list = array();
-    //                     if ($services = mobileWrapper::getMerchantServicesList($val['service'])) {
-    //                         foreach ($services as $services_val) {
-    //                             $services_list[] = $services_val;
-    //                         }
-    //                         $val['services'] = $services_list;
-    //                     }
-    //                 }
-
-    //                 if (in_array('payment_option', $search_options)) {
-    //                     $paymet_method_list = array();
-    //                     if ($paymet_method = FunctionsV3::getMerchantPaymentListNew($merchant_id)) {
-    //                         if (array_key_exists('cod', $paymet_method)) {
-    //                             $paymet_method_list[] = mobileWrapper::getImage("icon-cod.png", "icon-cod.png");
-    //                         }
-    //                         if (array_key_exists('obd', $paymet_method)) {
-    //                             $paymet_method_list[] = mobileWrapper::getImage("icon-obd.png", "icon-obd.png");
-    //                         }
-    //                         if (array_key_exists('ocr', $paymet_method)) {
-    //                             $paymet_method_list[] = mobileWrapper::getImage("icon-ocr.png", "icon-ocr.png");
-    //                         }
-    //                         $val['paymet_method_icon'] = $paymet_method_list;
-    //                     }
-    //                 }
-            
-    //         //info code start
-
-    //         if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
-
-    //             $this->code = 1;
-    //             $this->msg = "ok";
-
-    //             $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-    //             $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-    //             $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
-                
-    //             $store_start_date=getOption($merchant_id,'store_start_date');
-    //             $store_close_date=getOption($merchant_id,'store_close_date');
-
-    //                 if( $store_start_date !='' && $store_close_date !='')
-    //                 {
-    //                     $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
-    //                     $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
-
-    //                 }
-                
-    //             $dataInfo['services'] = $services; 
-    //             $dataInfo['count_services'] = count($services); 
-    //             $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
-    //             $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
-
-    //             $dataInfo['latitude'] = $resInfo['latitude'];
-    //             $dataInfo['lontitude'] = $resInfo['lontitude'];
-
-    //             $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
-    //             $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
-    //             $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-
-    //             $status = mobileWrapper::merchantStatus($merchant_id);
-
-    //             $dataInfo['close_message'] = '';
-    //             if ($status == "close") {
-    //                 //$date_close=date("F,d l Y h:ia");
-    //                 $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
-    //                 $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-    //                             '[date_close]' => $date_close
-    //                 ));
-    //             }
-
-    //             $dataInfo['status_raw'] = $status;
-    //             $dataInfo['status'] = mt($status);
-
-
-    //             $dataInfo['gallery'] = 2;
-    //             $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
-    //             $banner_enabled = getOption($merchant_id, 'banner_enabled');
-    //             if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
-    //                 $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
-    //             }
-
-    //             $ratings = Yii::app()->functions->getRatings($merchant_id);
-    //             $dataInfo['rating'] = $ratings;
-    //             $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-    //                         '[count]' => $ratings['votes']
-    //             ));
-    //             $dataInfo['rating'] = $ratings;
-
-    //             $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
-
-    //             if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-    //                 $dataInfo['offers'] = $offers;
-    //             }
-
-    //             if ($resInfo['is_sponsored'] == 2) {
-    //                 $dataInfo['sponsored'] = $this->t("Sponsored");
-    //             }
-
-    //             $dataInfo['tab_menu_enabled'] = 1;
-    //             $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
-
-    //             $dataInfo['share_options'] = array(
-    //                 'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
-    //                     '[website_name]' => getOptionA('website_title'),
-    //                     '[merchant_address]' => $resInfo['complete_address']
-    //                 )),
-    //                 'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
-    //                 'subject' => $resInfo['restaurant_name'],
-    //                 'files' => ''
-    //             );
-                
-    //             $val['info'] = $dataInfo;
-    //         }
-
-    //             $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
-                
-    //             if(empty($val['info']['hours'])){
-    //                 $val['info']['hours']  = array();
-    //             }                
-                
-    //             $val['info']['holidays']  = array();
-    //             $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
-                
-               
-    //             /////////start opening time management ////////
-                   
-                
-    //             $today_date = date('Y-m-d');
-                
-    //             $today_time = date('h:i A');
-                
-    //             $today_day = strtolower(date('l',strtotime($today_date)));
-                
-    //             $ondays = array();
-                
-    //             foreach($val['info']['hours'] as $ondaykey => $onday){
-    //                 array_push($ondays, $onday['day']);
-                    
-    //                 // valid day    
-    //                 if( trim($today_day) ==  trim($onday['day'] )){
-
-    //                     $validate_hoursdata = explode('-', $onday['hours']);
-    //                     $valid_closetime =$validate_hoursdata[1];    
-    //                     if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
-    //                             $today_date = date('Y-m-d');
-                                
-    //                             $today_time = date('h:i A');
-                                
-    //                             $today_day = strtolower(date('l',strtotime($today_date)));
-                                
-    //                             // next day due to close
-                                
-    //                             $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                                
-    //                             $today_day = date('l', strtotime($today_date));
-                                
-    //                     }    
-    //                 }                    
-    //                 // valid day end
-                    
-    //             }
-
-
-    //             // if day not enable
-                
-    //             foreach($val['info']['hours'] as $ondayEnablekey => $ondayEnable){
-
-    
-    //                 if(!in_array(strtolower($today_day), $ondays)){
-
-    //                     $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-    //                     $today_day = date('l', strtotime($today_date));  
-    //                     continue;
-                        
-    //                 }
-    //                 // valid day    
-    //                 if( trim($today_day) ==  trim($ondayEnable['day'] )){
-
-    //                     $validate_hoursdata = explode('-', $onday['hours']);
-    //                     $valid_closetime =$validate_hoursdata[1];    
-    //                     if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
-    //                             $today_date = date('Y-m-d');
-                                
-    //                             $today_time = date('h:i A');
-                                
-    //                             $today_day = strtolower(date('l',strtotime($today_date)));
-                                
-    //                             // next day due to close
-                                
-    //                             $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                                
-    //                             $today_day = date('l', strtotime($today_date));
-                                
-                                
-    //                     }    
-    //                 }
-                    
-    //                 // valid day end
-                    
-    //             }
-                
-    //             //total numbers of holidays
-                
-    //             $alldates = [0,1,2,3,4,5,6];
-    //             $valid_date =''; 
-                
-                
-    //             foreach ($alldates as $dates) {
-
-    //             if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) {
-    //                  $valid_date = $today_date;
-    //                  break;
-    //             }
-                
-    //             else if (!in_array($today_date, $res_holiday)) {
-
-    //                 if (!in_array($today_day, $ondays)) {
-    //                   $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-    //                 } 
-    //                 else {
-    //                   $valid_date = $today_date;
-    //                   break;
-    //                 }
-    //              } 
-    //             else {
-    //                     $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-    //                 }
-    //         }
-
-    //             $timestampForday = strtotime($valid_date);
-                
-    //             $valid_day = date('l', $timestampForday);
-                
-    //             $valid_day = strtolower($valid_day);
-
-    //             $val['info']['timing_note'] = '';
-                
-    //             foreach($val['info']['hours'] as $hordata){
-                    
-    //                 if( trim($valid_day) ==  trim($hordata['day'] )){
-                     
-    //                     if($today_day != $valid_day){
-    //                         $validate_hours = explode('-', $hordata['hours']);
-    //                         $valid_opentime =$validate_hours[0];
-    //                         $valid_closetime =$validate_hours[1];
-                            
-                                
-    //                         $now_date_test = date('Y-m-d');
-                            
-    //                         $now_date_check = strtolower(date('l', strtotime( $now_date_test . " +1 days")));
-
-    //                         if($now_date_check == $valid_day){
-    //                             $val['info']['timing_note'] = 'Opens tomorrow from '. $valid_opentime. 'to'.$valid_closetime; 
-    //                         }
-    //                         else{
-    //                             $val['info']['timing_note'] = 'Opens '.$valid_day. ' from '. $valid_opentime.'to'.$valid_closetime;
-    //                         }                            
-                            
-                            
-                            
-    //                         continue;
-    //                     }                        
-                    
-    //             //hours formate Start
-                        
-    //                 $now_time = date('H:i A');
-                    
-    //                 $now_hours = date('H');
-    //                 $now_mins = date('i');
-    //                 $now_timezone = date('A');
-                
-    //                 if($now_hours == '00'){
-    //                     $now_hours = '12';
-    //                 }
-                    
-    //                 if($now_hours == '12'){
-    //                     $now_hours = '12';
-    //                 }
-                    
-    //                   if($now_hours > '12'){
-                          
-                         
-    //                       if($now_hours == '13'){
-    //                             $now_hours = '1';
-    //                       }
-    //                       else if($now_hours == '14'){
-    //                             $now_hours = '2';
-    //                       }
-    //                       else if($now_hours == '15'){
-    //                             $now_hours = '3';
-    //                       }
-    //                       else if($now_hours == '16'){
-    //                             $now_hours = '4';
-    //                       }
-    //                       else if($now_hours == '17'){
-    //                             $now_hours = '5';
-    //                       }
-    //                       else if($now_hours == '18'){
-    //                             $now_hours = '6';
-    //                       }
-    //                       else if($now_hours == '19'){
-    //                             $now_hours = '7';
-    //                       }
-    //                       else if($now_hours == '20'){
-    //                             $now_hours = '8';
-    //                       }
-    //                       else if($now_hours == '20'){
-    //                             $now_hours = '8';
-    //                       }
-    //                       else if($now_hours == '21'){
-    //                             $now_hours = '9';
-    //                       }
-    //                       else if($now_hours == '22'){
-    //                             $now_hours = '10';
-    //                       }
-    //                       else if($now_hours == '23'){
-    //                             $now_hours = '11';
-    //                       }
-    //                       else if($now_hours == '24'){
-    //                             $now_hours = '12';
-    //                       }
-    //                 }
-                    
-                    
-    //             //    hours formate end
-                    
-    //                 $now_time = $now_hours. ':'. $now_mins. ' '. $now_timezone;
-                
-    //                     $validate_hours = explode('-', $hordata['hours']);
-                        
-    //                     $valid_opentime =$validate_hours[0];
-                        
-    //                     $valid_closetime =$validate_hours[1];
-                        
-                                         
-    //             //Case when the customer is earlier then open time
-                
-    //                     if(strtotime($now_time) <  strtotime($validate_hours[0])){
-                            
-    //                       $datetime1 = new DateTime($now_time);
-    //                       $datetime2 = new DateTime($valid_opentime);
-    //                         $interval = $datetime1->diff($datetime2);
-    //                         $hour_diff =  $interval->format('%h');
-    //                         $mint_diff =  $interval->format('%i'); 
-                            
-                            
-    //                         //if the hours are zero
-    //                         if($hour_diff == 0){
-                                 
-    //                           $will_open =   $mint_diff  .' '. 'minutes'; 
-                              
-    //                           $val['info']['timing_note'] = 'Opens in '.$mint_diff  .' '. 'minutes';
-                              
-    //                         }
-
-    //                         //if the minute are zero
-
-    //                         if($mint_diff == 0){
-                            
-    //                             $will_open =  $hour_diff .' '. 'hours'; 
-                                
-    //                             // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
-    //                              $val['info']['timing_note'] = 'Opens today at  '. $validate_hours[0];
-    //                         }
-                            
-    //                          //if both hours and minutes are present
-    //                         if(($hour_diff != 0) && ($mint_diff != 0) ){
-                                
-    //                             $will_open =  $hour_diff .' '. 'hours'; 
-                                
-    //                             // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
-    //                               $val['info']['timing_note'] = 'Opens today at '. $validate_hours[0];
-                                
-    //                         }
-                   
-    //                     }
-                        
-    //                     //Case when customer is came after Close time.
-                     
-                        
-    //                     else if (strtotime($now_time) >  strtotime($validate_hours[1]) ){
-                            
-    //                         // $now_date = date('Y-m-d');
-    //                         // $now_time = date('h:i A');
-                            
-    //                         // $now_time = '9:30 PM';
-                            
-    //                         //check holidays again
-                            
-    //                         //for open tomorrow
-                            
-    //                         $alldates = [0,1,2,3,4,5,6];
-    //                         $valid_date =''; 
-    //                         $tomorrow = false;
-    //                         foreach($alldates as $keydate => $dates){
-
-    //                         //Adding 1 Day if that day is holiday
-                                
-    //                             $now_date = date('Y-m-d', strtotime( $now_date . " +1 days"));
-
-    //                             if($keydate == 0){
-    //                                 $tomorrow = true ;        
-    //                             }
-    //                             else{
-    //                                 $tomorrow = false ;
-    //                             }
-                                
-    //                             if (!in_array($now_date, $res_holiday)) {
-    //                                 $valid_date =$now_date;
-    //                                 break; 
-    //                             }
-    //                         }
-                            
-    //                         //get the day According to the date
-                            
-    //                         $now_date = date('l', strtotime($now_date) ); 
-                            
-                            
-    //                         $now_date = strtolower($now_date) ;
-                            
-    //                         $open_time_next_day = '';
-    //                         foreach($val['info']['hours'] as $hours_valid){
-    //                             if($hours_valid['day'] ==  $now_date){
-                                    
-    //                                 $hoursdatanext = explode('-',$hours_valid['hours']);
-                                    
-    //                                 $open_time_next_day = $hoursdatanext[0];
-                                    
-    //                             }
-                                
-    //                         }
-    //                         if($open_time_next_day){
-                                
-    //                             if($tomorrow = true){
-    //                                 $val['info']['timing_note'] = 'Opens tomorrow  '. $open_time_next_day ;        
-    //                             }
-    //                             else{
-    //                                 $val['info']['timing_note'] = 'Opens '.$now_date.'  '. $open_time_next_day ;        
-    //                             }
-                                
-    //                         }
-    //                     }
-                        
-    //                     // if open 
-    //                     else if (strtotime($now_time) <  strtotime($validate_hours[1]) ){
-    //                         $val['info']['timing_note'] = 'Closes at '.trim($validate_hours[1]);
-    //                     }
-                        
-    //                 }
-    //             }
-                
-                
-                
-    //             //hours narration set end          
-                
-    //             //end time management
-                
-                
-    //             if (!empty($res_holiday)) {
-    //                 $val['info']['holidays']= $res_holiday;
-    //             }                
-    //         //info code end             
-            
-    //                 $data[] = $val;
-    //             }
-            
-    //             $this->code = 1;
-    //             $this->msg = "OK";
-    //             $this->details = array(
-    //                 'list' => $data
-    //             );            
-    //         }
-            
-    //         else
-    //             $this->msg = $this->t("Restaurant not found");
-    //     } else
-    //         $this->msg = $this->t("merchant name is empty");
-    //     $this->output();
-    // }
-    
-    
-    //end live working code
-    
-    
-    //adding hours modification code 
-    
-     public function actionsearchByMerchantName() {
-        
         $merchant_name = isset($this->data['merchant_name']) ? $this->data['merchant_name'] : '';
         $cuisine_id = isset($this->data['cuisine_id']) ? $this->data['cuisine_id'] : '';
-        
+
         if (!empty($merchant_name)) {
             $db = new DbExt();
-            
+
             $stmt = "SELECT SQL_CALC_FOUND_ROWS
             a.merchant_id,
             a.restaurant_name,
@@ -9422,17 +4965,17 @@ class ApiController extends CController {
             AS distance
             FROM mt_view_merchant a
             WHERE status = 'active'
-            and restaurant_name LIKE " . FunctionsV3::q("%" . $merchant_name . "%") ;
-            if($cuisine_id){
-                $stmt .="AND a.cuisine LIKE " . FunctionsV3::q('%"' . $cuisine_id . '"%') ;      
+            and restaurant_name LIKE " . FunctionsV3::q("%" . $merchant_name . "%");
+            if ($cuisine_id) {
+                $stmt .= "AND a.cuisine LIKE " . FunctionsV3::q('%"' . $cuisine_id . '"%');
             }
-            
-            
+
+
             $search_options = mobileWrapper::getDataSearchOptions();
             $res = $db->rst($stmt);
-            
-            if($res){
-            
+
+            if ($res) {
+
                 foreach ($res as $val) {
                     $merchant_id = $val['merchant_id'];
                     $val['restaurant_name'] = clearString($val['restaurant_name']);
@@ -9446,20 +4989,23 @@ class ApiController extends CController {
                         //if(in_array('minimum_order',$search_options)){
                         if ($search_mode == "address") {
                             $minimum_order = $val['minimum_order'];
-                            $min_fees = FunctionsV3::getMinOrderByTableRates($merchant_id,
-                                            $val['distance'],
-                                            $home_search_unit_type,
-                                            $val['minimum_order']
+                            $min_fees = FunctionsV3::getMinOrderByTableRates(
+                                $merchant_id,
+                                $val['distance'],
+                                $home_search_unit_type,
+                                $val['minimum_order']
                             );
                             $val['minimum_order_raw'] = $min_fees;
                             $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-                                        '[min]' => FunctionsV3::prettyPrice($min_fees)
-                            ));
+                                '[min]' => FunctionsV3::prettyPrice($min_fees)
+                            )
+                            );
                         } else {
                             if ($val['minimum_order'] > 0.0001) {
                                 $val['minimum_order'] = mobileWrapper::t("Minimum Order: [min]", array(
-                                            '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
-                                ));
+                                    '[min]' => FunctionsV3::prettyPrice($val['minimum_order'])
+                                )
+                                );
                             } else {
                                 unset($val['minimum_order']);
                                 unset($val['minimum_order_raw']);
@@ -9491,8 +5037,9 @@ class ApiController extends CController {
                     if (in_array('review', $search_options)) {
                         $ratings = Yii::app()->functions->getRatings($merchant_id);
                         $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-                                    '[count]' => $ratings['votes']
-                        ));
+                            '[count]' => $ratings['votes']
+                        )
+                        );
                         $val['rating'] = $ratings;
                     }
 
@@ -9506,14 +5053,16 @@ class ApiController extends CController {
                         if (in_array('distace', $search_options)) {
 
                             $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-                                        '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
-                            ));
+                                '[distance]' => number_format($val['distance'], 1) . " $unit_pretty"
+                            )
+                            );
 
                             if ($distance_results_type == 2) {
                                 if ($resp_lat = FunctionsV3::getDistanceBetweenPlot($lat, $lng, $val['latitude'], $val['lontitude'], $home_search_unit_type)) {
                                     $val['distance_plot'] = mobileWrapper::t("Distance : [distance]", array(
-                                                '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
-                                    ));
+                                        '[distance]' => number_format($resp_lat, 1) . " $unit_pretty"
+                                    )
+                                    );
                                     $distance = number_format($resp_lat, 1);
                                 } else
                                     $val['distance_plot'] = $this->t("Distance : not available");
@@ -9535,15 +5084,17 @@ class ApiController extends CController {
                         if (in_array('delivery_estimation', $search_options)) {
                             $estimation = FunctionsV3::getDeliveryEstimation($merchant_id);
                             $val['delivery_estimation'] = mobileWrapper::t("Delivery Est: [estimation]", array(
-                                        '[estimation]' => mt($estimation)
-                            ));
+                                '[estimation]' => mt($estimation)
+                            )
+                            );
                         }
                         if (in_array('delivery_distance', $search_options)) {
                             $delivery_distance = getOption($merchant_id, 'merchant_delivery_miles');
                             if ($delivery_distance >= 0.001) {
                                 $val['delivery_distance'] = mobileWrapper::t("Delivery Distance: [delivery_distance]", array(
-                                            '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
-                                ));
+                                    '[delivery_distance]' => $delivery_distance . " " . $unit_pretty
+                                )
+                                );
                             }
                         }
                     }
@@ -9554,16 +5105,18 @@ class ApiController extends CController {
                             $delivery_fee = isset($val['location_fee']) ? $val['location_fee'] : 0;
                         } else {
                             $delivery_fee = FunctionsV3::getMerchantDeliveryFee(
-                                            $merchant_id,
-                                            $val['delivery_charges'],
-                                            $distance,
-                                            $home_search_unit_type);
+                                $merchant_id,
+                                $val['delivery_charges'],
+                                $distance,
+                                $home_search_unit_type
+                            );
                         }
 
                         if ($delivery_fee >= 0.001) {
                             $val['delivery_fee'] = mobileWrapper::t("Delivery Fee: [fee]", array(
-                                        '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
-                            ));
+                                '[fee]' => FunctionsV3::prettyPrice($delivery_fee)
+                            )
+                            );
                         }
                     }
 
@@ -9579,8 +5132,9 @@ class ApiController extends CController {
                         $free_delivery_above = getOption($merchant_id, 'free_delivery_above_price');
                         if ($free_delivery_above > 0.001) {
                             $free_above = mobileWrapper::t("Free Delivery On Orders Over [subtotal]", array(
-                                        '[subtotal]' => $free_delivery_above
-                            ));
+                                '[subtotal]' => $free_delivery_above
+                            )
+                            );
                             $offers[] = array(
                                 'raw' => mt("Free[fee]", array('[fee]' => FunctionsV3::prettyPrice($free_delivery_above))),
                                 'full' => $free_above
@@ -9602,7 +5156,8 @@ class ApiController extends CController {
                                     $vouchers[] = mt("[discount] off | Use coupon [code]", array(
                                         '[discount]' => $v_amount,
                                         '[code]' => $voucher_val['voucher_name']
-                                    ));
+                                    )
+                                    );
                                 }
                                 $val['vouchers'] = $vouchers;
                             }
@@ -9634,604 +5189,458 @@ class ApiController extends CController {
                             $val['paymet_method_icon'] = $paymet_method_list;
                         }
                     }
-            
-            //info code start
 
-            if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
+                    //info code start
 
-                $this->code = 1;
-                $this->msg = "ok";
+                    if ($resInfo = FunctionsV3::getMerchantInfo($merchant_id)) {
 
-                $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-                $dataInfo['merchant_id'] = $resInfo['merchant_id'];
-                $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
-                
-                $store_start_date=getOption($merchant_id,'store_start_date');
-                $store_close_date=getOption($merchant_id,'store_close_date');
+                        $this->code = 1;
+                        $this->msg = "ok";
 
-                    if( $store_start_date !='' && $store_close_date !='')
-                    {
-                        $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
-                        $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
+                        $dataInfo['merchant_id'] = $resInfo['merchant_id'];
+                        $dataInfo['merchant_id'] = $resInfo['merchant_id'];
+                        $services = Yii::app()->functions->DeliveryOptions($dataInfo['merchant_id']);
 
-                    }
-                
-                $dataInfo['services'] = $services; 
-                $dataInfo['count_services'] = count($services); 
-                $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
-                $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
+                        $store_start_date = getOption($merchant_id, 'store_start_date');
+                        $store_close_date = getOption($merchant_id, 'store_close_date');
 
-                $dataInfo['latitude'] = $resInfo['latitude'];
-                $dataInfo['lontitude'] = $resInfo['lontitude'];
+                        if ($store_start_date != '' && $store_close_date != '') {
+                            $dataInfo['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
+                            $dataInfo['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
 
-                $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
-                $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
-                $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
+                        }
 
-                $status = mobileWrapper::merchantStatus($merchant_id);
+                        $dataInfo['services'] = $services;
+                        $dataInfo['count_services'] = count($services);
+                        $dataInfo['restaurant_name'] = clearString($resInfo['restaurant_name']);
+                        $dataInfo['complete_address'] = clearString($resInfo['complete_address']);
 
-                $dataInfo['close_message'] = '';
-                if ($status == "close") {
-                    //$date_close=date("F,d l Y h:ia");
-                    $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
-                    $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
+                        $dataInfo['latitude'] = $resInfo['latitude'];
+                        $dataInfo['lontitude'] = $resInfo['lontitude'];
+
+                        $dataInfo['cuisine'] = FunctionsV3::displayCuisine($resInfo['cuisine']);
+                        $dataInfo['logo'] = mobileWrapper::getImage($resInfo['logo']);
+                        $dataInfo['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
+
+                        $status = mobileWrapper::merchantStatus($merchant_id);
+
+                        $dataInfo['close_message'] = '';
+                        if ($status == "close") {
+                            //$date_close=date("F,d l Y h:ia");
+                            $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
+                            $dataInfo['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
                                 '[date_close]' => $date_close
-                    ));
-                }
+                            )
+                            );
+                        }
 
-                $dataInfo['status_raw'] = $status;
-                $dataInfo['status'] = mt($status);
+                        $dataInfo['status_raw'] = $status;
+                        $dataInfo['status'] = mt($status);
 
 
-                $dataInfo['gallery'] = 2;
-                $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
-                $banner_enabled = getOption($merchant_id, 'banner_enabled');
-                if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
-                    $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
-                }
+                        $dataInfo['gallery'] = 2;
+                        $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
+                        $banner_enabled = getOption($merchant_id, 'banner_enabled');
+                        if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
+                            $dataInfo['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
+                        }
 
-                $ratings = Yii::app()->functions->getRatings($merchant_id);
-                $dataInfo['rating'] = $ratings;
-                $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
+                        $ratings = Yii::app()->functions->getRatings($merchant_id);
+                        $dataInfo['rating'] = $ratings;
+                        $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
                             '[count]' => $ratings['votes']
-                ));
-                $dataInfo['rating'] = $ratings;
+                        )
+                        );
+                        $dataInfo['rating'] = $ratings;
 
-                $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
+                        $dataInfo['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
 
-                if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-                    $dataInfo['offers'] = $offers;
-                }
+                        if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
+                            $dataInfo['offers'] = $offers;
+                        }
 
-                if ($resInfo['is_sponsored'] == 2) {
-                    $dataInfo['sponsored'] = $this->t("Sponsored");
-                }
+                        if ($resInfo['is_sponsored'] == 2) {
+                            $dataInfo['sponsored'] = $this->t("Sponsored");
+                        }
 
-                $dataInfo['tab_menu_enabled'] = 1;
-                $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
+                        $dataInfo['tab_menu_enabled'] = 1;
+                        $dataInfo['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
 
-                $dataInfo['share_options'] = array(
-                    'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
-                        '[website_name]' => getOptionA('website_title'),
-                        '[merchant_address]' => $resInfo['complete_address']
-                    )),
-                    'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
-                    'subject' => $resInfo['restaurant_name'],
-                    'files' => ''
-                );
-                
-                $val['info'] = $dataInfo;
-            }
+                        $dataInfo['share_options'] = array(
+                            'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
+                                '[website_name]' => getOptionA('website_title'),
+                                '[merchant_address]' => $resInfo['complete_address']
+                            )
+                            ),
+                            'url' => websiteUrl() . "/menu-" . $resInfo['restaurant_slug'],
+                            'subject' => $resInfo['restaurant_name'],
+                            'files' => ''
+                        );
 
-                $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
-                
-                if(empty($val['info']['hours'])){
-                    $val['info']['hours']  = array();
-                }                
-                
-                $val['info']['holidays']  = array();
-                $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
-                
-               
-                /////////start opening time management ////////
-                   
-                
-                /////////start opening time management ////////
-                
-                $today_date = date('Y-m-d');
-                
-                $today_time = date('h:i A');
-                //  $today_time = date('12:55 PM');
-                
-                $today_day = strtolower(date('l',strtotime($today_date)));
-                
-                
-                $ondays = array();
-
-                foreach($val['info']['hours'] as $ondaykey => $onday){
-                    array_push($ondays, $onday['day']);
-                    
-                    // valid day    
-                    if( trim($today_day) ==  trim($onday['day'] )){
-
-                        //check double shift start
-                            $shifts = explode('/', $onday['hours']);
-                            if(isset($shifts[1])){
-                                $oneshift = explode('-', $shifts['0']);
-                                $twoshift = explode('-', $shifts['1']);
-
-                                // incase of 1st shift fall
-                                if( strtotime($today_time)  < strtotime($oneshift[0])){
-                                    $onday['hours'] = $shifts[0]; 
-                                }
-                                else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-                                    $onday['hours'] = $shifts[0]; 
-                                }
-                                // incase of 2nd shift fall
-                                else if( strtotime($today_time)  < strtotime($twoshift[0])){
-                                    $onday['hours'] = $shifts[1]; 
-                                }                                
-                                else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-                                    $onday['hours'] = $shifts[1]; 
-                                }                                                  
-                            }
-                            
-                        //check double shift end
-
-                        $validate_hoursdata = explode('-', $onday['hours']);
-                        $valid_closetime =$validate_hoursdata[1]; 
-                                        
-                        if( strtotime($today_time)  > strtotime($valid_closetime)){
-                            
-                                $today_date = date('Y-m-d');
-                                
-                                $today_time = date('h:i A');
-                                
-                                $today_day = strtolower(date('l',strtotime($today_date)));
-                                
-                                // next day due to close
-                                
-                                $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                                
-                                $today_day = date('l', strtotime($today_date));
-                                
-                        }    
-        
-                    }                    
-                    // valid day end
-          
-                    
-                }
-                
-                                                         
-                
-                // if day not enable
-                
-                foreach($val['info']['hours'] as $ondayEnablekey => $ondayEnable){
-                    
-                    
-                    if(!in_array(strtolower($today_day), $ondays)){
-                        
-                 
-
-                        $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                        $today_day = date('l', strtotime($today_date));  
-                        continue;
-                        
+                        $val['info'] = $dataInfo;
                     }
-                    
-                    // valid day
-                    
-                    
-                    //hereee
+
+                    $val['info']['hours'] = FunctionsV3::getMerchantOpeningHoursArray($merchant_id);
+
+                    if (empty($val['info']['hours'])) {
+                        $val['info']['hours'] = array();
+                    }
+
+                    $val['info']['holidays'] = array();
+                    $res_holiday = Yii::app()->functions->getMerchantHoliday($merchant_id);
 
 
+                    /////////start opening time management ////////
 
-                        if( trim($today_day) ==  trim($ondayEnable['day'] )){
-                        
-                        
+
+                    $today_date = date('Y-m-d');
+
+                    $today_time = date('h:i A');
+
+                    $today_day = strtolower(date('l', strtotime($today_date)));
+
+                    $ondays = array();
+
+                    foreach ($val['info']['hours'] as $ondaykey => $onday) {
+                        array_push($ondays, $onday['day']);
+
+                        // valid day    
+                        if (trim($today_day) == trim($onday['day'])) {
+
                             $validate_hoursdata = explode('-', $onday['hours']);
-                            $valid_closetime =$validate_hoursdata[1]; 
-                            //exploding hours /
-                            
-                            //here changed the time formate
-                            $validate_hors = explode('/', $valid_closetime);
-                             
-                            $valid_closetime = $validate_hors[0];
-                     
-                            //here changed the time formate
-                        
-                        if( strtotime($today_time)  > strtotime($valid_closetime)){
-                        
-                            
+                            $valid_closetime = $validate_hoursdata[1];
+                            if (strtotime($today_time) > strtotime($valid_closetime)) {
+
                                 $today_date = date('Y-m-d');
-                                
+
                                 $today_time = date('h:i A');
-                                
-                                $today_day = strtolower(date('l',strtotime($today_date)));
-                                
+
+                                $today_day = strtolower(date('l', strtotime($today_date)));
+
                                 // next day due to close
-                                
-                                $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
-                                
+
+                                $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+
                                 $today_day = date('l', strtotime($today_date));
-                                
-                                
-                        }    
-                    }
-                    
-                        
-                    
-                    // valid day end
-                    
-                }
-                
-               
-                //   if($val['info']['merchant_id'] == 9){
-                          
-                //             echo $today_day; echo $today_date;
-                //             echo $today_time;
-                //             echo "<pre>"; print_r($val['info']['hours']); exit('jijij'); 
-                //         } 
-                
-               
-                
-                   
-                    
-                    //       if($val['info']['merchant_id'] = 287 ) {
-                    //     print_r($today_day);  exit('k valid day');
-                    //     // print_r($valid_day); exit('sdfsd');
-                    // }
-                
-                          
-                
-                //total numbers of holidays
-                
-                $alldates = [0,1,2,3,4,5,6];
-                $valid_date =''; 
-                
-                
-                foreach ($alldates as $dates) {
 
-                if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) {
-                     $valid_date = $today_date;
-                     break;
-                }
-                 
-                else if (!in_array($today_date, $res_holiday)) {
-
-                    if (!in_array($today_day, $ondays)) {
-                      $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                    } 
-                    else {
-                      $valid_date = $today_date;
-                      break;
-                    }
-                 } 
-                else {
-                        $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
-                    }
-            }
-            
-              
-         
-                $timestampForday = strtotime($valid_date);
-                   
-                $valid_day = date('l', $timestampForday);
-                
-                $valid_day = strtolower($valid_day);
-
-                $val['info']['timing_note'] = '';
-                
-                foreach($val['info']['hours'] as $hordata){
-                    
-                        
-                 
-                    
-                    if( trim(strtolower($valid_day)) ==  trim(strtolower($hordata['day']) )){
-                   
-                            //check double shift start
-                                $shifts = explode('/', $hordata['hours']);
-                                if(isset($shifts[1])){
-                                    $oneshift = explode('-', $shifts['0']);
-                                    $twoshift = explode('-', $shifts['1']);
-                                    
-                                    // incase of 1st shift fall
-                                    if( strtotime($today_time)  < strtotime($oneshift[0])){
-                                        $hordata['hours'] = $shifts[0]; 
-                                    }
-                                    else if( (strtotime($today_time)  > strtotime($oneshift[0]) ) && (strtotime($today_time)  < strtotime($oneshift[1])) ){
-                                        $hordata['hours'] = $shifts[0]; 
-                                    }
-                                    // incase of 2nd shift fall
-                                    else if( strtotime($today_time)  < strtotime($twoshift[0])){
-                                        $hordata['hours'] = $shifts[1]; 
-                                    }                                
-                                    else if( (strtotime($today_time)  > strtotime($twoshift[0]) ) && (strtotime($today_time)  < strtotime($twoshift[1])) ){
-                                        $hordata['hours'] = $shifts[1]; 
-                                    }                                                  
-                                } 
-                
-                 
-                    
-                            //check double shift end  
-                            
-                    // if($val['info']['merchant_id'] = 287){
-                     
-                    //       print_r($today_day); exit('next');
-                    //     // print_r($valid_day); exit('kjhgf');
-                    // }
-                    
-                    
-                     $today_date = date('Y-m-d');
-                     $today_day = strtolower(date('l',strtotime($today_date)));
-                    
-                        
-                        if(strtolower($today_day) != strtolower($valid_day)){
-                            
-                            
-                    //       if($val['info']['merchant_id'] = 9){
-                    //     print_r($today_day);
-                    //     print_r($valid_day);
-                    //     exit('this day');
-                        
-                    // }
-                            
-                  
-                                        
-                            $validate_hours = explode('-', $hordata['hours']);
-                            $valid_opentime =$validate_hours[0];
-                            $valid_closetime =$validate_hours[1];
-                            
-                            $now_date_test = date('Y-m-d');
-                            
-                            $now_date_check = strtolower(date('l', strtotime( $now_date_test . " +1 days")));
-
-                        if($now_date_check == $valid_day){
-                         
-                                $val['info']['timing_note'] = 'Opens tomorrow from '. $valid_opentime. 'to'.$valid_closetime; 
                             }
-                            else{
-                                $val['info']['timing_note'] = 'Opens '.$valid_day. ' from '. $valid_opentime.'to'.$valid_closetime;
-                            }                            
-                                                       
+                        }
+                        // valid day end
+
+                    }
+
+
+                    // if day not enable
+
+                    foreach ($val['info']['hours'] as $ondayEnablekey => $ondayEnable) {
+
+
+                        if (!in_array(strtolower($today_day), $ondays)) {
+
+                            $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
+                            $today_day = date('l', strtotime($today_date));
                             continue;
-                        }                        
-                        
-                  //hours formate Start
-                        
-                    $now_time = date('H:i A');
-                    
-                    $now_hours = date('H');
-                    $now_mins = date('i');
-                    $now_timezone = date('A');
-                
-                    if($now_hours == '00'){
-                        $now_hours = '12';
+
+                        }
+                        // valid day    
+                        if (trim($today_day) == trim($ondayEnable['day'])) {
+
+                            $validate_hoursdata = explode('-', $onday['hours']);
+                            $valid_closetime = $validate_hoursdata[1];
+                            if (strtotime($today_time) > strtotime($valid_closetime)) {
+
+                                $today_date = date('Y-m-d');
+
+                                $today_time = date('h:i A');
+
+                                $today_day = strtolower(date('l', strtotime($today_date)));
+
+                                // next day due to close
+
+                                $today_date = date('Y-m-d', strtotime($today_date . " +1 day"));
+
+                                $today_day = date('l', strtotime($today_date));
+
+
+                            }
+                        }
+
+                        // valid day end
+
                     }
-                    
-                    if($now_hours == '12'){
-                        $now_hours = '12';
+
+                    //total numbers of holidays
+
+                    $alldates = [0, 1, 2, 3, 4, 5, 6];
+                    $valid_date = '';
+
+
+                    foreach ($alldates as $dates) {
+
+                        if (count($res_holiday) == 1 && ($res_holiday[0] != $today_date)) {
+                            $valid_date = $today_date;
+                            break;
+                        } else if (!in_array($today_date, $res_holiday)) {
+
+                            if (!in_array($today_day, $ondays)) {
+                                $valid_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+                            } else {
+                                $valid_date = $today_date;
+                                break;
+                            }
+                        } else {
+                            $today_date = date('Y-m-d', strtotime($today_date . " +1 days"));
+                        }
                     }
-                    
-                      if($now_hours > '12'){
-                          
-                         
-                        if($now_hours == '13'){
-                                $now_hours = '1';
-                          }
-                          else if($now_hours == '14'){
-                                $now_hours = '2';
-                          }
-                          else if($now_hours == '15'){
-                                $now_hours = '3';
-                          }
-                          else if($now_hours == '16'){
-                                $now_hours = '4';
-                          }
-                          else if($now_hours == '17'){
-                                $now_hours = '5';
-                          }
-                          else if($now_hours == '18'){
-                                $now_hours = '6';
-                          }
-                          else if($now_hours == '19'){
-                                $now_hours = '7';
-                          }
-                          else if($now_hours == '20'){
-                                $now_hours = '8';
-                          }
-                          else if($now_hours == '20'){
-                                $now_hours = '8';
-                          }
-                          else if($now_hours == '21'){
-                                $now_hours = '9';
-                          }
-                          else if($now_hours == '22'){
-                                $now_hours = '10';
-                          }
-                          else if($now_hours == '23'){
-                                $now_hours = '11';
-                          }
-                          else if($now_hours == '24'){
+
+                    $timestampForday = strtotime($valid_date);
+
+                    $valid_day = date('l', $timestampForday);
+
+                    $valid_day = strtolower($valid_day);
+
+                    $val['info']['timing_note'] = '';
+
+                    foreach ($val['info']['hours'] as $hordata) {
+
+                        if (trim($valid_day) == trim($hordata['day'])) {
+
+                            if ($today_day != $valid_day) {
+                                $validate_hours = explode('-', $hordata['hours']);
+                                $valid_opentime = $validate_hours[0];
+                                $valid_closetime = $validate_hours[1];
+
+
+                                $now_date_test = date('Y-m-d');
+
+                                $now_date_check = strtolower(date('l', strtotime($now_date_test . " +1 days")));
+
+                                if ($now_date_check == $valid_day) {
+                                    $val['info']['timing_note'] = 'Opens tomorrow from ' . $valid_opentime . 'to' . $valid_closetime;
+                                } else {
+                                    $val['info']['timing_note'] = 'Opens ' . $valid_day . ' from ' . $valid_opentime . 'to' . $valid_closetime;
+                                }
+
+
+
+                                continue;
+                            }
+
+                            //hours formate Start
+
+                            $now_time = date('H:i A');
+
+                            $now_hours = date('H');
+                            $now_mins = date('i');
+                            $now_timezone = date('A');
+
+                            if ($now_hours == '00') {
                                 $now_hours = '12';
-                          }
+                            }
+
+                            if ($now_hours == '12') {
+                                $now_hours = '12';
+                            }
+
+                            if ($now_hours > '12') {
+
+
+                                if ($now_hours == '13') {
+                                    $now_hours = '1';
+                                } else if ($now_hours == '14') {
+                                    $now_hours = '2';
+                                } else if ($now_hours == '15') {
+                                    $now_hours = '3';
+                                } else if ($now_hours == '16') {
+                                    $now_hours = '4';
+                                } else if ($now_hours == '17') {
+                                    $now_hours = '5';
+                                } else if ($now_hours == '18') {
+                                    $now_hours = '6';
+                                } else if ($now_hours == '19') {
+                                    $now_hours = '7';
+                                } else if ($now_hours == '20') {
+                                    $now_hours = '8';
+                                } else if ($now_hours == '20') {
+                                    $now_hours = '8';
+                                } else if ($now_hours == '21') {
+                                    $now_hours = '9';
+                                } else if ($now_hours == '22') {
+                                    $now_hours = '10';
+                                } else if ($now_hours == '23') {
+                                    $now_hours = '11';
+                                } else if ($now_hours == '24') {
+                                    $now_hours = '12';
+                                }
+                            }
+
+
+                            //    hours formate end
+
+                            $now_time = $now_hours . ':' . $now_mins . ' ' . $now_timezone;
+
+                            $validate_hours = explode('-', $hordata['hours']);
+
+                            $valid_opentime = $validate_hours[0];
+
+                            $valid_closetime = $validate_hours[1];
+
+
+                            //Case when the customer is earlier then open time
+
+                            if (strtotime($now_time) < strtotime($validate_hours[0])) {
+
+                                $datetime1 = new DateTime($now_time);
+                                $datetime2 = new DateTime($valid_opentime);
+                                $interval = $datetime1->diff($datetime2);
+                                $hour_diff = $interval->format('%h');
+                                $mint_diff = $interval->format('%i');
+
+
+                                //if the hours are zero
+                                if ($hour_diff == 0) {
+
+                                    $will_open = $mint_diff . ' ' . 'minutes';
+
+                                    $val['info']['timing_note'] = 'Opens in ' . $mint_diff . ' ' . 'minutes';
+
+                                }
+
+                                //if the minute are zero
+
+                                if ($mint_diff == 0) {
+
+                                    $will_open = $hour_diff . ' ' . 'hours';
+
+                                    // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
+                                    $val['info']['timing_note'] = 'Opens today at  ' . $validate_hours[0];
+                                }
+
+                                //if both hours and minutes are present
+                                if (($hour_diff != 0) && ($mint_diff != 0)) {
+
+                                    $will_open = $hour_diff . ' ' . 'hours';
+
+                                    // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
+                                    $val['info']['timing_note'] = 'Opens today at ' . $validate_hours[0];
+
+                                }
+
+                            }
+
+                            //Case when customer is came after Close time.
+                            else if (strtotime($now_time) > strtotime($validate_hours[1])) {
+
+                                // $now_date = date('Y-m-d');
+                                // $now_time = date('h:i A');
+
+                                // $now_time = '9:30 PM';
+
+                                //check holidays again
+
+                                //for open tomorrow
+
+                                $alldates = [0, 1, 2, 3, 4, 5, 6];
+                                $valid_date = '';
+                                $tomorrow = false;
+                                foreach ($alldates as $keydate => $dates) {
+
+                                    //Adding 1 Day if that day is holiday
+
+                                    $now_date = date('Y-m-d', strtotime($now_date . " +1 days"));
+
+                                    if ($keydate == 0) {
+                                        $tomorrow = true;
+                                    } else {
+                                        $tomorrow = false;
+                                    }
+
+                                    if (!in_array($now_date, $res_holiday)) {
+                                        $valid_date = $now_date;
+                                        break;
+                                    }
+                                }
+
+                                //get the day According to the date
+
+                                $now_date = date('l', strtotime($now_date));
+
+
+                                $now_date = strtolower($now_date);
+
+                                $open_time_next_day = '';
+                                foreach ($val['info']['hours'] as $hours_valid) {
+                                    if ($hours_valid['day'] == $now_date) {
+
+                                        $hoursdatanext = explode('-', $hours_valid['hours']);
+
+                                        $open_time_next_day = $hoursdatanext[0];
+
+                                    }
+
+                                }
+                                if ($open_time_next_day) {
+
+                                    if ($tomorrow = true) {
+                                        $val['info']['timing_note'] = 'Opens tomorrow  ' . $open_time_next_day;
+                                    } else {
+                                        $val['info']['timing_note'] = 'Opens ' . $now_date . '  ' . $open_time_next_day;
+                                    }
+
+                                }
+                            }
+
+                            // if open 
+                            else if (strtotime($now_time) < strtotime($validate_hours[1])) {
+                                $val['info']['timing_note'] = 'Closes at ' . trim($validate_hours[1]);
+                            }
+
+                        }
                     }
-                    
-                    
-                //    hours formate end
-                    
-                    $now_time = $now_hours. ':'. $now_mins. ' '. $now_timezone;
-                    
-                    //                   if($val['info']['merchant_id'] = 9){
-                    //     print_r($now_time); exit('adas');
-                    //     // print_r($valid_day); exit('kjhgf');
-                    // }
-                    
-                    // $now_time = '2:04 PM';
-                    
-                   
-                    
-                 
-                    
-                        $validate_hours = explode('-', $hordata['hours']);
-                        
-                        
-                        $valid_opentime =$validate_hours[0];
-                        
-                        $valid_closetime =$validate_hours[1];
-        
-                
-                        if(strtotime($now_time) <  strtotime($validate_hours[0])){
-                            
-                            
-                          $datetime1 = new DateTime($now_time);
-                          $datetime2 = new DateTime($valid_opentime);
-                            $interval = $datetime1->diff($datetime2);
-                            $hour_diff =  $interval->format('%h');
-                            $mint_diff =  $interval->format('%i'); 
-                            
-                            //if the hours are zero
-                            if($hour_diff == 0){
-                                 
-                              $will_open =   $mint_diff  .' '. 'minutes'; 
-                              
-                              $val['info']['timing_note'] = 'Opens in '.$mint_diff  .' '. 'minutes';
-                              
-                            }
 
-                            //if the minute are zero
 
-                            if($mint_diff == 0){
-                            
-                                $will_open =  $hour_diff .' '. 'hours'; 
-                                
-                                // $val['info']['timing_note'] = 'Opens at '. $hour_diff .' '. 'hours';
-                                 $val['info']['timing_note'] = 'Opens today at  '. $validate_hours[0];
-                            }
-                            
-                             //if both hours and minutes are present
-                            if(($hour_diff != 0) && ($mint_diff != 0) ){
-                                
-                                $will_open =  $hour_diff .' '. 'hours'; 
-                                
-                                
-                                // $val['info']['timing_note'] = 'Opens in '. $hour_diff .':'.$mint_diff.' hours' ;
-                                  $val['info']['timing_note'] = 'Opens today at '. $validate_hours[0];
-                                
-                            }
-                   
-                        }
-                        
-                        //Case when customer is came after Close time.
-                        
-                        else if (strtotime($now_time) >  strtotime($validate_hours[1]) ){
-                        
-                            //for open tomorrow
-                            
-                            $alldates = [0,1,2,3,4,5,6];
-                            $valid_date =''; 
-                            $tomorrow = false;
-                            foreach($alldates as $keydate => $dates){
 
-                            //Adding 1 Day if that day is holiday
-                                
+                    //hours narration set end          
 
-                                if($keydate == 0){
-                                    $tomorrow = true ;        
-                                }
-                                else{
-                                    $tomorrow = false ;
-                                }
-                                
-                                if (!in_array($now_date, $res_holiday)) {
-                              $valid_date =$now_date;
-                                    break; 
-                                }
-                            }
-                            
-                     
-                            //get the day According to the date
-                            
-                            $now_date = date('l', strtotime($now_date) ); 
-                            
-                            $now_date = strtolower($now_date) ;
-                            
-                            $open_time_next_day = '';
-                            foreach($val['info']['hours'] as $hours_valid){
-                                if($hours_valid['day'] ==  $now_date){
-                                    
-                                    $hoursdatanext = explode('-',$hours_valid['hours']);
-                                    
-                                    $open_time_next_day = $hoursdatanext[0];
-                                    
-                                }
-                                
-                            }
-                            if($open_time_next_day){
-                                
-                                            $now_date = date('Y-m-d', strtotime( $now_date . " +1 days"));
-                         
-                                
-                                if($tomorrow = true){
-                                    $val['info']['timing_note'] = 'Opens tomorrow  '. $open_time_next_day ;        
-                                }
-                                else{
-                                    $val['info']['timing_note'] = 'Opens '.$now_date.'  '. $open_time_next_day ;        
-                                }
-                            }
-                        }
-                        
-                        // if open 
-                        else if (strtotime($now_time) <  strtotime($validate_hours[1]) ){
-                 
-                            $val['info']['timing_note'] = 'Closes at '.trim($validate_hours[1]);
-                   
-                        }
-                        
+                    //end time management
+
+
+                    if (!empty($res_holiday)) {
+                        $val['info']['holidays'] = $res_holiday;
                     }
-                }
-                
-                //hours narration set end 
-                
-                //hours narration set end          
-                
-                //end time management
-                
-                
-                if (!empty($res_holiday)) {
-                    $val['info']['holidays']= $res_holiday;
-                }                
-            //info code end             
-            
+                    //info code end             
+
                     $data[] = $val;
                 }
-            
+
                 $this->code = 1;
                 $this->msg = "OK";
                 $this->details = array(
                     'list' => $data
-                );            
-            }
-            
-            else
+                );
+            } else
                 $this->msg = $this->t("Restaurant not found");
         } else
             $this->msg = $this->t("merchant name is empty");
         $this->output();
     }
-    
-    //end hours modification code
-    
 
-    public function actionsearchByCuisine() {
+
+
+    //end hours modification code
+
+
+    public function actionsearchByCuisine()
+    {
         $this->actioncuisineList();
     }
 
-    public function actiongetRestaurantInfo() {
+    public function actiongetRestaurantInfo()
+    {
+
         $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
         $client_id = $this->checkToken();
-
+        $merchant_time_interval = getOption($merchant_id, 'merchant_time_interval');
         $this->setMerchantTimezone();
 
         if ($merchant_id > 0) {
@@ -10241,41 +5650,40 @@ class ApiController extends CController {
                 $this->msg = "ok";
 
                 $data['merchant_id'] = $res['merchant_id'];
-                
+
                 $data['hours'] = FunctionsV3::getMerchantOpeningHoursArray($res['merchant_id']);
-                if(empty($data['hours'])){
-                    $data['hours']  = array();
+                if (empty($data['hours'])) {
+                    $data['hours'] = array();
                 }
-                
-                
-                
-                $data['holidays']  = array();
+
+
+
+                $data['holidays'] = array();
                 $res_holiday = Yii::app()->functions->getMerchantHoliday($res['merchant_id']);
-                
-           
-                
+
+
+
+
                 if (!empty($res_holiday)) {
-                    $data['holidays']= $res_holiday;
+                    $data['holidays'] = $res_holiday;
                 }
-                
-                $store_start_date=getOption($merchant_id,'store_start_date');
-                $store_close_date=getOption($merchant_id,'store_close_date');
-                 
-                if( $store_start_date !='' && $store_close_date !='')
-                {
+
+                $store_start_date = getOption($merchant_id, 'store_start_date');
+                $store_close_date = getOption($merchant_id, 'store_close_date');
+
+                if ($store_start_date != '' && $store_close_date != '') {
                     $data['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
                     $data['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
-                    
-                }
-                else{
+
+                } else {
 
                     $data['store_start_date'] = '2022-02-28 17:03:33';
                     $data['store_close_date'] = '2022-03-01 0:00:00';
-                    
+
                 }
-                
-                
-                
+
+
+                $data['order_asap'] = (Yii::app()->functions->getOption('order_asap', $merchant_id) == 2) ? 'true' : 'false';
                 $data['restaurant_name'] = clearString($res['restaurant_name']);
                 $data['complete_address'] = clearString($res['complete_address']);
 
@@ -10287,17 +5695,18 @@ class ApiController extends CController {
                 $data['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
 
                 $status = mobileWrapper::merchantStatus($merchant_id);
-                
+
 
                 $data['close_message'] = '';
                 if ($status == "close") {
-                
+
                     $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
-                 
+
                     $data['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-                                '[date_close]' => $date_close
-                    ));
-                    
+                        '[date_close]' => $date_close
+                    )
+                    );
+
                 }
 
                 $data['status_raw'] = $status;
@@ -10314,8 +5723,9 @@ class ApiController extends CController {
                 $ratings = Yii::app()->functions->getRatings($merchant_id);
                 $data['rating'] = $ratings;
                 $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-                            '[count]' => $ratings['votes']
-                ));
+                    '[count]' => $ratings['votes']
+                )
+                );
                 $data['rating'] = $ratings;
 
                 $data['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
@@ -10336,25 +5746,26 @@ class ApiController extends CController {
                     'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
                         '[website_name]' => getOptionA('website_title'),
                         '[merchant_address]' => $res['complete_address']
-                    )),
+                    )
+                    ),
                     'url' => websiteUrl() . "/menu-" . $res['restaurant_slug'],
                     'subject' => $res['restaurant_name'],
                     'files' => ''
                 );
 
                 $settings = array();
-                
+
                 $data['distance'] = getOption($this->merchant_id, 'merchant_delivery_miles');
                 $data['distance_unit'] = getOption($this->merchant_id, 'merchant_distance_type');
-                
-                if($data['distance'] == null){
+
+                if ($data['distance'] == null) {
                     $data['distance'] = '';
                 }
-                
-                if($data['distance_unit'] == null){
+
+                if ($data['distance_unit'] == null) {
                     $data['distance_unit'] = '';
                 }
-
+                $data['merchant_time_interval'] = ($merchant_time_interval == '' || $merchant_time_interval == 0) ? '15' : $merchant_time_interval;
                 $this->details = array(
                     'data' => $data,
                 );
@@ -10364,255 +5775,18 @@ class ApiController extends CController {
             $this->msg = $this->t("invalid merchant id");
         $this->output();
     }
-    
-    
+
+
+
     //mine api ResturentINfo
-    
-     public function actiongetRestaurantInfoTest() {
-   
-        $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
-        $client_id = $this->checkToken();
-
-        $this->setMerchantTimezone();
-
-        if ($merchant_id > 0) {
-            if ($res = FunctionsV3::getMerchantInfo($merchant_id)) {
-
-                $this->code = 1;
-                $this->msg = "ok";
-
-                $data['merchant_id'] = $res['merchant_id'];
-                
-                $data['hours'] = FunctionsV3::getMerchantOpeningHoursArray($res['merchant_id']);
-                if(empty($data['hours'])){
-                    $data['hours']  = array();
-                }
-                
-                
-                
-                $data['holidays']  = array();
-                $res_holiday = Yii::app()->functions->getMerchantHoliday($res['merchant_id']);
-                if (!empty($res_holiday)) {
-                    $data['holidays']= $res_holiday;
-                }
-                
-                $store_start_date=getOption($merchant_id,'store_start_date');
-                $store_close_date=getOption($merchant_id,'store_close_date');
-                 
-                if( $store_start_date !='' && $store_close_date !='')
-                {
-                    $data['store_start_date'] = date('Y-m-d G:i:s', $store_start_date);
-                    $data['store_close_date'] = date('Y-m-d G:i:s', $store_close_date);
-                    
-                   
-                    
-                }
-                $data['restaurant_name'] = clearString($res['restaurant_name']);
-                $data['complete_address'] = clearString($res['complete_address']);
-
-                $data['latitude'] = $res['latitude'];
-                $data['lontitude'] = $res['lontitude'];
-
-                $data['cuisine'] = FunctionsV3::displayCuisine($res['cuisine']);
-                $data['logo'] = mobileWrapper::getImage($res['logo']);
-                $data['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-
-                $status = mobileWrapper::merchantStatus($merchant_id);
-                
-             
-                
-
-                $data['close_message'] = '';
-                if ($status == "close") {
-                
-                    $date_close = FunctionsV3::prettyDate(date('c')) . " " . FunctionsV3::prettyTime(date('c'));
-                 
-                    $data['close_message'] = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-                                '[date_close]' => $date_close
-                    ));
-                    
-                    $data['close_message1'] = Yii::t("mobile2", "Sorry but we are closed on [date_close].", array(
-                                '[date_close]' => $date_close
-                    ));
-                }
-
-                $data['status_raw'] = $status;
-                $data['status'] = mt($status);
 
 
-                $data['gallery'] = 2;
-                $enabled_menu_carousel = getOptionA('mobile2_enabled_menu_carousel');
-                $banner_enabled = getOption($merchant_id, 'banner_enabled');
-                if ($enabled_menu_carousel == 1 && $banner_enabled == 1) {
-                    $data['gallery'] = mobileWrapper::getMerchantBanner($merchant_id);
-                }
-
-                $ratings = Yii::app()->functions->getRatings($merchant_id);
-                $data['rating'] = $ratings;
-                $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-                            '[count]' => $ratings['votes']
-                ));
-                $data['rating'] = $ratings;
-
-                $data['added_as_favorite'] = mobileWrapper::getFavorites($client_id, $merchant_id);
-
-                if ($offers = mobileWrapper::getOffersByMerchantNew($merchant_id)) {
-                    $data['offers'] = $offers;
-                }
-
-                if ($res['is_sponsored'] == 2) {
-                    $data['sponsored'] = $this->t("Sponsored");
-                }
-
-                //dump($ratings);
-                $data['tab_menu_enabled'] = 1;
-                $data['tab_menu'] = mobileWrapper::getRestoTabMenu($merchant_id, $ratings);
-
-                $data['share_options'] = array(
-                    'message' => mt("Find this restaurant on [website_name] | [merchant_address]", array(
-                        '[website_name]' => getOptionA('website_title'),
-                        '[merchant_address]' => $res['complete_address']
-                    )),
-                    'url' => websiteUrl() . "/menu-" . $res['restaurant_slug'],
-                    'subject' => $res['restaurant_name'],
-                    'files' => ''
-                );
-
-                $settings = array();
-                
-                $data['distance'] = getOption($this->merchant_id, 'merchant_delivery_miles');
-                $data['distance_unit'] = getOption($this->merchant_id, 'merchant_distance_type');
-                
-                if($data['distance'] == null){
-                    $data['distance'] = '';
-                }
-                
-                if($data['distance_unit'] == null){
-                    $data['distance_unit'] = '';
-                }
-
-                $this->details = array(
-                    'data' => $data,
-                );
-            } else
-                $this->msg = $this->t("merchant id not found");
-        } else
-            $this->msg = $this->t("invalid merchant id");
-        $this->output();
-    }
+    public function actiongetMerchantMenu()
+    {
 
 
-    //test function in which menus are null but
 
-    // public function actiongetMerchantMenuTest() {
 
-    //     $page_limit = mobileWrapper::paginateLimit();
-
-    //     $this->setMerchantTimezone();
-    //     if (isset($this->data['page'])) {
-    //         $page = $this->data['page'] * $page_limit;
-    //     } else
-    //         $page = 0;
-
-    //     $timezone = isset($this->data['timezone']) ? $this->data['timezone'] : '';
-        
-    //     $page_action = isset($this->data['page_action']) ? $this->data['page_action'] : '';
-        
-    //     $cat_id = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
-
-    //     $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
-    //     if ($merchant_id > 0) {
-    //         itemWrapper::setMultiTranslation();
-    //         $menu = itemWrapper::getMenu($merchant_id, $page, $page_limit, $cat_id, $timezone);
- 
-    //             if(!empty($menu['list'])){   //changed checking list to handle sheduling
-    //             $this->code = 1;
-    //             $this->msg = "OK";
-    //             $menu['item_id'] = isset($this->data['item_id']) ? $this->data['item_id'] : '';
-    //             $menu['cat_id'] = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
-    //             $menu['page_action'] = $page_action;
-    //             $this->details = $menu;
-    //             }
-                
-    //             else{
-                    
-    //          $this->code = 2;
-    //          $this->msg = $this->t("No items available in resturent yet");
-    //          $this->details = array(
-    //         'paginate_total' => 0,
-    //         'list' => [],
-    //         );
-            
-    //             }
-    //     } 
-    //     else
-    //         $this->msg = $this->t("invalid merchant id");
-    //     $this->output();
-    // }
-    
-    ///second
-    
-        //Test Function
-    
-    // public function actiongetMerchantMenuTest() {
-        
-    //     $page_limit = mobileWrapper::paginateLimit();
-
-    //     $this->setMerchantTimezone();
-
-    //     if (isset($this->data['page'])) {
-    //         $page = $this->data['page'] * $page_limit;
-    //     } else
-    //         $page = 0;
-
-    //     $timezone = isset($this->data['timezone']) ? $this->data['timezone'] : '';
-        
-    //     $page_action = isset($this->data['page_action']) ? $this->data['page_action'] : '';
-        
-    //     $cat_id = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
-
-    //     $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';  //previous
-        
-    //     //   $merchant_id = '224'; //mineee
-        
-        
-    //     if ($merchant_id > 0) {
-    //         itemWrapper::setMultiTranslation();
-    //         $menu = itemWrapper::getMenu($merchant_id, $page, $page_limit, $cat_id, $timezone);
-            
-    //         // print_r($menu['list']); exit('dsfs');
-                
-    //             // if(!empty($menu)){   //previous
-    //             if(!empty($menu['list'])){
-    //             $this->code = 1;
-    //             $this->msg = "OK";
-    //             $menu['item_id'] = isset($this->data['item_id']) ? $this->data['item_id'] : '';
-    //             $menu['cat_id'] = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
-    //             $menu['page_action'] = $page_action;
-    //             $this->details = $menu;
-    //             }
-                
-    //             else{
-                    
-    //          $this->code = 1;
-    //          $this->msg = $this->t("No items available yet");
-    //          $this->details = array(
-    //         'paginate_total' => 0,
-    //         'list' => [],
-    //         );
-            
-    //             }
-                
-              
-    //     } 
-    //     else
-    //         $this->msg = $this->t("invalid merchant id");
-    //     $this->output();
-    // }
-    
-    
-    public function actiongetMerchantMenu() { //this is working..
-        
         $page_limit = mobileWrapper::paginateLimit();
 
         $this->setMerchantTimezone();
@@ -10623,100 +5797,104 @@ class ApiController extends CController {
             $page = 0;
 
         $timezone = isset($this->data['timezone']) ? $this->data['timezone'] : '';
-        
+        if ($timezone == '' && empty($timezone)) {
+            $usaTimeZone = new DateTimeZone('America/New_York');
+            $dateTime = new DateTime('now', $usaTimeZone);
+            $timezone = $dateTime->format('T');
+
+        }
+
         $page_action = isset($this->data['page_action']) ? $this->data['page_action'] : '';
-        
-        $cat_id = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
 
-        $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
-        if ($merchant_id > 0) {
-            itemWrapper::setMultiTranslation();
-            $menu = itemWrapper::getMenu($merchant_id, $page, $page_limit, $cat_id, $timezone);
-            
-                
-                // if(!empty($menu)){   //previous
-                if(!empty($menu['list'])){
-                $this->code = 1;
-                $this->msg = "OK";
-                $menu['item_id'] = isset($this->data['item_id']) ? $this->data['item_id'] : '';
-                $menu['cat_id'] = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
-                $menu['page_action'] = $page_action;
-                $this->details = $menu;
-                }
-                
-                else{
-                    
-             $this->code = 2;
-             $this->msg = $this->t("No items available yet");
-             $this->details = array(
-            'paginate_total' => 0,
-            'list' => [],
-            );
-            
-                }
-                
-              
-        } 
-        else
-            $this->msg = $this->t("invalid merchant id");
-        $this->output();
-    }
-    
-    
-    public function actiongetMerchantMenuTest2() { 
-        
-        $page_limit = mobileWrapper::paginateLimit();
-
-        $this->setMerchantTimezone();
-
-        if (isset($this->data['page'])) {
-            $page = $this->data['page'] * $page_limit;
-        } else
-            $page = 0;
-
-        $timezone = isset($this->data['timezone']) ? $this->data['timezone'] : '';
-        
-        $page_action = isset($this->data['page_action']) ? $this->data['page_action'] : '';
-        
         $cat_id = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
 
         $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
         if ($merchant_id > 0) {
             itemWrapper::setMultiTranslation();
             $menu = itemWrapper::getMenuTest($merchant_id, $page, $page_limit, $cat_id, $timezone);
-            
-                
-                // if(!empty($menu)){   //previous
-                if(!empty($menu['list'])){
+
+            // print_r($menu['list']); exit('hgfds');
+            // if(!empty($menu)){    //was checking whole menu
+
+            if (!empty($menu['list'])) {   //changed checking list to handle sheduling
                 $this->code = 1;
                 $this->msg = "OK";
                 $menu['item_id'] = isset($this->data['item_id']) ? $this->data['item_id'] : '';
                 $menu['cat_id'] = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
                 $menu['page_action'] = $page_action;
                 $this->details = $menu;
-                }
-                
-                else{
-                    
-             $this->code = 2;
-             $this->msg = $this->t("No items available yet");
-             $this->details = array(
-            'paginate_total' => 0,
-            'list' => [],
-            );
-            
-                }
-                
-              
-        } 
-        else
+            } else {
+
+                $this->code = 2;
+                $this->msg = $this->t("No items available in resturent yet");
+                $this->details = array(
+                    'paginate_total' => 0,
+                    'list' => [],
+                );
+
+            }
+
+
+        } else
             $this->msg = $this->t("invalid merchant id");
         $this->output();
     }
-    
 
-    
-    public function actiongetItemByCategory() {
+
+
+    public function actiongetMerchantMenuTest2()
+    {
+
+        $page_limit = mobileWrapper::paginateLimit();
+
+        $this->setMerchantTimezone();
+
+        if (isset($this->data['page'])) {
+            $page = $this->data['page'] * $page_limit;
+        } else
+            $page = 0;
+
+        $timezone = isset($this->data['timezone']) ? $this->data['timezone'] : '';
+
+        $page_action = isset($this->data['page_action']) ? $this->data['page_action'] : '';
+
+        $cat_id = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
+
+        $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
+        if ($merchant_id > 0) {
+            itemWrapper::setMultiTranslation();
+            $menu = itemWrapper::getMenuTest($merchant_id, $page, $page_limit, $cat_id, $timezone);
+
+
+            // if(!empty($menu)){   //previous
+            if (!empty($menu['list'])) {
+                $this->code = 1;
+                $this->msg = "OK";
+                $menu['item_id'] = isset($this->data['item_id']) ? $this->data['item_id'] : '';
+                $menu['cat_id'] = isset($this->data['cat_id']) ? $this->data['cat_id'] : '';
+                $menu['page_action'] = $page_action;
+                $this->details = $menu;
+            } else {
+
+                $this->code = 2;
+                $this->msg = $this->t("No items available yet");
+                $this->details = array(
+                    'paginate_total' => 0,
+                    'list' => [],
+                );
+
+            }
+
+
+        } else
+            $this->msg = $this->t("invalid merchant id");
+        $this->output();
+    }
+
+
+
+    public function actiongetItemByCategory()
+    {
         $enabled_trans = getOptionA('enabled_multiple_translation');
 
         $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
@@ -10769,15 +5947,16 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsearchFoodItem() {
-        
-   
+    public function actionsearchFoodItem()
+    {
+
+
         $item_name = isset($this->data['item_name']) ? $this->data['item_name'] : '';
-        
+
         $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
 
         if ($res = itemWrapper::searchItemByName($merchant_id, $item_name)) {
-            
+
             $data = array();
             foreach ($res as $val) {
                 $category = json_decode($val['category'], true);
@@ -10799,7 +5978,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionitemDetails() {
+    public function actionitemDetails()
+    {
         $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
         $item_id = isset($this->data['item_id']) ? $this->data['item_id'] : '';
         $device_uiid = isset($this->data['device_uiid']) ? $this->data['device_uiid'] : '';
@@ -10812,7 +5992,11 @@ class ApiController extends CController {
             $this->msg = $this->t("invalid item id");
             $this->output();
         }
-
+        $hide_special_notes = 'false';
+        if (getOption($merchant_id, 'order_special_notes') == 3) {
+            $hide_special_notes = 'true';
+        }
+        $merchant_time_interval = getOption($merchant_id, 'merchant_time_interval');
         $ordering_disabled = false;
         $ordering_msg = '';
         $disabled_website_ordering = getOptionA('disabled_website_ordering');
@@ -10837,11 +6021,28 @@ class ApiController extends CController {
 
 
         if ($res = Yii::app()->functions->getItemById($this->data['item_id'])) {
-            
+
             // print_r($res['require_addons']['sub_item'][0]); exit('jhjkh');
 
             itemWrapper::setMultiTranslation();
-
+            $res_cart = mobileWrapper::getCart($device_uiid);
+            $cart_items = '';
+            $cart_sub_items = array();
+            if (isset($res_cart['cart'])) {
+                $cart_items = json_decode($res_cart['cart'], true);
+                // $row = 0;
+                $selected_row = $this->data['selected_row'];
+                if (isset($cart_items[$selected_row])) {
+                    $cart_sub_items[$item_id] = $cart_items[$selected_row]['sub_item'];
+                }
+                // foreach($cart_items as $cart_item){
+                //     if($cart_item['item_id'] == $item_id){
+                //         $sub_item = $cart_item['sub_item'];
+                //         $cart_sub_items[$item_id] = $sub_item;
+                //     }
+                //     $row++;
+                // }
+            }
             $res = $res[0];
             unset($res['cooking_ref_trans']);
             $res['cooking_ref'] = itemWrapper::translateCookingRef($res['cooking_ref']);
@@ -10859,6 +6060,11 @@ class ApiController extends CController {
                             foreach ($add_val['sub_item'] as $sub_item_val) {
                                 $sub_item_val['sub_item_name'] = qTranslate($sub_item_val['sub_item_name'], 'sub_item_name', $sub_item_val);
                                 $sub_item_val['item_description'] = qTranslate($sub_item_val['item_description'], 'item_description', $sub_item_val);
+                                if (in_array($sub_item_val['subcat_id'], $cart_sub_items[$item_id])) {
+                                    $sub_item_val['selected'] = true;
+                                } else {
+                                    $sub_item_val['selected'] = false;
+                                }
                                 $new_sub_item[] = $sub_item_val;
                             }
                             $add_val['sub_item'] = $new_sub_item;
@@ -10870,8 +6076,51 @@ class ApiController extends CController {
                     $res['addon_item'] = $new_addon;
                 }
             }
-            if($this->data['json']){
-                if(!is_array($res['addon_item'])  && $res['addon_item'] ==''){
+            $is_from_edit = $this->data['is_from_edit'];
+            // if(count($cart_sub_items) > 0){
+            $new_addon = array();
+            if (is_array($res['addon_item']) && count($res['addon_item']) >= 1) {
+                foreach ($res['addon_item'] as $add_val) {
+                    $addon_item_id = $add_val['subcat_id'];
+                    $sub_cart_ids = array();
+                    if (isset($cart_sub_items[$item_id][$addon_item_id])) {
+                        $sub_cart_selected_items = $cart_sub_items[$item_id][$addon_item_id];
+                        foreach ($sub_cart_selected_items as $sub_cart_selected_item) {
+                            $sub_cart_selected_item = explode('|', $sub_cart_selected_item);
+                            $sub_cart_ids[] = $sub_cart_selected_item[0];
+                        }
+                        if ($is_from_edit === 'true') {
+                            $add_val['selected'] = 'true';
+                        } else {
+                            $add_val['selected'] = 'false';
+                        }
+                    } else {
+                        $add_val['selected'] = 'false';
+                    }
+                    if (is_array($add_val['sub_item']) && count($add_val['sub_item']) >= 1) {
+                        $new_sub_item = array();
+                        foreach ($add_val['sub_item'] as $sub_item_val) {
+                            if (in_array($sub_item_val['sub_item_id'], $sub_cart_ids)) {
+                                if ($is_from_edit == 'true')
+                                    $sub_item_val['selected'] = 'true';
+                                else
+                                    $sub_item_val['selected'] = 'false';
+                            } else {
+                                $sub_item_val['selected'] = 'false';
+                            }
+                            $new_sub_item[] = $sub_item_val;
+                        }
+                        $add_val['sub_item'] = $new_sub_item;
+                    }
+
+                    $new_addon[] = $add_val;
+                }
+
+                $res['addon_item'] = $new_addon;
+            }
+            // }
+            if ($this->data['json']) {
+                if (!is_array($res['addon_item']) && $res['addon_item'] == '') {
                     $res['addon_item'] = array();
                 }
             }
@@ -10890,8 +6139,8 @@ class ApiController extends CController {
             $res['item_description'] = $p->purify($res['item_description']);
             $res['item_name_trans'] = $p->purify($res['item_name_trans']);
             $res['item_description_trans'] = $p->purify($res['item_description_trans']);
-            
-            $res['photo'] = mobileWrapper::getImage($res['photo'],'default_cuisine.png',true);
+
+            $res['photo'] = mobileWrapper::getImage($res['photo'], 'default_cuisine.png', true);
 
             /* GET DISH */
             $icon_dish = array();
@@ -10904,15 +6153,15 @@ class ApiController extends CController {
                 $icon_dish = '';
 
             $res['dish_list'] = $icon_dish;
-            if($res['dish'] == ''){
+            if ($res['dish'] == '') {
                 $res['dish'] = '';
             }
-            
+
 
             /* GALLERY */
             $res['gallery'] = array();
             if (!empty($res['gallery_photo'])) {
-                
+
                 $new_gallery_photo = array();
                 $gallery_photo = json_decode($res['gallery_photo'], true);
                 if (is_array($gallery_photo) && count((array) $gallery_photo) >= 1) {
@@ -10953,6 +6202,8 @@ class ApiController extends CController {
             $this->msg = "OK";
             $this->details = array(
                 'cat_id' => isset($this->data['cat_id']) ? $this->data['cat_id'] : '',
+                'hide_special_notes' => $hide_special_notes,
+                'merchant_time_interval' => $merchant_time_interval,
                 'data' => $res,
                 'cart_data' => $cart_data,
                 'ordering_disabled' => $ordering_disabled,
@@ -10964,7 +6215,9 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionaddToCart() {
+
+    public function actionaddToCart()
+    {
         $data = $_POST;
         $qty = isset($data['qty']) ? $data['qty'] : '';
         if ($qty > 0) {
@@ -10973,19 +6226,23 @@ class ApiController extends CController {
             $this->msg = $this->t("invalid quantity");
             $this->output();
         }
-        if(isset($this->data['device_uiid'])){ $device_uiid = $this->data['device_uiid']; }
-        
-        elseif( isset($data['device_uiid']) ){ $device_uiid = $data['device_uiid'];  }
-        
-        else{ $device_uiid = '';  }
-        
-        if(isset($this->data['merchant_id'])){ $merchant_id = $this->data['merchant_id']; }
-        
-        elseif( isset($data['merchant_id']) ){ $merchant_id = $data['merchant_id'];  }
-        
-        else{ $merchant_id = '';  }
-        
-        
+        if (isset($this->data['device_uiid'])) {
+            $device_uiid = $this->data['device_uiid'];
+        } elseif (isset($data['device_uiid'])) {
+            $device_uiid = $data['device_uiid'];
+        } else {
+            $device_uiid = '';
+        }
+
+        if (isset($this->data['merchant_id'])) {
+            $merchant_id = $this->data['merchant_id'];
+        } elseif (isset($data['merchant_id'])) {
+            $merchant_id = $data['merchant_id'];
+        } else {
+            $merchant_id = '';
+        }
+
+
         // $device_uiid = isset($this->data['device_uiid']) ? $this->data['device_uiid'] : '';
         // $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
         $item_id = isset($data['item_id']) ? $data['item_id'] : '';
@@ -11063,7 +6320,7 @@ class ApiController extends CController {
                             }
                         } else {
                             if (!array_key_exists('cooking_ref', $data) && !array_key_exists('cooking_ref', $current_cart_val)) {
-                                
+
                             } else
                                 $item_found = false;
                         }
@@ -11077,7 +6334,7 @@ class ApiController extends CController {
                             }
                         } else {
                             if (!array_key_exists('ingredients', $data) && !array_key_exists('ingredients', $current_cart_val)) {
-                                
+
                             } else
                                 $item_found = false;
                         }
@@ -11091,7 +6348,7 @@ class ApiController extends CController {
                             }
                         } else {
                             if (!array_key_exists('sub_item', $data) && !array_key_exists('sub_item', $current_cart_val)) {
-                                
+
                             } else
                                 $item_found = false;
                         }
@@ -11132,7 +6389,7 @@ class ApiController extends CController {
                 'cart' => json_encode($current_cart),
                 'cart_count' => $cart_count,
                 'date_modified' => FunctionsV3::dateNow(),
-                    ), 'cart_id', $res['cart_id']);
+            ), 'cart_id', $res['cart_id']);
         } else {
             $cart_count = 1;
             $DbExt->insertData("{{mobile2_cart}}", array(
@@ -11142,7 +6399,8 @@ class ApiController extends CController {
                 'cart' => json_encode(array($data)),
                 'cart_count' => $cart_count,
                 'date_modified' => FunctionsV3::dateNow(),
-            ));
+            )
+            );
         }
 
         $this->code = 1;
@@ -11159,7 +6417,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetCartCount() {
+    public function actiongetCartCount()
+    {
         $data = $_POST;
         $device_uiid = isset($this->data['device_uiid']) ? $this->data['device_uiid'] : '';
         $merchant_id = isset($data['merchant_id']) ? $data['merchant_id'] : '';
@@ -11231,10 +6490,11 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionloadCart() {
+    public function actionloadCart()
+    {
 
         $this->details = array();
-        
+
         if (!is_numeric($this->merchant_id) || $this->merchant_id <= 0) {
             $this->msg = $this->t("invalid merchant id");
             $this->code = 5;
@@ -11271,7 +6531,7 @@ class ApiController extends CController {
 
         $transaction_type = '';
         $services = Yii::app()->functions->DeliveryOptions($this->merchant_id);
-        
+
         if (is_array($services) && count($services) >= 1) {
             foreach ($services as $services_key => $services_val) {
                 $transaction_type = $services_key;
@@ -11291,21 +6551,19 @@ class ApiController extends CController {
 
         /* GET CART */
         $res = mobileWrapper::getCart($this->device_uiid);
-        
-        if($res){
+
+        if ($res) {
             $this->merchant_id = $res['merchant_id'];
-            
-              if($res['merchant_id'] != '')
-                {
-                   $merchant_info = FunctionsV3::getMerchantInfo($res['merchant_id']);
-                   if($merchant_info['delivery_charges'] == 0)
-                   {
-                       $res['delivery_fee']= '0'; 
-                   }else{
-                      $res['delivery_fee']= $merchant_info['delivery_charges']; 
-                   }
-                  
+
+            if ($res['merchant_id'] != '') {
+                $merchant_info = FunctionsV3::getMerchantInfo($res['merchant_id']);
+                if ($merchant_info['delivery_charges'] == 0) {
+                    $res['delivery_fee'] = '0';
+                } else {
+                    $res['delivery_fee'] = $merchant_info['delivery_charges'];
                 }
+
+            }
         }
 
         if (!is_numeric($this->merchant_id) || $this->merchant_id <= 0) {
@@ -11315,7 +6573,7 @@ class ApiController extends CController {
             mobileWrapper::clearCart($this->device_uiid);
             $this->output();
         }
-    
+
         $search_resp = mobileWrapper::searchMode();
         $search_mode = $search_resp['search_mode'];
         $location_mode = $search_resp['location_mode'];
@@ -11329,20 +6587,22 @@ class ApiController extends CController {
                 if (empty($res['delivery_lat'])) {
                     $client_id = isset($client_info['client_id']) ? $client_info['client_id'] : '';
                     $resp_set_address = LocationWrapper::autoSetDeliveryFee(
-                                    $location_mode,
-                                    $client_id,
-                                    $res['cart_id'],
-                                    $this->data);
+                        $location_mode,
+                        $client_id,
+                        $res['cart_id'],
+                        $this->data
+                    );
                     $auto_set_delivery_fee = $resp_set_address['delivery_fee'];
                 }
             } else {
                 if (empty($res['delivery_lat'])) {
                     try {
-                        $resp_set_address = mobileWrapper::setAutoAddress($res['merchant_id'],
-                                        isset($client_info['client_id']) ? $client_info['client_id'] : '',
-                                        isset($this->data['lat']) ? $this->data['lat'] : '',
-                                        isset($this->data['lng']) ? $this->data['lng'] : '',
-                                        $this->device_uiid
+                        $resp_set_address = mobileWrapper::setAutoAddress(
+                            $res['merchant_id'],
+                            isset($client_info['client_id']) ? $client_info['client_id'] : '',
+                            isset($this->data['lat']) ? $this->data['lat'] : '',
+                            isset($this->data['lng']) ? $this->data['lng'] : '',
+                            $this->device_uiid
                         );
                         foreach ($resp_set_address as $set_address_key => $set_address_val) {
                             $res[$set_address_key] = $set_address_val;
@@ -11369,7 +6629,7 @@ class ApiController extends CController {
         /* END SET AUTO ADDRESS */
 
         if ($res) {
-            
+
             $cart = json_decode($res['cart'], true);
 
             $data = array(
@@ -11385,18 +6645,18 @@ class ApiController extends CController {
             }
 
             $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-            
-            
+
+
             // print_r($voucher_details); exit('sdf');
-            
-            
+
+
             if (is_array($voucher_details) && count($voucher_details) >= 1) {
-               
+
                 $data['voucher_name'] = $voucher_details['voucher_name'];
                 $data['voucher_amount'] = $voucher_details['amount'];
                 $data['voucher_type'] = $voucher_details['voucher_type'];
             }
-            
+
 
             if ($res['points_apply'] > 0.0001) {
                 $data['points_apply'] = $res['points_apply'];
@@ -11412,10 +6672,10 @@ class ApiController extends CController {
                 $data['delivery_charge'] = 0;
 
             $cart_details = $res;
-            
-        //   print_r($cart_details); exit('sdf');   coming
-            
-            
+
+            //   print_r($cart_details); exit('sdf');   coming
+
+
             unset($cart_details['cart']);
             unset($cart_details['device_uiid']);
             unset($cart_details['cart_id']);
@@ -11429,7 +6689,7 @@ class ApiController extends CController {
             if ($code == 1) {
                 $this->code = 1;
                 $details = Yii::app()->functions->details['raw'];
-            
+
                 //   print_r($details); exit('sdf');
 
                 /* TRANSLATE */
@@ -11451,12 +6711,12 @@ class ApiController extends CController {
                             }
 
                             $new_item[$key] = $details_item_val;
-                            
-                            
+
+
                         }
                         $details['item'] = $new_item;
-                        
-                        
+
+
                     }
                 }
                 /* END TRANSLATE */
@@ -11468,7 +6728,7 @@ class ApiController extends CController {
                     $details['total'] = $new_total;
                     $is_apply_tax = 1;
                 }
-                
+
                 $has_addressbook = 0;
                 $client_id = '';
 
@@ -11491,19 +6751,18 @@ class ApiController extends CController {
                     $defaul_delivery_date = $date_list_key;
                     break;
                 }
-                
+
                 $voucher_name1 = $details['total']['voucher_name'] = $data['voucher_name'];
 
                 $subtotal = $details['total']['subtotal'];
-                if(isset($voucher_name1)){
-                    $voucher_name1 = $details['total']['voucher_name'] = $data['voucher_name']; 
-                } 
-                else{
-                     $voucher_name1 = $details['total']['voucher_name'] = ""; 
+                if (isset($voucher_name1)) {
+                    $voucher_name1 = $details['total']['voucher_name'] = $data['voucher_name'];
+                } else {
+                    $voucher_name1 = $details['total']['voucher_name'] = "";
                 }
-              
-               
-    
+
+
+
                 $cart_error = array();
 
                 $merchant_minimum_order = 0;
@@ -11514,9 +6773,10 @@ class ApiController extends CController {
                     if ($merchant_minimum_order > 0.001) {
                         if ($merchant_minimum_order > $subtotal) {
                             $cart_error[] = Yii::t("mobile2", "Sorry, your order does not meet the minimum [transaction_type] amount of [min_amount]", array(
-                                        '[min_amount]' => FunctionsV3::prettyPrice($merchant_minimum_order),
-                                        '[transaction_type]' => $this->t($transaction_type)
-                            ));
+                                '[min_amount]' => FunctionsV3::prettyPrice($merchant_minimum_order),
+                                '[transaction_type]' => $this->t($transaction_type)
+                            )
+                            );
                         }
                     }
 
@@ -11524,9 +6784,10 @@ class ApiController extends CController {
                     if ($merchant_maximum_order > 0.001) {
                         if ($subtotal > $merchant_maximum_order) {
                             $cart_error[] = Yii::t("mobile2", "Sorry, your order has exceeded the maximum [transaction_type] amount of [min_amount]", array(
-                                        '[min_amount]' => FunctionsV3::prettyPrice($merchant_maximum_order),
-                                        '[transaction_type]' => $this->t($transaction_type)
-                            ));
+                                '[min_amount]' => FunctionsV3::prettyPrice($merchant_maximum_order),
+                                '[transaction_type]' => $this->t($transaction_type)
+                            )
+                            );
                         }
                     }
                 } elseif ($transaction_type == "pickup") {
@@ -11534,18 +6795,20 @@ class ApiController extends CController {
                     if ($minimum_order > 0.001) {
                         if ($minimum_order > $subtotal) {
                             $cart_error[] = Yii::t("mobile2", "Sorry, your order does not meet the minimum [transaction_type] amount of [min_amount]", array(
-                                        '[min_amount]' => FunctionsV3::prettyPrice($minimum_order),
-                                        '[transaction_type]' => $this->t($transaction_type)
-                            ));
+                                '[min_amount]' => FunctionsV3::prettyPrice($minimum_order),
+                                '[transaction_type]' => $this->t($transaction_type)
+                            )
+                            );
                         }
                     }
                     $maximum_order = getOption($this->merchant_id, 'merchant_maximum_order_pickup');
                     if ($maximum_order > 0.001) {
                         if ($subtotal > $maximum_order) {
                             $cart_error[] = Yii::t("mobile2", "Sorry, your order has exceeded the maximum [transaction_type] amount of [min_amount]", array(
-                                        '[min_amount]' => FunctionsV3::prettyPrice($maximum_order),
-                                        '[transaction_type]' => $this->t($transaction_type)
-                            ));
+                                '[min_amount]' => FunctionsV3::prettyPrice($maximum_order),
+                                '[transaction_type]' => $this->t($transaction_type)
+                            )
+                            );
                         }
                     }
                 } elseif ($transaction_type == "dinein") {
@@ -11553,18 +6816,20 @@ class ApiController extends CController {
                     if ($minimum_order > 0.001) {
                         if ($minimum_order > $subtotal) {
                             $cart_error[] = Yii::t("mobile2", "Sorry, your order does not meet the minimum [transaction_type] amount of [min_amount]", array(
-                                        '[min_amount]' => FunctionsV3::prettyPrice($minimum_order),
-                                        '[transaction_type]' => $this->t($transaction_type)
-                            ));
+                                '[min_amount]' => FunctionsV3::prettyPrice($minimum_order),
+                                '[transaction_type]' => $this->t($transaction_type)
+                            )
+                            );
                         }
                     }
                     $maximum_order = getOption($this->merchant_id, 'merchant_maximum_order_dinein');
                     if ($maximum_order > 0.001) {
                         if ($subtotal > $maximum_order) {
                             $cart_error[] = Yii::t("mobile2", "Sorry, your order has exceeded the maximum [transaction_type] amount of [min_amount]", array(
-                                        '[min_amount]' => FunctionsV3::prettyPrice($maximum_order),
-                                        '[transaction_type]' => $this->t($transaction_type)
-                            ));
+                                '[min_amount]' => FunctionsV3::prettyPrice($maximum_order),
+                                '[transaction_type]' => $this->t($transaction_type)
+                            )
+                            );
                         }
                     }
                 }
@@ -11587,10 +6852,10 @@ class ApiController extends CController {
 
                                     if ($distance_qty >= 0.001) {
                                         $minimum_fee = FunctionsV3::getMinOrderByTableRates(
-                                                        $this->merchant_id,
-                                                        $resp_distance['distance'],
-                                                        $resp_distance['distance_unit'],
-                                                        $merchant_minimum_order
+                                            $this->merchant_id,
+                                            $resp_distance['distance'],
+                                            $resp_distance['distance_unit'],
+                                            $merchant_minimum_order
                                         );
 
                                         /* dump("minimum_fee=>$minimum_fee");
@@ -11599,11 +6864,14 @@ class ApiController extends CController {
 
                                         if ($minimum_fee > 0.001) {
                                             if ($minimum_fee > $subtotal) {
-                                                $cart_error[] = Yii::t("mobile2",
-                                                                "Sorry but Minimum order is [min] for distance [distance]", array(
-                                                            '[min]' => FunctionsV3::prettyPrice($minimum_fee),
-                                                            '[distance]' => "$distance_qty " . t($distance_unit)
-                                                ));
+                                                $cart_error[] = Yii::t(
+                                                    "mobile2",
+                                                    "Sorry but Minimum order is [min] for distance [distance]",
+                                                    array(
+                                                        '[min]' => FunctionsV3::prettyPrice($minimum_fee),
+                                                        '[distance]' => "$distance_qty " . t($distance_unit)
+                                                    )
+                                                );
                                             }
                                         }
                                     }
@@ -11649,7 +6917,7 @@ class ApiController extends CController {
                         $db->updateData("{{mobile2_cart}}", array(
                             'points_earn' => $earn_pts['points_earn'],
                             'date_modified' => FunctionsV3::dateNow()
-                                ), 'device_uiid', $this->device_uiid);
+                        ), 'device_uiid', $this->device_uiid);
                         unset($db);
                     }
 
@@ -11657,8 +6925,9 @@ class ApiController extends CController {
                         if ($points_enabled == "1") {
                             $available_points = mobileWrapper::getTotalEarnPoints($client_id, $this->merchant_id);
                             $available_points_label = Yii::t("mobile2", "Your available points [points]", array(
-                                        '[points]' => $available_points
-                            ));
+                                '[points]' => $available_points
+                            )
+                            );
                         }
                     }
                 }
@@ -11672,32 +6941,32 @@ class ApiController extends CController {
                     $merchant_info['merchant_address'] = $merchant_info_raw['merchant_address'];
                     $merchant_info['latitude'] = $merchant_info_raw['latitude'];
                     $merchant_info['lontitude'] = $merchant_info_raw['lontitude'];
-                    
+
                     $merchant_info['hours'] = FunctionsV3::getMerchantOpeningHoursArray($this->merchant_id);
-                    if(empty($merchant_info['hours'])){
-                    $merchant_info['hours']  = array();
-                 
-                        }
-                
-                    $merchant_info['holidays']  = array();
+                    if (empty($merchant_info['hours'])) {
+                        $merchant_info['hours'] = array();
+
+                    }
+
+                    $merchant_info['holidays'] = array();
                     $res_holiday = Yii::app()->functions->getMerchantHoliday($this->merchant_id);
                     if (!empty($res_holiday)) {
-                        $merchant_info['holidays']= $res_holiday;
+                        $merchant_info['holidays'] = $res_holiday;
                     }
-                    
-                    if($this->data['distance'] == null){
+
+                    if ($this->data['distance'] == null) {
                         $this->data['distance'] = '';
                     }
-                    
-                    if($this->data['distance_unit'] == null){
+
+                    if ($this->data['distance_unit'] == null) {
                         $this->data['distance_unit'] = '';
                     }
-                    
+
                     $merchant_info['distance'] = getOption($this->merchant_id, 'merchant_delivery_miles');
-                    
+
                     $merchant_info['distance_unit'] = getOption($this->merchant_id, 'merchant_distance_type');
-                    
-                    
+
+
                 }
 
                 $this->details = array(
@@ -11730,19 +6999,20 @@ class ApiController extends CController {
         } else
             $this->msg = $this->t("Cart is empty");
         $res = FunctionsV3::getMerchantPaymentListNew($this->merchant_id);
-        foreach($res as $key=>$value){
-             $this->details['payment_code'] = $key;
+        foreach ($res as $key => $value) {
+            $this->details['payment_code'] = $key;
         }
         $this->details['payment_code_count'] = count($res);
         $this->details['default_order_status'] = strtolower(Yii::app()->functions->getOption("default_order_status", $this->merchant_id));
         $this->details['merchant_settings'] = mobileWrapper::merchantAppSettings($this->merchant_id);
-        
+
 
         $this->output();
-        
+
     }
 
-    private function setMerchantTimezone() {
+    private function setMerchantTimezone()
+    {
         $merchant_id = isset($this->data['merchant_id']) ? $this->data['merchant_id'] : '';
         if ($merchant_id > 0) {
             $mt_timezone = Yii::app()->functions->getOption("merchant_timezone", $merchant_id);
@@ -11752,7 +7022,8 @@ class ApiController extends CController {
         }
     }
 
-    public function actiongetFirstCart() {
+    public function actiongetFirstCart()
+    {
         if ($res = mobileWrapper::getCart($this->device_uiid)) {
             $cart = json_decode($res['cart'], true);
             $count = 0;
@@ -11775,38 +7046,48 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionremoveCartItem() {
-
+    public function actionremoveCartItem()
+    {
+        $this->data = $_POST;
+        $this->getPOSTData();
         $row = isset($this->data['row']) ? $this->data['row'] : 0;
+
         if ($res = mobileWrapper::getCart($this->device_uiid)) {
+
             $cart = json_decode($res['cart'], true);
             if (array_key_exists($row, (array) $cart)) {
                 unset($cart[$row]);
+                $cart = array_values($cart);
+
                 $DbExt = new DbExt;
                 $DbExt->updateData("{{mobile2_cart}}", array(
                     'cart' => json_encode($cart),
                     'cart_count' => count($cart),
-                        ), 'cart_id', $res['cart_id']);
+                ), 'cart_id', $res['cart_id']);
 
                 $this->code = 1;
                 $this->msg = "OK";
-                $this->details = '';
-            } else
+                $this->details = json_encode($_POST);
+            } else {
                 $this->msg = $this->t("Cannot find cart row");
-        } else
-        
-        $this->msg = $this->t("Cart is empty");
+            }
+        } else {
+            $this->msg = $this->t("Cart is empty");
+        }
         $this->output();
     }
 
-    public function actionclearCart() {
+
+    public function actionclearCart()
+    {
         mobileWrapper::clearCart($this->device_uiid);
         $this->code = 1;
         $this->msg = "OK";
         $this->output();
     }
 
-    public function actionservicesList() {
+    public function actionservicesList()
+    {
         $services = Yii::app()->functions->DeliveryOptions($this->merchant_id);
         if (is_array($services) && count($services) >= 1) {
             $this->code = 1;
@@ -11819,7 +7100,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiondeliveryDateList() {
+    public function actiondeliveryDateList()
+    {
         $this->setMerchantTimezone();
         $dates = FunctionsV3::getDateList($this->merchant_id);
 
@@ -11831,7 +7113,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiondeliveryTimeList() {
+    public function actiondeliveryTimeList()
+    {
         $this->setMerchantTimezone();
         $delivery_date = isset($this->data['delivery_date']) ? $this->data['delivery_date'] : '';
         $times = FunctionsV3::getTimeList($this->merchant_id, $delivery_date);
@@ -11843,11 +7126,13 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetAddressBookDropDown() {
+    public function actiongetAddressBookDropDown()
+    {
         $this->actiongetAddressBookList();
     }
 
-    public function actiongetAddressBookList() {
+    public function actiongetAddressBookList()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -11868,7 +7153,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsetDeliveryAddress() {
+    public function actionsetDeliveryAddress()
+    {
         $DbExt = new DbExt;
 
         try {
@@ -11913,10 +7199,10 @@ class ApiController extends CController {
                     /* GET MINIMUM ORDER TABLE */
                     $merchant_minimum_order = getOption($this->merchant_id, 'merchant_minimum_order');
                     $min_fees = FunctionsV3::getMinOrderByTableRates(
-                                    $this->merchant_id,
-                                    $resp['distance'],
-                                    $resp['distance_unit'],
-                                    $merchant_minimum_order
+                        $this->merchant_id,
+                        $resp['distance'],
+                        $resp['distance_unit'],
+                        $merchant_minimum_order
                     );
                     $params['min_delivery_order'] = $min_fees;
                 }
@@ -11974,7 +7260,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionloadPaymentList() {
+    public function actionloadPaymentList()
+    {
 
         /* CHECK IF ORDERING IS DISABLED */
         $disabled_website_ordering = getOptionA('disabled_website_ordering');
@@ -11991,7 +7278,7 @@ class ApiController extends CController {
         $this->msg = "OK";
         if ($res = FunctionsV3::getMerchantPaymentListNew($this->merchant_id)) {
             $transaction_type = isset($this->data['transaction_type']) ? $this->data['transaction_type'] : '';
-            
+
             $list = array();
             if (isset($res['mcd'])) {
                 unset($res['mcd']);
@@ -12022,8 +7309,9 @@ class ApiController extends CController {
                         if (!$resp = PaypalWrapper::getCredentials($this->merchant_id)) {
                             if ($resp['card_fee'] > 0.0001) {
                                 $val = Yii::t("mobile2", "Paypal V2 (card fee [card_fee])", array(
-                                            '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
-                                ));
+                                    '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
+                                )
+                                );
                             } else
                                 $val = mt($val);
                         } else
@@ -12034,8 +7322,9 @@ class ApiController extends CController {
                         if ($resp = StripeWrapper::getCredentials($this->merchant_id)) {
                             if ($resp['card_fee'] > 0.0001) {
                                 $val = Yii::t("mobile2", "Stripe (card fee [card_fee])", array(
-                                            '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
-                                ));
+                                    '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
+                                )
+                                );
                             } else
                                 $val = mt($val);
                             $publish_key = $resp['publish_key'];
@@ -12047,8 +7336,9 @@ class ApiController extends CController {
                         if ($resp = mercadopagoWrapper::getCredentials($this->merchant_id)) {
                             if ($resp['card_fee'] > 0.0001) {
                                 $val = Yii::t("mobile2", "Mercadopago (card fee [card_fee])", array(
-                                            '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
-                                ));
+                                    '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
+                                )
+                                );
                             } else
                                 $val = mt($val);
                         } else
@@ -12059,8 +7349,9 @@ class ApiController extends CController {
                         if ($resp = MollieWrapper::getCredentials($this->merchant_id)) {
                             if ($resp['card_fee'] > 0.0001) {
                                 $val = Yii::t("mobile2", "mollie (card fee [card_fee])", array(
-                                            '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
-                                ));
+                                    '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
+                                )
+                                );
                             } else
                                 $val = mt($val);
                         } else
@@ -12071,8 +7362,9 @@ class ApiController extends CController {
                         if ($resp = pagseguroWrapper::getCredentials($this->merchant_id)) {
                             if ($resp['card_fee'] > 0.0001) {
                                 $val = Yii::t("mobile2", "pagseguro (card fee [card_fee])", array(
-                                            '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
-                                ));
+                                    '[card_fee]' => FunctionsV3::prettyPrice($resp['card_fee'])
+                                )
+                                );
                             } else
                                 $val = mt($val);
                         } else
@@ -12088,31 +7380,33 @@ class ApiController extends CController {
                     'payment_name' => $val
                 );
             }
-        } else{
-//            $this->msg = $this->t("No payment option available");
+        } else {
+            //            $this->msg = $this->t("No payment option available");
             $resp = StripeWrapper::getCredentials($this->merchant_id);
-             $publish_key = $resp['publish_key'];
-             $list[] = array(
+            $publish_key = $resp['publish_key'];
+            $list[] = array(
                 'payment_code' => 'cod',
                 'payment_name' => 'Cash On delivery'
-            ); 
+            );
             $list[] = array(
                 'payment_code' => 'stp',
                 'payment_name' => 'Secure card payment'
-            ); 
+            );
         }
         $this->details = array(
             'data' => $list,
             'count' => count($list),
             'default_order_status' => strtolower(Yii::app()->functions->getOption("default_order_status", $this->merchant_id)),
             'publish_key' => $publish_key,
-            '$resp'=>$resp
+            '$resp' => $resp
 
         );
         $this->output();
     }
-    
-    public function actionSendCurrentStatus() {
+
+
+    public function actionSendCurrentStatus()
+    {
         if (isset($_GET)) {
             if ($data = Yii::app()->functions->getOrder($_GET['order_id'])) {
                 $reference_id = $data['order_id_token'];
@@ -12123,3232 +7417,62 @@ class ApiController extends CController {
                     $order_id = $data['order_id'];
                     if ($credentials = StripeWrapper::getCredentials($merchant_id)) {
                         try {
-//                            $rsesp = StripeWrapper::retrievePaymentIntent($credentials['secret_key'], $payment_gateway_ref);
-                            
+                            //                            $rsesp = StripeWrapper::retrievePaymentIntent($credentials['secret_key'], $payment_gateway_ref);
 
-                            FunctionsV3::updateOrderPayment($order_id, StripeWrapper::paymentCode(),
-                                    $payment_gateway_ref, '', $reference_id, 'Pending');
+
+                            FunctionsV3::updateOrderPayment(
+                                $order_id,
+                                StripeWrapper::paymentCode(),
+                                $payment_gateway_ref,
+                                '',
+                                $reference_id,
+                                'Pending'
+                            );
 
                             FunctionsV3::callAddons($order_id);
 
-                            $this->code = 1; 
+                            $this->code = 1;
                             $this->msg = t('Pending');
                             $this->details = array('status' => 'Pending');
-                            
+
                         } catch (Exception $e) {
                             $error = Yii::t("default", "Caught exception: [error]", array(
-                                        '[error]' => $e->getMessage()
-                            ));
+                                '[error]' => $e->getMessage()
+                            )
+                            );
                         }
                     } else
                         $error = t("invalid payment credentials");
                 } else
                     $error = t("Failed getting order information");
             }
-            if (isset($error)){
+            if (isset($error)) {
                 $this->msg = $error;
                 $this->code = 2;
             }
         }
         $this->output();
-    }  
-    
-    public function actioncheckCurrentStatus() {
+    }
+
+    public function actioncheckCurrentStatus()
+    {
         $order_id = $_GET['order_id'];
         $data = Yii::app()->functions->getOrder($order_id);
         if (isset($data['status'])) {
-            $this->code = 1; 
+            $this->code = 1;
             $this->msg = $data['status'];
             $this->details = array('status' => $data['status']);
         } else {
-            $this->code = 2; 
+            $this->code = 2;
             $this->msg = 'Order Not Found';
         }
         $this->output();
     }
-    
-    
-    //commiting the live ok function
-    // public function actionpayNow() {
-    //     $db = new DbExt();
-    //     $this->setMerchantTimezone();
-    //     $lang_code = Yii::app()->language;
 
-    //     $search_resp = mobileWrapper::searchMode();
-    //     $search_mode = $search_resp['search_mode'];
-    //     $location_mode = $search_resp['location_mode'];
 
-    //     $token = isset($this->data['user_token']) ? $this->data['user_token'] : '';
-    //     if (!$client_info = mobileWrapper::getCustomerByToken($token)) {
-    //         $this->msg = $this->t("Invalid token, please relogin again");
-    //         $this->output();
-    //     }
+    public function actionpayNow()
+    {
 
-    //     if (!$merchant_info = FunctionsV3::getMerchantInfo($this->merchant_id)) {
-    //         $this->msg = $this->t("invalid merchant id");
-    //         $this->output();
-    //     }
-
-    //     $client_id = $client_info['client_id'];
-    //     $email_address = $client_info['email_address'];
-
-    //     if (FunctionsK::emailBlockedCheck($email_address)) {
-    //         $this->msg = $this->t("Sorry but your email address is blocked by website admin");
-    //         $this->output();
-    //     }
-
-    //     $transaction_type = isset($this->data['transaction_type']) ? $this->data['transaction_type'] : '';
-    //     $delivery_date = isset($this->data['delivery_date']) ? $this->data['delivery_date'] : '';
-    //     $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-    //     $payment_provider = isset($this->data['payment_provider']) ? $this->data['payment_provider'] : '';
-
-    //     if (empty($delivery_date)) {
-    //         $this->msg = $this->t("Delivery date is required");
-    //         $this->output();
-    //     }
-
-    //     if (empty($payment_provider)) {
-    //         $this->msg = $this->t("Payment provider is empty. please go back and try again");
-    //         $this->output();
-    //     }
-
-    //     $full_delivery = "$delivery_date $delivery_time";
-    //     $delivery_day = strtolower(date("D", strtotime($full_delivery)));
-
-    //     $delivery_time_formated = '';
-    //     if (!empty($delivery_time)) {
-    //         $delivery_time_formated = date('h:i A', strtotime($delivery_time));
-    //     } else{
-    //         $delivery_time_formated = date('h:i A');
-    //         $delivery_time = date('h:i A');
-    //     }
-            
-        
-    //     if (!Yii::app()->functions->isMerchantOpenTimes($this->merchant_id, $delivery_day, $delivery_time_formated)) {
-    //         $date_close = date("F,d l Y h:ia", strtotime($full_delivery));
-    //         $this->msg = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-    //                     '[date_close]' => $date_close
-    //         ));
-    //         $this->output();
-    //     }
-
-    //     /* CHECK IF DATE IS HOLIDAY */
-    //     if ($res_holiday = Yii::app()->functions->getMerchantHoliday($this->merchant_id)) {
-    //         if (in_array($delivery_date, $res_holiday)) {
-    //             $this->msg = Yii::t("mobile2", "were close on [date]", array(
-    //                         '[date]' => FunctionsV3::prettyDate($delivery_date)
-    //             ));
-
-    //             $close_msg = getOption($this->merchant_id, 'merchant_close_msg_holiday');
-    //             if (!empty($close_msg)) {
-    //                 $this->msg = Yii::t("default", $close_msg, array(
-    //                             '[date]' => FunctionsV3::prettyDate($delivery_date)
-    //                 ));
-    //             }
-    //             $this->output();
-    //         }
-    //     }
-
-    //     /* CHECK DELIVERY TIME PAST */
-    //     if (!empty($delivery_date) && !empty($delivery_time)) {
-    //         $time_1 = date('Y-m-d g:i:s a');
-    //         $time_2 = "$delivery_date $delivery_time";
-    //         $time_2 = date("Y-m-d g:i:s a", strtotime($time_2));
-    //         $time_diff = Yii::app()->functions->dateDifference($time_2, $time_1);
-    //         if (is_array($time_diff) && count($time_diff) >= 1) {
-    //             if ($time_diff['hours'] > 0) {
-    //                 $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-    //                 $this->output();
-    //             }
-    //             if ($time_diff['minutes'] > 0) {
-    //                 $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-    //                 $this->output();
-    //             }
-    //         }
-    //     }
-    
-    //     if ($res = mobileWrapper::getCart($this->device_uiid)) {
-         
-    //         $cart = json_decode($res['cart'], true);
-    //         $card_fee = 0;
-
-    //         /* CARD FEE */
-    //         switch ($payment_provider) {
-    //             case "pyp":
-    //                 if (FunctionsV3::isMerchantPaymentToUseAdmin($this->merchant_id)) {
-    //                     $card_fee = getOptionA('admin_paypal_fee');
-    //                 } else {
-    //                     $card_fee = getOption($this->merchant_id, 'merchant_paypal_fee');
-    //                 }
-    //                 break;
-
-    //             case "paypal_v2":
-    //                 if ($credentials = PaypalWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-    //             case "stp":
-    //                 if ($credentials = StripeWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-    //             case "mercadopago":
-    //                 if ($credentials = mercadopagoWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-    //             case "mollie":
-    //                 if ($credentials = MollieWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-    //             case "pagseguro":
-    //                 if ($credentials = pagseguroWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-
-    //             default:
-    //                 break;
-    //         }
-
-    //         $data = array(
-    //             'delivery_type' => $transaction_type,
-    //             'merchant_id' => $this->merchant_id,
-    //             'card_fee' => $card_fee
-    //         );
-
-    //         $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-    //         if (is_array($voucher_details) && count($voucher_details) >= 1) {
-    //             $data['voucher_name'] = $voucher_details['voucher_name'];
-    //             $data['voucher_amount'] = $voucher_details['amount'];
-    //             $data['voucher_type'] = $voucher_details['voucher_type'];
-    //         }
-
-    //         if ($res['tips'] > 0.0001) {
-    //             $data['cart_tip_percentage'] = $res['tips'];
-    //             $data['tip_enabled'] = 2;
-    //             $data['tip_percent'] = $res['tips'];
-    //         }
-
-    //         /* POINTS */
-    //         if ($res['points_amount'] > 0.0001) {
-    //             $data['points_amount'] = $res['points_amount'];
-    //         }
-    //         //dump($data);die();
-
-    //         /* DELIVERY FEE */
-    //         unset($_SESSION['shipping_fee']);
-    //         if ($res['delivery_fee'] > 0.0001) {
-    //             $data['delivery_charge'] = $res['delivery_fee'];
-    //         }
-            
-    //         Yii::app()->functions->displayOrderHTML($data, $cart);
-    //         $code = Yii::app()->functions->code;
-    //         $msg = Yii::app()->functions->msg;
-    //         if ($code == 1) {
-    //             $raw = Yii::app()->functions->details['raw'];
-
-    //             /* EURO TAX */
-    //             $is_apply_tax = 0;
-    //             if (EuroTax::isApplyTax($this->merchant_id)) {
-    //                 $new_total = EuroTax::computeWithTax($raw, $this->merchant_id);
-    //                 $raw['total'] = $new_total;
-    //                 $is_apply_tax = 1;
-    //             }
-    //             /* EURO TAX */
-
-    //             $donot_apply_tax_delivery = getOption($this->merchant_id, 'merchant_tax_charges');
-    //             if (empty($donot_apply_tax_delivery)) {
-    //                 $donot_apply_tax_delivery = 1;
-    //             }
-                
-
-    //             $params = array(
-    //                 'merchant_id' => $this->merchant_id,
-    //                 'client_id' => $client_id,
-    //                 'json_details' => $res['cart'],
-    //                 'trans_type' => $transaction_type,
-    //                 'payment_type' => $this->data['payment_provider'],
-    //                 'sub_total' => $raw['total']['subtotal'],
-    //                 'tax' => $raw['total']['tax'],
-    //                 'taxable_total' => $raw['total']['taxable_total'],
-    //                 'total_w_tax' => isset($raw['total']['total']) ? $raw['total']['total'] : 0,
-    //                 'delivery_charge' => isset($raw['total']['delivery_charges']) ? $raw['total']['delivery_charges'] : 0,
-    //                 'delivery_date' => $delivery_date,
-    //                 'delivery_time' => $delivery_time,
-    //                 'delivery_asap' => isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '',
-    //                 'date_created' => FunctionsV3::dateNow(),
-    //                 'ip_address' => $_SERVER['REMOTE_ADDR'],
-    //                 'delivery_instruction' => isset($res['delivery_instruction']) ? $res['delivery_instruction'] : '',
-    //                 'cc_id' => isset($this->data['cc_id']) ? $this->data['cc_id'] : '',
-    //                 'order_change' => isset($this->data['order_change']) ? $this->data['order_change'] : 0,
-    //                 'payment_provider_name' => '',
-    //                 'card_fee' => $card_fee,
-    //                 'packaging' => $raw['total']['merchant_packaging_charge'],
-    //                 'donot_apply_tax_delivery' => $donot_apply_tax_delivery,
-    //                 'order_id_token' => FunctionsV3::generateOrderToken(),
-    //                 'request_from' => "mobileapp2",
-    //                 'apply_food_tax' => $is_apply_tax,
-    //             );
-            
-    //             $order_id_token = $params['order_id_token'];
-
-    //             /* TIPS */
-    //             if (isset($raw['total']['tips'])) {
-    //                 if ($raw['total']['tips'] > 0.0001) {
-    //                     $params['cart_tip_percentage'] = $raw['total']['cart_tip_percentage'];
-    //                     $params['cart_tip_value'] = $raw['total']['tips'];
-    //                 }
-    //             }
-
-    //             switch ($transaction_type) {
-    //                 case "dinein":
-    //                     $params['dinein_number_of_guest'] = isset($this->data['dinein_number_of_guest']) ? $this->data['dinein_number_of_guest'] : '';
-    //                     $params['dinein_special_instruction'] = isset($this->data['dinein_special_instruction']) ? $this->data['dinein_special_instruction'] : '';
-
-    //                     $params['dinein_table_number'] = isset($this->data['dinein_table_number']) ? $this->data['dinein_table_number'] : '';
-
-    //                     if (isset($this->data['contact_phone'])) {
-    //                         if (!empty($this->data['contact_phone'])) {
-    //                             $db->updateData("{{client}}", array(
-    //                                 'contact_phone' => $this->data['contact_phone']
-    //                                     ), 'client_id', $client_id);
-    //                         }
-    //                     }
-    //                     break;
-
-    //                 case "delivery":
-    //                     $delivery_asap = '';
-    //                     if (isset($this->data['delivery_asap'])) {
-    //                         $delivery_asap = $this->data['delivery_asap'] == "true" ? 1 : '';
-    //                         $params['delivery_asap'] = $delivery_asap;
-    //                     }
-    //                     break;
-
-    //                 default:
-    //                     break;
-    //             }
-                
-
-    //             /* DEFAULT ORDER STATUS */
-    //             $default_order_status = getOption($this->merchant_id, 'default_order_status');
-    //             switch ($payment_provider) {
-    //                 case "cod":
-    //                 case "obd":
-    //                     $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-    //                     break;
-    //                 case "ccr":
-    //                 case "ocr":
-    //                     $params['cc_id'] = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
-    //                     $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-    //                     break;
-
-    //                 case "pyr":
-    //                     $params['payment_provider_name'] = isset($this->data['selected_card']) ? $this->data['selected_card'] : '';
-    //                     $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-    //                     break;
-
-    //                 default:
-    //                     $params['status'] = initialStatus();
-    //                     break;
-    //             }
-
-    //             /* PROMO */
-    //             //dump($raw);
-    //             if (isset($raw['total']['discounted_amount'])) {
-    //                 if ($raw['total']['discounted_amount'] >= 0.0001) {
-    //                     $params['discounted_amount'] = $raw['total']['discounted_amount'];
-    //                     $params['discount_percentage'] = $raw['total']['merchant_discount_amount'];
-    //                 }
-    //             }
-
-    //             /* VOUCHER */
-    //             if (!empty($res['voucher_details'])) {
-    //                 $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-    //                 if (is_array($voucher_details) && count($voucher_details) >= 1) {
-    //                     $params['voucher_amount'] = $voucher_details['amount'];
-    //                     $params['voucher_code'] = $voucher_details['voucher_name'];
-    //                     $params['voucher_type'] = $voucher_details['voucher_type'];
-    //                 }
-    //             }
-
-    //             /* POINTS */
-    //             if ($res['points_amount'] > 0.0001) {
-    //                 $params['points_discount'] = $res['points_amount'];
-    //             }
-
-    //             /* SET COMMISSION */
-    //             if (Yii::app()->functions->isMerchantCommission($this->merchant_id)) {
-    //                 $admin_commision_ontop = Yii::app()->functions->getOptionAdmin('admin_commision_ontop');
-    //                 if ($com = Yii::app()->functions->getMerchantCommission($this->merchant_id)) {
-    //                     $params['percent_commision'] = $com;
-    //                     $params['total_commission'] = ($com / 100) * $params['total_w_tax'];
-    //                     $params['merchant_earnings'] = $params['total_w_tax'] - $params['total_commission'];
-    //                     if ($admin_commision_ontop == 1) {
-    //                         $params['total_commission'] = ($com / 100) * $params['sub_total'];
-    //                         $params['commision_ontop'] = $admin_commision_ontop;
-    //                         $params['merchant_earnings'] = $params['sub_total'] - $params['total_commission'];
-    //                     }
-    //                 }
-
-    //                 /** check if merchant commission is fixed  */
-    //                 $merchant_com_details = Yii::app()->functions->getMerchantCommissionDetails($this->merchant_id);
-    //                 if ($merchant_com_details['commision_type'] == "fixed") {
-    //                     $params['percent_commision'] = $merchant_com_details['percent_commision'];
-    //                     $params['total_commission'] = $merchant_com_details['percent_commision'];
-    //                     $params['merchant_earnings'] = $params['total_w_tax'] - $merchant_com_details['percent_commision'];
-    //                     $params['commision_type'] = 'fixed';
-
-    //                     if ($admin_commision_ontop == 1) {
-    //                         $params['merchant_earnings'] = $params['sub_total'] - $merchant_com_details['percent_commision'];
-    //                     }
-    //                 }
-    //             }
-    //             /* END COMMISSION */
-
-    //             if (!is_numeric($params['cc_id'])) {
-    //                 unset($params['cc_id']);
-    //             }
-    //             if (!is_numeric($params['order_change'])) {
-    //                 unset($params['order_change']);
-    //             }
-
-    //             /* BEGIN INSERT ORDER */
-    //             if (!is_numeric($params['sub_total'])) {
-    //                 $params['sub_total'] = 0;
-    //             }
-    //             if (!is_numeric($params['tax'])) {
-    //                 $params['tax'] = 0;
-    //             }
-    //             if (!is_numeric($params['taxable_total'])) {
-    //                 $params['taxable_total'] = 0;
-    //             }
-    //             if (!is_numeric($params['total_w_tax'])) {
-    //                 $params['total_w_tax'] = 0;
-    //             }
-
-    //             if (isset($params['order_change'])) {
-    //                 if (!is_numeric($params['order_change'])) {
-    //                     $params['order_change'] = 0;
-    //                 }
-    //             }
-    //             if (!is_numeric($params['card_fee'])) {
-    //                 $params['card_fee'] = 0;
-    //             }
-    //             if (!is_numeric($params['packaging'])) {
-    //                 $params['packaging'] = 0;
-    //             }
-    //             if (!is_numeric($params['donot_apply_tax_delivery'])) {
-    //                 unset($params['donot_apply_tax_delivery']);
-    //             }
-    //             if (!is_numeric($params['apply_food_tax'])) {
-    //                 unset($params['apply_food_tax']);
-    //             }
-
-    //             if (isset($params['percent_commision'])) {
-    //                 if (!is_numeric($params['percent_commision'])) {
-    //                     $params['percent_commision'] = 0;
-    //                 }
-    //             }
-
-    //             if (isset($params['total_commission'])) {
-    //                 if (!is_numeric($params['total_commission'])) {
-    //                     $params['total_commission'] = 0;
-    //                 }
-    //             }
-
-    //             if (isset($params['merchant_earnings'])) {
-    //                 if (!is_numeric($params['merchant_earnings'])) {
-    //                     $params['merchant_earnings'] = 0;
-    //                 }
-    //             }
-                
-
-
-    //             if ($db->insertData("{{order}}", $params)) {
-    //                 $order_id = Yii::app()->db->getLastInsertID();
-
-    //                 $params_history = array(
-    //                     'order_id' => $order_id,
-    //                     'status' => initialStatus(),
-    //                     'remarks' => '',
-    //                     'date_created' => FunctionsV3::dateNow(),
-    //                     'ip_address' => $_SERVER['REMOTE_ADDR']
-    //                 );
-    //                 $db->insertData("{{order_history}}", $params_history);
-
-    //                 $next_step = "receipt";
-    //                 /* SAVE ITEM */
-    //                 foreach ($raw['item'] as $val) {
-    //                     $params_order_details = array(
-    //                         'order_id' => isset($order_id) ? $order_id : '',
-    //                         'client_id' => $client_id,
-    //                         'item_id' => isset($val['item_id']) ? $val['item_id'] : '',
-    //                         'item_name' => isset($val['item_name']) ? $val['item_name'] : '',
-    //                         'order_notes' => isset($val['order_notes']) ? $val['order_notes'] : '',
-    //                         'normal_price' => isset($val['normal_price']) ? $val['normal_price'] : '',
-    //                         'discounted_price' => isset($val['discounted_price']) ? $val['discounted_price'] : '',
-    //                         'size' => isset($val['size_words']) ? $val['size_words'] : '',
-    //                         'qty' => isset($val['qty']) ? $val['qty'] : '',
-    //                         'addon' => isset($val['sub_item']) ? json_encode($val['sub_item']) : '',
-    //                         'cooking_ref' => isset($val['cooking_ref']) ? $val['cooking_ref'] : '',
-    //                         'ingredients' => isset($val['ingredients']) ? json_encode($val['ingredients']) : '',
-    //                         'non_taxable' => isset($val['non_taxable']) ? $val['non_taxable'] : 1
-    //                     );
-    //                     $db->insertData("{{order_details}}", $params_order_details);
-    //                 }
-
-    //                 /* SAVE DELIVERY ADDRESS */
-    //                 if ($transaction_type == "delivery") {
-    //                     $res['zipcode'] = $this->data['zipcode'];
-    //                     $res['street'] = $this->data['street'];
-    //                     $res['city'] = $this->data['city'];
-    //                     $res['state'] = $this->data['state'];
-    //                     $res['delivery_contact'] = $this->data['delivery_contact'];
-    //                     $res['delivery_instructions'] = $this->data['delivery_instructions'];
-    //                     $res['delivery_appartment'] = $this->data['delivery_appartment'];
-    //                     $params_address = array(
-    //                         'order_id' => $order_id,
-    //                         'client_id' => $client_id,
-    //                         'street' => isset($res['street']) ? $res['street'] : '',
-    //                         'city' => isset($res['city']) ? $res['city'] : '',
-    //                         'state' => isset($res['state']) ? $res['state'] : '',
-    //                         'zipcode' => isset($res['zipcode']) ? $res['zipcode'] : '',
-    //                         'location_name' => isset($res['location_name']) ? $res['location_name'] : '',
-    //                         'contact_phone' => isset($res['contact_phone']) ? $res['contact_phone'] : '',
-    //                         'country' => Yii::app()->functions->adminCountry(),
-    //                         'date_created' => FunctionsV3::dateNow(),
-    //                         'ip_address' => $_SERVER['REMOTE_ADDR'],
-    //                         'google_lat' => isset($res['delivery_lat']) ? $res['delivery_lat'] : '',
-    //                         'google_lng' => isset($res['delivery_long']) ? $res['delivery_long'] : '',
-    //                         'contact_phone' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-    //                         'delivery_instructions' => isset($res['delivery_instructions']) ? $res['delivery_instructions'] : '',
-    //                         'delivery_appartment' => isset($res['delivery_appartment']) ? $res['delivery_appartment'] : '',
-    //                         'delivery_contact' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-    //                     );
-    //                     if ($search_mode == "location") {
-    //                         $db->insertData("{{order_delivery_address}}", $params_address);
-    //                     } else {
-    //                         $db->insertData("{{order_delivery_address}}", $params_address);
-    //                     }
-    //                 }
-
-    //                 /* SAVE ADDRESS */
-    //                 if (isset($res['save_address'])) {
-    //                     if ($res['save_address'] == 1) {
-    //                         if ($search_mode == "location") {
-    //                             if (!LocationWrapper::isAddressBookExist(
-    //                                             $client_id,
-    //                                             $res['state_id'],
-    //                                             $res['city_id'],
-    //                                             $res['area_id']
-    //                                     )) {
-    //                                 $params_address_book = array(
-    //                                     'client_id' => $client_id,
-    //                                     'street' => $res['street'],
-    //                                     'location_name' => $res['location_name'],
-    //                                     'state_id' => $res['state_id'],
-    //                                     'city_id' => $res['city_id'],
-    //                                     'area_id' => $res['area_id'],
-    //                                     'date_created' => FunctionsV3::dateNow(),
-    //                                     'latitude' => $res['delivery_lat'],
-    //                                     'longitude' => $res['delivery_long'],
-    //                                     'ip_address' => $_SERVER['REMOTE_ADDR']
-    //                                 );
-    //                                 $db->insertData("{{address_book_location}}", $params_address_book);
-    //                             }
-    //                         } else {
-    //                             if (!mobileWrapper::getBookAddress($client_id, $res['street'], $res['city'], $res['state'])) {
-    //                                 if (!empty($res['street'])) {
-    //                                     $params_address_book = array(
-    //                                         'client_id' => $client_id,
-    //                                         'street' => $res['street'],
-    //                                         'city' => $res['city'],
-    //                                         'state' => $res['state'],
-    //                                         'zipcode' => $res['zipcode'],
-    //                                         'location_name' => $res['location_name'],
-    //                                         'country_code' => getOptionA('admin_country_set'),
-    //                                         'as_default' => 1,
-    //                                         'date_created' => FunctionsV3::dateNow(),
-    //                                         'latitude' => $res['delivery_lat'],
-    //                                         'longitude' => $res['delivery_long'],
-    //                                         'ip_address' => $_SERVER['REMOTE_ADDR']
-    //                                     );
-    //                                     $db->insertData("{{address_book}}", $params_address_book);
-    //                                 }
-    //                             } //else echo 'd1';
-    //                         }
-    //                     } //else echo 'd2';
-    //                 } //else echo 'd3';
-
-    //                 $this->code = 1;
-    //                 $this->msg = Yii::t("mobile2", "Your this order has been placed. Reference # [order_id]", array(
-    //                             '[order_id]' => $order_id
-    //                 ));
-
-    //                 $provider_credentials = array();
-    //                 $redirect_url = '';
-
-    //                 /* SAVE POINTS */
-    //                 switch ($payment_provider) {
-
-    //                     default:
-    //                         mobileWrapper::savePoints(
-    //                                 $this->device_uiid,
-    //                                 $client_id,
-    //                                 $this->merchant_id,
-    //                                 $order_id,
-    //                                 'initial_order'
-    //                         );
-    //                         break;
-    //                 }
-
-    //                 /* PAYMENT DATA */
-    //                 switch ($payment_provider) {
-    //                     case "cod":
-    //                     case "ccr":
-    //                     case "ocr":
-    //                     case "pyr":
-                            
-    //                         mobileWrapper::sendNotification($order_id);
-    //                         mobileWrapper::clearCart($this->device_uiid);
-    //                         mobileWrapper::executeAddons($order_id);
-
-    //                         break;
-
-    //                     case "obd":
-    //                         FunctionsV3::sendBankInstructionPurchase(
-    //                                 $this->merchant_id,
-    //                                 $order_id,
-    //                                 isset($params['total_w_tax']) ? $params['total_w_tax'] : 0,
-    //                                 $client_id
-    //                         );
-
-    //                         mobileWrapper::sendNotification($order_id);
-    //                         mobileWrapper::clearCart($this->device_uiid);
-    //                         mobileWrapper::executeAddons($order_id);
-
-    //                         break;
-
-    //                     case "rzr":
-    //                         $next_step = "init_" . $payment_provider;
-    //                         $provider_credentials = FunctionsV3::razorPaymentCredentials($this->merchant_id);
-    //                         if (!$provider_credentials) {
-    //                             $this->code = 2;
-    //                             $this->msg = $this->t("Merchant payment credentials not properly set");
-    //                         }
-    //                         break;
-
-    //                     case "btr":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/braintree?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "paypal_v2":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/paypal?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "stp":
-    //                         $next_step = 'init_stp';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/stripe?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         if($this->data['delivery_time'] != ''){
-    //                             mobileWrapper::sendNotification($order_id);
-    //                         }
-    //                         break;
-
-    //                     case "mercadopago":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mercadopago?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "vog":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/voguepay?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "mollie":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mollie?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "pagseguro":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/pagseguro?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     default:
-    //                         $next_step = "init_" . $payment_provider;
-    //                         break;
-    //                 }
-
-    //                 $client_info = array(
-    //                     'first_name' => $client_info['first_name'],
-    //                     'last_name' => $client_info['last_name'],
-    //                     'email_address' => $client_info['email_address'],
-    //                     'contact_phone' => $client_info['contact_phone'],
-    //                 );
-
-    //                 $payment_description = Yii::t("mobile2", "Payment to merchant [merchant_name]. Order ID#[order]", array(
-    //                             '[merchant_name]' => clearString($merchant_info['restaurant_name']),
-    //                             '[order]' => $order_id
-    //                 ));
-
-    //                 $total = number_format($params['total_w_tax'], 2, '.', '');
-
-    //                 $this->details = array(
-    //                     'order_id' => $order_id,
-    //                     'total_amount' => $params['total_w_tax'],
-    //                     'total_amount_by_100' => $total * 100,
-    //                     'total_amount_formatted' => $total,
-    //                     'card_fee' => (float) $params['card_fee'],
-    //                     'sub_less_card_fee' => (float) $params['total_w_tax'] - (float) $params['card_fee'],
-    //                     'payment_provider' => $payment_provider,
-    //                     'next_step' => $next_step,
-    //                     'currency_code' => Yii::app()->functions->adminCurrencyCode(),
-    //                     'payment_description' => $payment_description,
-    //                     'merchant_name' => clearString($merchant_info['restaurant_name']),
-    //                     'provider_credentials' => $provider_credentials,
-    //                     'redirect_url' => $redirect_url,
-    //                     'client_info' => $client_info
-    //                 );
-    //             } else
-    //                 $this->msg = $this->t("Something went wrong cannot insert records. please try again later");
-    //         } else
-    //             $this->msg = $msg;
-    //     } else
-    //         $this->msg = $this->t("Cart is empty");
-
-    //     $this->output();
-    // }
-    
-    //End commiting the live ok function
-    
-    //here creating the test function for Adding the Doordash delivery
-    
-    
-    //herer changing the Test function to the live function
-    
-    //   public function actionpayNow() {
-          
-    //     $db = new DbExt();
-    //     $this->setMerchantTimezone();
-    //     $lang_code = Yii::app()->language;
-
-    //     $search_resp = mobileWrapper::searchMode();
-    //     $search_mode = $search_resp['search_mode'];
-    //     $location_mode = $search_resp['location_mode'];
-        
-    //     $token = isset($this->data['user_token']) ? $this->data['user_token'] : '';
-    //     if (!$client_info = mobileWrapper::getCustomerByToken($token)) {
-    //         $this->msg = $this->t("Invalid token, please relogin again");
-    //         $this->output();
-    //     }
-        
-    //     if (!$merchant_info = FunctionsV3::getMerchantInfo($this->merchant_id)) {
-    //         $this->msg = $this->t("invalid merchant id");
-    //         $this->output();
-    //     }
-        
-
-    //     $client_id = $client_info['client_id'];
-    //     $email_address = $client_info['email_address'];
-
-    //     if (FunctionsK::emailBlockedCheck($email_address)) {
-    //         $this->msg = $this->t("Sorry but your email address is blocked by website admin");
-    //         $this->output();
-    //     }
-
-    //     $transaction_type = isset($this->data['transaction_type']) ? $this->data['transaction_type'] : '';
-    //     $delivery_date = isset($this->data['delivery_date']) ? $this->data['delivery_date'] : '';
-    //     $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-    //     $payment_provider = isset($this->data['payment_provider']) ? $this->data['payment_provider'] : '';
-
-    //     if (empty($delivery_date)) {
-    //         $this->msg = $this->t("Delivery date is required");
-    //         $this->output();
-    //     }
-
-    //     if (empty($payment_provider)) {
-    //         $this->msg = $this->t("Payment provider is empty. please go back and try again");
-    //         $this->output();
-    //     }
-
-    //     $full_delivery = "$delivery_date $delivery_time";
-    //     $delivery_day = strtolower(date("D", strtotime($full_delivery)));
-
-    //     $delivery_time_formated = '';
-    //     if (!empty($delivery_time)) {
-    //         $delivery_time_formated = date('h:i A', strtotime($delivery_time));
-    //     } else{
-    //         $delivery_time_formated = date('h:i A');
-    //         $delivery_time = date('h:i A');
-    //     }
-            
-        
-    //     if (!Yii::app()->functions->isMerchantOpenTimes($this->merchant_id, $delivery_day, $delivery_time_formated)) {
-    //         $date_close = date("F,d l Y h:ia", strtotime($full_delivery));
-    //         $this->msg = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-    //                     '[date_close]' => $date_close
-    //         ));
-    //         $this->output();
-    //     }
-
-    //     /* CHECK IF DATE IS HOLIDAY */
-    //     if ($res_holiday = Yii::app()->functions->getMerchantHoliday($this->merchant_id)) {
-    //         if (in_array($delivery_date, $res_holiday)) {
-    //             $this->msg = Yii::t("mobile2", "were close on [date]", array(
-    //                         '[date]' => FunctionsV3::prettyDate($delivery_date)
-    //             ));
-
-    //             $close_msg = getOption($this->merchant_id, 'merchant_close_msg_holiday');
-    //             if (!empty($close_msg)) {
-    //                 $this->msg = Yii::t("default", $close_msg, array(
-    //                             '[date]' => FunctionsV3::prettyDate($delivery_date)
-    //                 ));
-    //             }
-    //             $this->output();
-    //         }
-    //     }
-
-    //     /* CHECK DELIVERY TIME PAST */
-    //     if (!empty($delivery_date) && !empty($delivery_time)) {
-    //         $time_1 = date('Y-m-d g:i:s a');
-    //         $time_2 = "$delivery_date $delivery_time";
-    //         $time_2 = date("Y-m-d g:i:s a", strtotime($time_2));
-    //         $time_diff = Yii::app()->functions->dateDifference($time_2, $time_1);
-    //         if (is_array($time_diff) && count($time_diff) >= 1) {
-    //             if ($time_diff['hours'] > 0) {
-    //                 $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-    //                 $this->output();
-    //             }
-    //             if ($time_diff['minutes'] > 0) {
-    //                 $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-    //                 $this->output();
-    //             }
-    //         }
-    //     }
-    
-    //     if ($res = mobileWrapper::getCart($this->device_uiid)) {
-         
-    //         $cart = json_decode($res['cart'], true);
-    //         $card_fee = 0;
-
-    //         /* CARD FEE */
-    //         switch ($payment_provider) {
-    //             case "pyp":
-    //                 if (FunctionsV3::isMerchantPaymentToUseAdmin($this->merchant_id)) {
-    //                     $card_fee = getOptionA('admin_paypal_fee');
-    //                 } else {
-    //                     $card_fee = getOption($this->merchant_id, 'merchant_paypal_fee');
-    //                 }
-    //                 break;
-
-    //             case "paypal_v2":
-    //                 if ($credentials = PaypalWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-    //             case "stp":
-    //                 if ($credentials = StripeWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-    //             case "mercadopago":
-    //                 if ($credentials = mercadopagoWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-    //             case "mollie":
-    //                 if ($credentials = MollieWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-    //             case "pagseguro":
-    //                 if ($credentials = pagseguroWrapper::getCredentials($this->merchant_id)) {
-    //                     if ($credentials['card_fee'] > 0.0001) {
-    //                         $card_fee = $credentials['card_fee'];
-    //                     }
-    //                 }
-    //                 break;
-
-
-    //             default:
-    //                 break;
-    //         }
-
-    //         $data = array(
-    //             'delivery_type' => $transaction_type,
-    //             'merchant_id' => $this->merchant_id,
-    //             'card_fee' => $card_fee
-    //         );
-            
-            
-    //         // print_r($res); exit('response');
-
-    //         $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-    //         if (is_array($voucher_details) && count($voucher_details) >= 1) {
-    //             $data['voucher_name'] = $voucher_details['voucher_name'];
-    //             $data['voucher_amount'] = $voucher_details['amount'];
-    //             $data['voucher_type'] = $voucher_details['voucher_type'];
-    //         }
-
-    //         if ($res['tips'] > 0.0001) {
-    //             $data['cart_tip_percentage'] = $res['tips'];
-    //             $data['tip_enabled'] = 2;
-    //             $data['tip_percent'] = $res['tips'];
-    //         }
-
-    //         /* POINTS */
-    //         if ($res['points_amount'] > 0.0001) {
-    //             $data['points_amount'] = $res['points_amount'];
-    //         }
-    //         //dump($data);die();
-
-    //         /* DELIVERY FEE */
-    //         unset($_SESSION['shipping_fee']);
-    //         if ($res['delivery_fee'] > 0.0001) {
-    //             $data['delivery_charge'] = $res['delivery_fee'];
-    //         }
-            
-    //         Yii::app()->functions->displayOrderHTML($data, $cart);
-    //         $code = Yii::app()->functions->code;
-    //         $msg = Yii::app()->functions->msg;
-    //         if ($code == 1) {
-    //             $raw = Yii::app()->functions->details['raw'];
-
-    //             /* EURO TAX */
-    //             $is_apply_tax = 0;
-    //             if (EuroTax::isApplyTax($this->merchant_id)) {
-    //                 $new_total = EuroTax::computeWithTax($raw, $this->merchant_id);
-    //                 $raw['total'] = $new_total;
-    //                 $is_apply_tax = 1;
-    //             }
-    //             /* EURO TAX */
-
-    //             $donot_apply_tax_delivery = getOption($this->merchant_id, 'merchant_tax_charges');
-    //             if (empty($donot_apply_tax_delivery)) {
-    //                 $donot_apply_tax_delivery = 1;
-    //             }
-                
-
-    //             $params = array(
-    //                 'merchant_id' => $this->merchant_id,
-    //                 'client_id' => $client_id,
-    //                 'json_details' => $res['cart'],
-    //                 'trans_type' => $transaction_type,
-    //                 'payment_type' => $this->data['payment_provider'],
-    //                 'sub_total' => $raw['total']['subtotal'],
-    //                 'tax' => $raw['total']['tax'],
-    //                 'taxable_total' => $raw['total']['taxable_total'],
-    //                 'total_w_tax' => isset($raw['total']['total']) ? $raw['total']['total'] : 0,
-    //                 'delivery_charge' => isset($raw['total']['delivery_charges']) ? $raw['total']['delivery_charges'] : 0,
-    //                 'delivery_date' => $delivery_date,
-    //                 'delivery_time' => $delivery_time,
-    //                 'delivery_asap' => isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '',
-    //                 'date_created' => FunctionsV3::dateNow(),
-    //                 'ip_address' => $_SERVER['REMOTE_ADDR'],
-    //                 'delivery_instruction' => isset($res['delivery_instruction']) ? $res['delivery_instruction'] : '',
-    //                 'cc_id' => isset($this->data['cc_id']) ? $this->data['cc_id'] : '',
-    //                 'order_change' => isset($this->data['order_change']) ? $this->data['order_change'] : 0,
-    //                 'payment_provider_name' => '',
-    //                 'card_fee' => $card_fee,
-    //                 'packaging' => $raw['total']['merchant_packaging_charge'],
-    //                 'donot_apply_tax_delivery' => $donot_apply_tax_delivery,
-    //                 'order_id_token' => FunctionsV3::generateOrderToken(),
-    //                 'request_from' => "mobileapp2",
-    //                 'apply_food_tax' => $is_apply_tax,
-    //             );
-            
-    //             $order_id_token = $params['order_id_token'];
-
-    //             /* TIPS */
-    //             if (isset($raw['total']['tips'])) {
-    //                 if ($raw['total']['tips'] > 0.0001) {
-    //                     $params['cart_tip_percentage'] = $raw['total']['cart_tip_percentage'];
-    //                     $params['cart_tip_value'] = $raw['total']['tips'];
-    //                 }
-    //             }
-                
-
-    //             switch ($transaction_type) {
-                    
-    //                 case "dinein":
-    //                     $params['dinein_number_of_guest'] = isset($this->data['dinein_number_of_guest']) ? $this->data['dinein_number_of_guest'] : '';
-    //                     $params['dinein_special_instruction'] = isset($this->data['dinein_special_instruction']) ? $this->data['dinein_special_instruction'] : '';
-
-    //                     $params['dinein_table_number'] = isset($this->data['dinein_table_number']) ? $this->data['dinein_table_number'] : '';
-
-    //                     if (isset($this->data['contact_phone'])) {
-    //                         if (!empty($this->data['contact_phone'])) {
-    //                             $db->updateData("{{client}}", array(
-    //                                 'contact_phone' => $this->data['contact_phone']
-    //                                     ), 'client_id', $client_id);
-    //                         }
-    //                     }
-    //                     break;
-
-    //                 case "delivery":
-    //                     $delivery_asap = '';
-    //                     if (isset($this->data['delivery_asap'])) {
-                            
-    //                         $delivery_asap = $this->data['delivery_asap'] == "true" ? 1 : '';
-                           
-    //                         $params['delivery_asap'] = $delivery_asap;
-                               
-    //                     }
-    //                     break;
-
-    //                 default:
-    //                     break;
-    //             }
-                
-                
-              
-                
-
-    //             /* DEFAULT ORDER STATUS */
-    //             $default_order_status = getOption($this->merchant_id, 'default_order_status');
-    //             switch ($payment_provider) {
-    //                 case "cod":
-    //                 case "obd":
-    //                     $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-    //                     break;
-    //                 case "ccr":
-    //                 case "ocr":
-    //                     $params['cc_id'] = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
-    //                     $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-    //                     break;
-
-    //                 case "pyr":
-    //                     $params['payment_provider_name'] = isset($this->data['selected_card']) ? $this->data['selected_card'] : '';
-    //                     $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-    //                     break;
-
-    //                 default:
-    //                     $params['status'] = initialStatus();
-    //                     break;
-    //             }
-
-    //             /* PROMO */
-    //             //dump($raw);
-    //             if (isset($raw['total']['discounted_amount'])) {
-    //                 if ($raw['total']['discounted_amount'] >= 0.0001) {
-    //                     $params['discounted_amount'] = $raw['total']['discounted_amount'];
-    //                     $params['discount_percentage'] = $raw['total']['merchant_discount_amount'];
-    //                 }
-    //             }
-
-    //             /* VOUCHER */
-    //             if (!empty($res['voucher_details'])) {
-    //                 $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-    //                 if (is_array($voucher_details) && count($voucher_details) >= 1) {
-    //                     $params['voucher_amount'] = $voucher_details['amount'];
-    //                     $params['voucher_code'] = $voucher_details['voucher_name'];
-    //                     $params['voucher_type'] = $voucher_details['voucher_type'];
-    //                 }
-    //             }
-
-    //             /* POINTS */
-    //             if ($res['points_amount'] > 0.0001) {
-    //                 $params['points_discount'] = $res['points_amount'];
-    //             }
-
-    //             /* SET COMMISSION */
-    //             if (Yii::app()->functions->isMerchantCommission($this->merchant_id)) {
-    //                 $admin_commision_ontop = Yii::app()->functions->getOptionAdmin('admin_commision_ontop');
-    //                 if ($com = Yii::app()->functions->getMerchantCommission($this->merchant_id)) {
-    //                     $params['percent_commision'] = $com;
-    //                     $params['total_commission'] = ($com / 100) * $params['total_w_tax'];
-    //                     $params['merchant_earnings'] = $params['total_w_tax'] - $params['total_commission'];
-    //                     if ($admin_commision_ontop == 1) {
-    //                         $params['total_commission'] = ($com / 100) * $params['sub_total'];
-    //                         $params['commision_ontop'] = $admin_commision_ontop;
-    //                         $params['merchant_earnings'] = $params['sub_total'] - $params['total_commission'];
-    //                     }
-    //                 }
-
-    //                 /** check if merchant commission is fixed  */
-    //                 $merchant_com_details = Yii::app()->functions->getMerchantCommissionDetails($this->merchant_id);
-    //                 if ($merchant_com_details['commision_type'] == "fixed") {
-    //                     $params['percent_commision'] = $merchant_com_details['percent_commision'];
-    //                     $params['total_commission'] = $merchant_com_details['percent_commision'];
-    //                     $params['merchant_earnings'] = $params['total_w_tax'] - $merchant_com_details['percent_commision'];
-    //                     $params['commision_type'] = 'fixed';
-
-    //                     if ($admin_commision_ontop == 1) {
-    //                         $params['merchant_earnings'] = $params['sub_total'] - $merchant_com_details['percent_commision'];
-    //                     }
-    //                 }
-    //             }
-    //             /* END COMMISSION */
-
-    //             if (!is_numeric($params['cc_id'])) {
-    //                 unset($params['cc_id']);
-    //             }
-    //             if (!is_numeric($params['order_change'])) {
-    //                 unset($params['order_change']);
-    //             }
-
-    //             /* BEGIN INSERT ORDER */
-    //             if (!is_numeric($params['sub_total'])) {
-    //                 $params['sub_total'] = 0;
-    //             }
-    //             if (!is_numeric($params['tax'])) {
-    //                 $params['tax'] = 0;
-    //             }
-    //             if (!is_numeric($params['taxable_total'])) {
-    //                 $params['taxable_total'] = 0;
-    //             }
-    //             if (!is_numeric($params['total_w_tax'])) {
-    //                 $params['total_w_tax'] = 0;
-    //             }
-
-    //             if (isset($params['order_change'])) {
-    //                 if (!is_numeric($params['order_change'])) {
-    //                     $params['order_change'] = 0;
-    //                 }
-    //             }
-    //             if (!is_numeric($params['card_fee'])) {
-    //                 $params['card_fee'] = 0;
-    //             }
-    //             if (!is_numeric($params['packaging'])) {
-    //                 $params['packaging'] = 0;
-    //             }
-    //             if (!is_numeric($params['donot_apply_tax_delivery'])) {
-    //                 unset($params['donot_apply_tax_delivery']);
-    //             }
-    //             if (!is_numeric($params['apply_food_tax'])) {
-    //                 unset($params['apply_food_tax']);
-    //             }
-
-    //             if (isset($params['percent_commision'])) {
-    //                 if (!is_numeric($params['percent_commision'])) {
-    //                     $params['percent_commision'] = 0;
-    //                 }
-    //             }
-
-    //             if (isset($params['total_commission'])) {
-    //                 if (!is_numeric($params['total_commission'])) {
-    //                     $params['total_commission'] = 0;
-    //                 }
-    //             }
-
-    //             if (isset($params['merchant_earnings'])) {
-    //                 if (!is_numeric($params['merchant_earnings'])) {
-    //                     $params['merchant_earnings'] = 0;
-    //                 }
-    //             }
-                
-
-
-    //             if ($db->insertData("{{order}}", $params)) {
-    //                 $order_id = Yii::app()->db->getLastInsertID();
-
-    //                 $params_history = array(
-    //                     'order_id' => $order_id,
-    //                     'status' => initialStatus(),
-    //                     'remarks' => '',
-    //                     'date_created' => FunctionsV3::dateNow(),
-    //                     'ip_address' => $_SERVER['REMOTE_ADDR']
-    //                 );
-    //                 $db->insertData("{{order_history}}", $params_history);
-
-    //                 $next_step = "receipt";
-    //                 /* SAVE ITEM */
-    //                 foreach ($raw['item'] as $val) {
-    //                     $params_order_details = array(
-    //                         'order_id' => isset($order_id) ? $order_id : '',
-    //                         'client_id' => $client_id,
-    //                         'item_id' => isset($val['item_id']) ? $val['item_id'] : '',
-    //                         'item_name' => isset($val['item_name']) ? $val['item_name'] : '',
-    //                         'order_notes' => isset($val['order_notes']) ? $val['order_notes'] : '',
-    //                         'normal_price' => isset($val['normal_price']) ? $val['normal_price'] : '',
-    //                         'discounted_price' => isset($val['discounted_price']) ? $val['discounted_price'] : '',
-    //                         'size' => isset($val['size_words']) ? $val['size_words'] : '',
-    //                         'qty' => isset($val['qty']) ? $val['qty'] : '',
-    //                         'addon' => isset($val['sub_item']) ? json_encode($val['sub_item']) : '',
-    //                         'cooking_ref' => isset($val['cooking_ref']) ? $val['cooking_ref'] : '',
-    //                         'ingredients' => isset($val['ingredients']) ? json_encode($val['ingredients']) : '',
-    //                         'non_taxable' => isset($val['non_taxable']) ? $val['non_taxable'] : 1
-    //                     );
-    //                     $db->insertData("{{order_details}}", $params_order_details);
-    //                 }
-
-    //                 /* SAVE DELIVERY ADDRESS */
-    //                 if ($transaction_type == "delivery") {
-    //                     $res['zipcode'] = $this->data['zipcode'];
-    //                     $res['street'] = $this->data['street'];
-    //                     $res['city'] = $this->data['city'];
-    //                     $res['state'] = $this->data['state'];
-    //                     $res['delivery_contact'] = $this->data['delivery_contact'];
-    //                     $res['delivery_instructions'] = $this->data['delivery_instructions'];
-    //                     $res['delivery_appartment'] = $this->data['delivery_appartment'];
-    //                     $params_address = array(
-    //                         'order_id' => $order_id,
-    //                         'client_id' => $client_id,
-    //                         'street' => isset($res['street']) ? $res['street'] : '',
-    //                         'city' => isset($res['city']) ? $res['city'] : '',
-    //                         'state' => isset($res['state']) ? $res['state'] : '',
-    //                         'zipcode' => isset($res['zipcode']) ? $res['zipcode'] : '',
-    //                         'location_name' => isset($res['location_name']) ? $res['location_name'] : '',
-    //                         'contact_phone' => isset($res['contact_phone']) ? $res['contact_phone'] : '',
-    //                         'country' => Yii::app()->functions->adminCountry(),
-    //                         'date_created' => FunctionsV3::dateNow(),
-    //                         'ip_address' => $_SERVER['REMOTE_ADDR'],
-    //                         'google_lat' => isset($res['delivery_lat']) ? $res['delivery_lat'] : '',
-    //                         'google_lng' => isset($res['delivery_long']) ? $res['delivery_long'] : '',
-    //                         'contact_phone' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-    //                         'delivery_instructions' => isset($res['delivery_instructions']) ? $res['delivery_instructions'] : '',
-    //                         'delivery_appartment' => isset($res['delivery_appartment']) ? $res['delivery_appartment'] : '',
-    //                         'delivery_contact' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-    //                     );
-    //                     if ($search_mode == "location") {
-    //                         $db->insertData("{{order_delivery_address}}", $params_address);
-    //                     } else {
-    //                         $db->insertData("{{order_delivery_address}}", $params_address);
-    //                     }
-    //                 }
-
-    //                 /* SAVE ADDRESS */
-    //                 if (isset($res['save_address'])) {
-    //                     if ($res['save_address'] == 1) {
-    //                         if ($search_mode == "location") {
-    //                             if (!LocationWrapper::isAddressBookExist(
-    //                                             $client_id,
-    //                                             $res['state_id'],
-    //                                             $res['city_id'],
-    //                                             $res['area_id']
-    //                                     )) {
-    //                                 $params_address_book = array(
-    //                                     'client_id' => $client_id,
-    //                                     'street' => $res['street'],
-    //                                     'location_name' => $res['location_name'],
-    //                                     'state_id' => $res['state_id'],
-    //                                     'city_id' => $res['city_id'],
-    //                                     'area_id' => $res['area_id'],
-    //                                     'date_created' => FunctionsV3::dateNow(),
-    //                                     'latitude' => $res['delivery_lat'],
-    //                                     'longitude' => $res['delivery_long'],
-    //                                     'ip_address' => $_SERVER['REMOTE_ADDR']
-    //                                 );
-    //                                 $db->insertData("{{address_book_location}}", $params_address_book);
-    //                             }
-    //                         } else {
-    //                             if (!mobileWrapper::getBookAddress($client_id, $res['street'], $res['city'], $res['state'])) {
-    //                                 if (!empty($res['street'])) {
-    //                                     $params_address_book = array(
-    //                                         'client_id' => $client_id,
-    //                                         'street' => $res['street'],
-    //                                         'city' => $res['city'],
-    //                                         'state' => $res['state'],
-    //                                         'zipcode' => $res['zipcode'],
-    //                                         'location_name' => $res['location_name'],
-    //                                         'country_code' => getOptionA('admin_country_set'),
-    //                                         'as_default' => 1,
-    //                                         'date_created' => FunctionsV3::dateNow(),
-    //                                         'latitude' => $res['delivery_lat'],
-    //                                         'longitude' => $res['delivery_long'],
-    //                                         'ip_address' => $_SERVER['REMOTE_ADDR']
-    //                                     );
-    //                                     $db->insertData("{{address_book}}", $params_address_book);
-    //                                 }
-    //                             } //else echo 'd1';
-    //                         }
-    //                     } //else echo 'd2';
-    //                 } //else echo 'd3';
-
-    //                 $this->code = 1;
-    //                 $this->msg = Yii::t("mobile2", "Your this order has been placed. Reference # [order_id]", array(
-    //                             '[order_id]' => $order_id
-    //                 ));
-                    
-    //                 ///here is the order completed and placing the door dash apiii
-    //                 //  $order_id = '351170';  //created by the app side
-    //               //   $order_id = '351116';   //created by the app web  
-                  
-    //              $data=Yii::app()->functions->getOrder2($order_id);
-                 
-                  
-                
-    //          if($merchant_info['service'] == 8 &&  $data['trans_type'] == 'delivery' || $data['trans_type'] == 'Delivery' ){
-	                 
-	   //            //  print_r($merchant_info['service']); exit('234');
-	                 
-	   //              ////START  PLACE uppar code here
-	                 
-    //     	               //$time_in_selected = $this->data['time_in_selected'];
-    //     	               //$data['delivery_asap'] = $this->data['delivery_asap'];
-        	               
-    //         	            $time_in_selected = $data['delivery_time'];
-    //         	           // $data['delivery_asap'] = '1';
-        	    
-				// // 			$order_id = $this->data['order_id'];
-				
-				//             $order_id = $data['order_id'];
-				
-				// // 			$confirmed = $this->data['confirmed'];
-							
-				// 			$confirmed = $data['confirmed'];
-							
-				// 			if($data['delivery_asap'] = '1'){
-							   
-				// 			    $time_in_selected = '20';
-					
-				// 				$delivery_time = date('G:i',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-				// 				$delivery_timee = date('h:i A',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-				// 				// print_r($delivery_timee); exit('xxx');
-				// 				// $delivery_time = date('G:i',strtotime('+20 minutes'));	
-				// 			}else
-				// 			{
-				// 				$delivery_time = $data['delivery_time'];
-				// 				$delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-								
-				// 				// print_r($delivery_timee); exit('sfs');
-				// 				// $delivery_timee = $data['delivery_time'];	
-				// 			}
-	                
-	   //              //END
-	               
-    //                       $the_date = strtotime($data['delivery_date']." ".$delivery_time);
-                          
-                          	
-                           
-    //                             date_default_timezone_set('UTC');
-    //                             $doordash_date = date('Y-m-d',$the_date);
-    //                             $doordash_time = date('G:i:s',$the_date);
-    //                             $delivery_date = $doordash_date."T".$doordash_time.'Z';
-                                
-    //                             // print_r($delivery_date); exit('sfs');    // okay hai
-                                
-    //                             // print_r($data); exit('date');
-                                
-                              
-
-    //          $doordash_result = FunctionsV3::createDoordashDeliveryAppSide($delivery_date,$data,$merchant_info,$time_in_selected,$confirmed);
- 
-    //           //here working fine
-
-    //           //for further handeling
-              
-    //                                 if($doordash_result['code'] == 2){
-    //                                 $this->code=3;
-    //                                 $this->msg=$doordash_result['msg'];
-    //                                 $this->output();
-    //                             }
-                                
-    //                       //sending the email here     
-    //                               $link=   $data['doordash_drive_tracking_link'];
-    //         $email = $email_address;
-    //         //  $email = 'alirehmanarshad@gmail.com';
-    //         // print_r($email); exit('sdfs');
-    //         $d = Yii::app()->functions->sendEmail( $email , '', t("DoorDash Tracking link "), $link); 
-
-    //         //end the email
-
-    //                             $timezone=Yii::app()->functions->getOption("merchant_timezone",$merchant_id);
-    //                             if (!empty($timezone)){
-    //                                 date_default_timezone_set($timezone);
-                                
-    //                             $data=Yii::app()->functions->getOrder2($this->data['order_id']);
-    //                             $delivery_time = $data['delivery_time'];
-    //                             $date['doordash_drive_pickup_time'] = date('h:i A',strtotime( $data['doordash_drive_pickup_time']));
-    //                             $delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-    //                         }else {
-    //                             $params = array(
-    //                                 'confirmed' => $confirmed,
-    //                                 'pickup_in' => $time_in_selected,
-    //                                 'delivery_time' => $delivery_time,
-    //                             );
-    //                             $DbExt = new DbExt;
-    //                             $DbExt->updateData("{{order}}", $params, 'order_id', $order_id);
-    //                         }
-                        
-				// 		$this->code=1;
-				// 		$this->msg="OK";
-              
-    //           //end 
-             
-    //      }
-                    
-    //             ///here is the ending of door dash api
-                    
-                    
-                    
-
-    //                 $provider_credentials = array();
-    //                 $redirect_url = '';
-
-    //                 /* SAVE POINTS */
-    //                 switch ($payment_provider) {
-
-    //                     default:
-    //                         mobileWrapper::savePoints(
-    //                                 $this->device_uiid,
-    //                                 $client_id,
-    //                                 $this->merchant_id,
-    //                                 $order_id,
-    //                                 'initial_order'
-    //                         );
-    //                         break;
-    //                 }
-
-    //                 /* PAYMENT DATA */
-    //                 switch ($payment_provider) {
-    //                     case "cod":
-    //                     case "ccr":
-    //                     case "ocr":
-    //                     case "pyr":
-                            
-    //                         mobileWrapper::sendNotification($order_id);
-    //                         mobileWrapper::clearCart($this->device_uiid);
-    //                         mobileWrapper::executeAddons($order_id);
-
-    //                         break;
-
-    //                     case "obd":
-    //                         FunctionsV3::sendBankInstructionPurchase(
-    //                                 $this->merchant_id,
-    //                                 $order_id,
-    //                                 isset($params['total_w_tax']) ? $params['total_w_tax'] : 0,
-    //                                 $client_id
-    //                         );
-
-    //                         mobileWrapper::sendNotification($order_id);
-    //                         mobileWrapper::clearCart($this->device_uiid);
-    //                         mobileWrapper::executeAddons($order_id);
-
-    //                         break;
-
-    //                     case "rzr":
-    //                         $next_step = "init_" . $payment_provider;
-    //                         $provider_credentials = FunctionsV3::razorPaymentCredentials($this->merchant_id);
-    //                         if (!$provider_credentials) {
-    //                             $this->code = 2;
-    //                             $this->msg = $this->t("Merchant payment credentials not properly set");
-    //                         }
-    //                         break;
-
-    //                     case "btr":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/braintree?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "paypal_v2":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/paypal?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "stp":
-    //                         $next_step = 'init_stp';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/stripe?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         if($this->data['delivery_time'] != ''){
-    //                             mobileWrapper::sendNotification($order_id);
-    //                         }
-    //                         break;
-
-    //                     case "mercadopago":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mercadopago?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "vog":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/voguepay?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "mollie":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mollie?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     case "pagseguro":
-    //                         $next_step = 'init_webview';
-    //                         $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/pagseguro?id=" . urlencode($order_id) . "&lang=$lang_code";
-    //                         $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-    //                         break;
-
-    //                     default:
-    //                         $next_step = "init_" . $payment_provider;
-    //                         break;
-    //                 }
-
-    //                 $client_info = array(
-    //                     'first_name' => $client_info['first_name'],
-    //                     'last_name' => $client_info['last_name'],
-    //                     'email_address' => $client_info['email_address'],
-    //                     'contact_phone' => $client_info['contact_phone'],
-    //                 );
-                    
-                   
-    //                 $payment_description = Yii::t("mobile2", "Payment to merchant [merchant_name]. Order ID#[order]", array(
-    //                             '[merchant_name]' => clearString($merchant_info['restaurant_name']),
-    //                             '[order]' => $order_id
-    //                 ));
-                    
-                    
-                 
-
-    //                 $total = number_format($params['total_w_tax'], 2, '.', '');
-
-    //                 $this->details = array(
-    //                     'order_id' => $order_id,
-    //                     'total_amount' => $params['total_w_tax'],
-    //                     'total_amount_by_100' => $total * 100,
-    //                     'total_amount_formatted' => $total,
-    //                     'card_fee' => (float) $params['card_fee'],
-    //                     'sub_less_card_fee' => (float) $params['total_w_tax'] - (float) $params['card_fee'],
-    //                     'payment_provider' => $payment_provider,
-    //                     'next_step' => $next_step,
-    //                     'currency_code' => Yii::app()->functions->adminCurrencyCode(),
-    //                     'payment_description' => $payment_description,
-    //                     'merchant_name' => clearString($merchant_info['restaurant_name']),
-    //                     'provider_credentials' => $provider_credentials,
-    //                     'redirect_url' => $redirect_url,
-    //                     'client_info' => $client_info
-    //                 );
-                    
- 
-    //             } else
-    //                 $this->msg = $this->t("Something went wrong cannot insert records. please try again later");
-    //         } else
-    //             $this->msg = $msg;
-    //     } else
-    //         $this->msg = $this->t("Cart is empty");
-
-    //     $this->output();
-    // }
-    
-    //end test function
-    
-    
-    ///here duplicate the test function
-    
-    
-    //here changing the Test2 to live function
-     
-//      public function actionpayNow() {
-          
-//         $db = new DbExt();
-//         $this->setMerchantTimezone();
-//         $lang_code = Yii::app()->language;
-
-//         $search_resp = mobileWrapper::searchMode();
-//         $search_mode = $search_resp['search_mode'];
-//         $location_mode = $search_resp['location_mode'];
-        
-//         $token = isset($this->data['user_token']) ? $this->data['user_token'] : '';
-//         if (!$client_info = mobileWrapper::getCustomerByToken($token)) {
-//             $this->msg = $this->t("Invalid token, please relogin again");
-//             $this->output();
-//         }
-        
-//         if (!$merchant_info = FunctionsV3::getMerchantInfo($this->merchant_id)) {
-//             $this->msg = $this->t("invalid merchant id");
-//             $this->output();
-//         }
-        
-
-//         $client_id = $client_info['client_id'];
-//         $email_address = $client_info['email_address'];
-
-//         if (FunctionsK::emailBlockedCheck($email_address)) {
-//             $this->msg = $this->t("Sorry but your email address is blocked by website admin");
-//             $this->output();
-//         }
-
-//         $transaction_type = isset($this->data['transaction_type']) ? $this->data['transaction_type'] : '';
-//         $delivery_date = isset($this->data['delivery_date']) ? $this->data['delivery_date'] : '';
-//         $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-//         $payment_provider = isset($this->data['payment_provider']) ? $this->data['payment_provider'] : '';
-
-//         if (empty($delivery_date)) {
-//             $this->msg = $this->t("Delivery date is required");
-//             $this->output();
-//         }
-
-//         if (empty($payment_provider)) {
-//             $this->msg = $this->t("Payment provider is empty. please go back and try again");
-//             $this->output();
-//         }
-
-//         $full_delivery = "$delivery_date $delivery_time";
-//         $delivery_day = strtolower(date("D", strtotime($full_delivery)));
-
-//         $delivery_time_formated = '';
-//         if (!empty($delivery_time)) {
-//             $delivery_time_formated = date('h:i A', strtotime($delivery_time));
-//         } else{
-//             $delivery_time_formated = date('h:i A');
-//             $delivery_time = date('h:i A');
-//         }
-            
-        
-//         if (!Yii::app()->functions->isMerchantOpenTimes($this->merchant_id, $delivery_day, $delivery_time_formated)) {
-//             $date_close = date("F,d l Y h:ia", strtotime($full_delivery));
-//             $this->msg = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-//                         '[date_close]' => $date_close
-//             ));
-//             $this->output();
-//         }
-
-//         /* CHECK IF DATE IS HOLIDAY */
-//         if ($res_holiday = Yii::app()->functions->getMerchantHoliday($this->merchant_id)) {
-//             if (in_array($delivery_date, $res_holiday)) {
-//                 $this->msg = Yii::t("mobile2", "were close on [date]", array(
-//                             '[date]' => FunctionsV3::prettyDate($delivery_date)
-//                 ));
-
-//                 $close_msg = getOption($this->merchant_id, 'merchant_close_msg_holiday');
-//                 if (!empty($close_msg)) {
-//                     $this->msg = Yii::t("default", $close_msg, array(
-//                                 '[date]' => FunctionsV3::prettyDate($delivery_date)
-//                     ));
-//                 }
-//                 $this->output();
-//             }
-//         }
-
-//         /* CHECK DELIVERY TIME PAST */
-//         if (!empty($delivery_date) && !empty($delivery_time)) {
-//             $time_1 = date('Y-m-d g:i:s a');
-//             $time_2 = "$delivery_date $delivery_time";
-//             $time_2 = date("Y-m-d g:i:s a", strtotime($time_2));
-//             $time_diff = Yii::app()->functions->dateDifference($time_2, $time_1);
-//             if (is_array($time_diff) && count($time_diff) >= 1) {
-//                 if ($time_diff['hours'] > 0) {
-//                     $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-//                     $this->output();
-//                 }
-//                 if ($time_diff['minutes'] > 0) {
-//                     $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-//                     $this->output();
-//                 }
-//             }
-//         }
-    
-//         if ($res = mobileWrapper::getCart($this->device_uiid)) {
-         
-//             $cart = json_decode($res['cart'], true);
-//             $card_fee = 0;
-
-//             /* CARD FEE */
-//             switch ($payment_provider) {
-//                 case "pyp":
-//                     if (FunctionsV3::isMerchantPaymentToUseAdmin($this->merchant_id)) {
-//                         $card_fee = getOptionA('admin_paypal_fee');
-//                     } else {
-//                         $card_fee = getOption($this->merchant_id, 'merchant_paypal_fee');
-//                     }
-//                     break;
-
-//                 case "paypal_v2":
-//                     if ($credentials = PaypalWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-//                 case "stp":
-//                     if ($credentials = StripeWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-//                 case "mercadopago":
-//                     if ($credentials = mercadopagoWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-//                 case "mollie":
-//                     if ($credentials = MollieWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-//                 case "pagseguro":
-//                     if ($credentials = pagseguroWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-
-//                 default:
-//                     break;
-//             }
-
-//             $data = array(
-//                 'delivery_type' => $transaction_type,
-//                 'merchant_id' => $this->merchant_id,
-//                 'card_fee' => $card_fee
-//             );
-            
-            
-//             // print_r($res); exit('response');
-
-//             $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-//             if (is_array($voucher_details) && count($voucher_details) >= 1) {
-//                 $data['voucher_name'] = $voucher_details['voucher_name'];
-//                 $data['voucher_amount'] = $voucher_details['amount'];
-//                 $data['voucher_type'] = $voucher_details['voucher_type'];
-//             }
-
-//             if ($res['tips'] > 0.0001) {
-//                 $data['cart_tip_percentage'] = $res['tips'];
-//                 $data['tip_enabled'] = 2;
-//                 $data['tip_percent'] = $res['tips'];
-//             }
-
-//             /* POINTS */
-//             if ($res['points_amount'] > 0.0001) {
-//                 $data['points_amount'] = $res['points_amount'];
-//             }
-//             //dump($data);die();
-
-//             /* DELIVERY FEE */
-//             unset($_SESSION['shipping_fee']);
-//             if ($res['delivery_fee'] > 0.0001) {
-//                 $data['delivery_charge'] = $res['delivery_fee'];
-//             }
-            
-//             Yii::app()->functions->displayOrderHTML($data, $cart);
-//             $code = Yii::app()->functions->code;
-//             $msg = Yii::app()->functions->msg;
-//             if ($code == 1) {
-//                 $raw = Yii::app()->functions->details['raw'];
-
-//                 /* EURO TAX */
-//                 $is_apply_tax = 0;
-//                 if (EuroTax::isApplyTax($this->merchant_id)) {
-//                     $new_total = EuroTax::computeWithTax($raw, $this->merchant_id);
-//                     $raw['total'] = $new_total;
-//                     $is_apply_tax = 1;
-//                 }
-//                 /* EURO TAX */
-
-//                 $donot_apply_tax_delivery = getOption($this->merchant_id, 'merchant_tax_charges');
-//                 if (empty($donot_apply_tax_delivery)) {
-//                     $donot_apply_tax_delivery = 1;
-//                 }
-                
-
-//                 $params = array(
-//                     'merchant_id' => $this->merchant_id,
-//                     'client_id' => $client_id,
-//                     'json_details' => $res['cart'],
-//                     'trans_type' => $transaction_type,
-//                     'payment_type' => $this->data['payment_provider'],
-//                     'sub_total' => $raw['total']['subtotal'],
-//                     'tax' => $raw['total']['tax'],
-//                     'taxable_total' => $raw['total']['taxable_total'],
-//                     'total_w_tax' => isset($raw['total']['total']) ? $raw['total']['total'] : 0,
-//                     'delivery_charge' => isset($raw['total']['delivery_charges']) ? $raw['total']['delivery_charges'] : 0,
-//                     'delivery_date' => $delivery_date,
-//                     'delivery_time' => $delivery_time,
-//                     'delivery_asap' => isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '',
-//                     'date_created' => FunctionsV3::dateNow(),
-//                     'ip_address' => $_SERVER['REMOTE_ADDR'],
-//                     'delivery_instruction' => isset($res['delivery_instruction']) ? $res['delivery_instruction'] : '',
-//                     'cc_id' => isset($this->data['cc_id']) ? $this->data['cc_id'] : '',
-//                     'order_change' => isset($this->data['order_change']) ? $this->data['order_change'] : 0,
-//                     'payment_provider_name' => '',
-//                     'card_fee' => $card_fee,
-//                     'packaging' => $raw['total']['merchant_packaging_charge'],
-//                     'donot_apply_tax_delivery' => $donot_apply_tax_delivery,
-//                     'order_id_token' => FunctionsV3::generateOrderToken(),
-//                     'request_from' => "mobileapp2",
-//                     'apply_food_tax' => $is_apply_tax,
-//                 );
-            
-//                 $order_id_token = $params['order_id_token'];
-
-//                 /* TIPS */
-//                 if (isset($raw['total']['tips'])) {
-//                     if ($raw['total']['tips'] > 0.0001) {
-//                         $params['cart_tip_percentage'] = $raw['total']['cart_tip_percentage'];
-//                         $params['cart_tip_value'] = $raw['total']['tips'];
-//                     }
-//                 }
-                
-
-//                 switch ($transaction_type) {
-                    
-//                     case "dinein":
-//                         $params['dinein_number_of_guest'] = isset($this->data['dinein_number_of_guest']) ? $this->data['dinein_number_of_guest'] : '';
-//                         $params['dinein_special_instruction'] = isset($this->data['dinein_special_instruction']) ? $this->data['dinein_special_instruction'] : '';
-
-//                         $params['dinein_table_number'] = isset($this->data['dinein_table_number']) ? $this->data['dinein_table_number'] : '';
-
-//                         if (isset($this->data['contact_phone'])) {
-//                             if (!empty($this->data['contact_phone'])) {
-//                                 $db->updateData("{{client}}", array(
-//                                     'contact_phone' => $this->data['contact_phone']
-//                                         ), 'client_id', $client_id);
-//                             }
-//                         }
-//                         break;
-
-//                     case "delivery":
-//                         $delivery_asap = '';
-//                         if (isset($this->data['delivery_asap'])) {
-                            
-//                             $delivery_asap = $this->data['delivery_asap'] == "true" ? 1 : '';
-                           
-//                             $params['delivery_asap'] = $delivery_asap;
-                               
-//                         }
-//                         break;
-
-//                     default:
-//                         break;
-//                 }
-                
-                
-              
-                
-
-//                 /* DEFAULT ORDER STATUS */
-//                 $default_order_status = getOption($this->merchant_id, 'default_order_status');
-//                 switch ($payment_provider) {
-//                     case "cod":
-//                     case "obd":
-//                         $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-//                         break;
-//                     case "ccr":
-//                     case "ocr":
-//                         $params['cc_id'] = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
-//                         $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-//                         break;
-
-//                     case "pyr":
-//                         $params['payment_provider_name'] = isset($this->data['selected_card']) ? $this->data['selected_card'] : '';
-//                         $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-//                         break;
-
-//                     default:
-//                         $params['status'] = initialStatus();
-//                         break;
-//                 }
-
-//                 /* PROMO */
-//                 //dump($raw);
-//                 if (isset($raw['total']['discounted_amount'])) {
-//                     if ($raw['total']['discounted_amount'] >= 0.0001) {
-//                         $params['discounted_amount'] = $raw['total']['discounted_amount'];
-//                         $params['discount_percentage'] = $raw['total']['merchant_discount_amount'];
-//                     }
-//                 }
-
-//                 /* VOUCHER */
-//                 if (!empty($res['voucher_details'])) {
-//                     $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-//                     if (is_array($voucher_details) && count($voucher_details) >= 1) {
-//                         $params['voucher_amount'] = $voucher_details['amount'];
-//                         $params['voucher_code'] = $voucher_details['voucher_name'];
-//                         $params['voucher_type'] = $voucher_details['voucher_type'];
-//                     }
-//                 }
-
-//                 /* POINTS */
-//                 if ($res['points_amount'] > 0.0001) {
-//                     $params['points_discount'] = $res['points_amount'];
-//                 }
-
-//                 /* SET COMMISSION */
-//                 if (Yii::app()->functions->isMerchantCommission($this->merchant_id)) {
-//                     $admin_commision_ontop = Yii::app()->functions->getOptionAdmin('admin_commision_ontop');
-//                     if ($com = Yii::app()->functions->getMerchantCommission($this->merchant_id)) {
-//                         $params['percent_commision'] = $com;
-//                         $params['total_commission'] = ($com / 100) * $params['total_w_tax'];
-//                         $params['merchant_earnings'] = $params['total_w_tax'] - $params['total_commission'];
-//                         if ($admin_commision_ontop == 1) {
-//                             $params['total_commission'] = ($com / 100) * $params['sub_total'];
-//                             $params['commision_ontop'] = $admin_commision_ontop;
-//                             $params['merchant_earnings'] = $params['sub_total'] - $params['total_commission'];
-//                         }
-//                     }
-
-//                     /** check if merchant commission is fixed  */
-//                     $merchant_com_details = Yii::app()->functions->getMerchantCommissionDetails($this->merchant_id);
-//                     if ($merchant_com_details['commision_type'] == "fixed") {
-//                         $params['percent_commision'] = $merchant_com_details['percent_commision'];
-//                         $params['total_commission'] = $merchant_com_details['percent_commision'];
-//                         $params['merchant_earnings'] = $params['total_w_tax'] - $merchant_com_details['percent_commision'];
-//                         $params['commision_type'] = 'fixed';
-
-//                         if ($admin_commision_ontop == 1) {
-//                             $params['merchant_earnings'] = $params['sub_total'] - $merchant_com_details['percent_commision'];
-//                         }
-//                     }
-//                 }
-//                 /* END COMMISSION */
-
-//                 if (!is_numeric($params['cc_id'])) {
-//                     unset($params['cc_id']);
-//                 }
-//                 if (!is_numeric($params['order_change'])) {
-//                     unset($params['order_change']);
-//                 }
-
-//                 /* BEGIN INSERT ORDER */
-//                 if (!is_numeric($params['sub_total'])) {
-//                     $params['sub_total'] = 0;
-//                 }
-//                 if (!is_numeric($params['tax'])) {
-//                     $params['tax'] = 0;
-//                 }
-//                 if (!is_numeric($params['taxable_total'])) {
-//                     $params['taxable_total'] = 0;
-//                 }
-//                 if (!is_numeric($params['total_w_tax'])) {
-//                     $params['total_w_tax'] = 0;
-//                 }
-
-//                 if (isset($params['order_change'])) {
-//                     if (!is_numeric($params['order_change'])) {
-//                         $params['order_change'] = 0;
-//                     }
-//                 }
-//                 if (!is_numeric($params['card_fee'])) {
-//                     $params['card_fee'] = 0;
-//                 }
-//                 if (!is_numeric($params['packaging'])) {
-//                     $params['packaging'] = 0;
-//                 }
-//                 if (!is_numeric($params['donot_apply_tax_delivery'])) {
-//                     unset($params['donot_apply_tax_delivery']);
-//                 }
-//                 if (!is_numeric($params['apply_food_tax'])) {
-//                     unset($params['apply_food_tax']);
-//                 }
-
-//                 if (isset($params['percent_commision'])) {
-//                     if (!is_numeric($params['percent_commision'])) {
-//                         $params['percent_commision'] = 0;
-//                     }
-//                 }
-
-//                 if (isset($params['total_commission'])) {
-//                     if (!is_numeric($params['total_commission'])) {
-//                         $params['total_commission'] = 0;
-//                     }
-//                 }
-
-//                 if (isset($params['merchant_earnings'])) {
-//                     if (!is_numeric($params['merchant_earnings'])) {
-//                         $params['merchant_earnings'] = 0;
-//                     }
-//                 }
-                
-
-
-//                 if ($db->insertData("{{order}}", $params)) {
-//                     $order_id = Yii::app()->db->getLastInsertID();
-
-//                     $params_history = array(
-//                         'order_id' => $order_id,
-//                         'status' => initialStatus(),
-//                         'remarks' => '',
-//                         'date_created' => FunctionsV3::dateNow(),
-//                         'ip_address' => $_SERVER['REMOTE_ADDR']
-//                     );
-//                     $db->insertData("{{order_history}}", $params_history);
-
-//                     $next_step = "receipt";
-//                     /* SAVE ITEM */
-//                     foreach ($raw['item'] as $val) {
-//                         $params_order_details = array(
-//                             'order_id' => isset($order_id) ? $order_id : '',
-//                             'client_id' => $client_id,
-//                             'item_id' => isset($val['item_id']) ? $val['item_id'] : '',
-//                             'item_name' => isset($val['item_name']) ? $val['item_name'] : '',
-//                             'order_notes' => isset($val['order_notes']) ? $val['order_notes'] : '',
-//                             'normal_price' => isset($val['normal_price']) ? $val['normal_price'] : '',
-//                             'discounted_price' => isset($val['discounted_price']) ? $val['discounted_price'] : '',
-//                             'size' => isset($val['size_words']) ? $val['size_words'] : '',
-//                             'qty' => isset($val['qty']) ? $val['qty'] : '',
-//                             'addon' => isset($val['sub_item']) ? json_encode($val['sub_item']) : '',
-//                             'cooking_ref' => isset($val['cooking_ref']) ? $val['cooking_ref'] : '',
-//                             'ingredients' => isset($val['ingredients']) ? json_encode($val['ingredients']) : '',
-//                             'non_taxable' => isset($val['non_taxable']) ? $val['non_taxable'] : 1
-//                         );
-//                         $db->insertData("{{order_details}}", $params_order_details);
-//                     }
-
-//                     /* SAVE DELIVERY ADDRESS */
-//                     if ($transaction_type == "delivery") {
-//                         $res['zipcode'] = $this->data['zipcode'];
-//                         $res['street'] = $this->data['street'];
-//                         $res['city'] = $this->data['city'];
-//                         $res['state'] = $this->data['state'];
-//                         $res['delivery_contact'] = $this->data['delivery_contact'];
-//                         $res['delivery_instructions'] = $this->data['delivery_instructions'];
-//                         $res['delivery_appartment'] = $this->data['delivery_appartment'];
-//                         $params_address = array(
-//                             'order_id' => $order_id,
-//                             'client_id' => $client_id,
-//                             'street' => isset($res['street']) ? $res['street'] : '',
-//                             'city' => isset($res['city']) ? $res['city'] : '',
-//                             'state' => isset($res['state']) ? $res['state'] : '',
-//                             'zipcode' => isset($res['zipcode']) ? $res['zipcode'] : '',
-//                             'location_name' => isset($res['location_name']) ? $res['location_name'] : '',
-//                             'contact_phone' => isset($res['contact_phone']) ? $res['contact_phone'] : '',
-//                             'country' => Yii::app()->functions->adminCountry(),
-//                             'date_created' => FunctionsV3::dateNow(),
-//                             'ip_address' => $_SERVER['REMOTE_ADDR'],
-//                             'google_lat' => isset($res['delivery_lat']) ? $res['delivery_lat'] : '',
-//                             'google_lng' => isset($res['delivery_long']) ? $res['delivery_long'] : '',
-//                             'contact_phone' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-//                             'delivery_instructions' => isset($res['delivery_instructions']) ? $res['delivery_instructions'] : '',
-//                             'delivery_appartment' => isset($res['delivery_appartment']) ? $res['delivery_appartment'] : '',
-//                             'delivery_contact' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-//                         );
-//                         if ($search_mode == "location") {
-//                             $db->insertData("{{order_delivery_address}}", $params_address);
-//                         } else {
-//                             $db->insertData("{{order_delivery_address}}", $params_address);
-//                         }
-//                     }
-
-//                     /* SAVE ADDRESS */
-//                     if (isset($res['save_address'])) {
-//                         if ($res['save_address'] == 1) {
-//                             if ($search_mode == "location") {
-//                                 if (!LocationWrapper::isAddressBookExist(
-//                                                 $client_id,
-//                                                 $res['state_id'],
-//                                                 $res['city_id'],
-//                                                 $res['area_id']
-//                                         )) {
-//                                     $params_address_book = array(
-//                                         'client_id' => $client_id,
-//                                         'street' => $res['street'],
-//                                         'location_name' => $res['location_name'],
-//                                         'state_id' => $res['state_id'],
-//                                         'city_id' => $res['city_id'],
-//                                         'area_id' => $res['area_id'],
-//                                         'date_created' => FunctionsV3::dateNow(),
-//                                         'latitude' => $res['delivery_lat'],
-//                                         'longitude' => $res['delivery_long'],
-//                                         'ip_address' => $_SERVER['REMOTE_ADDR']
-//                                     );
-//                                     $db->insertData("{{address_book_location}}", $params_address_book);
-//                                 }
-//                             } else {
-//                                 if (!mobileWrapper::getBookAddress($client_id, $res['street'], $res['city'], $res['state'])) {
-//                                     if (!empty($res['street'])) {
-//                                         $params_address_book = array(
-//                                             'client_id' => $client_id,
-//                                             'street' => $res['street'],
-//                                             'city' => $res['city'],
-//                                             'state' => $res['state'],
-//                                             'zipcode' => $res['zipcode'],
-//                                             'location_name' => $res['location_name'],
-//                                             'country_code' => getOptionA('admin_country_set'),
-//                                             'as_default' => 1,
-//                                             'date_created' => FunctionsV3::dateNow(),
-//                                             'latitude' => $res['delivery_lat'],
-//                                             'longitude' => $res['delivery_long'],
-//                                             'ip_address' => $_SERVER['REMOTE_ADDR']
-//                                         );
-//                                         $db->insertData("{{address_book}}", $params_address_book);
-//                                     }
-//                                 } //else echo 'd1';
-//                             }
-//                         } //else echo 'd2';
-//                     } //else echo 'd3';
-
-//                     $this->code = 1;
-//                     $this->msg = Yii::t("mobile2", "Your this order has been placed. Reference # [order_id]", array(
-//                                 '[order_id]' => $order_id
-//                     ));
-                    
-//                     ///here is the order completed and placing the door dash apiii
-//                     //  $order_id = '351170';  //created by the app side
-//                   //   $order_id = '351116';   //created by the app web  
-                  
-//                  $data=Yii::app()->functions->getOrder2($order_id);
-                 
-//                 // echo "<pre>"; print_r($merchant_info); echo "data"; print_r($data); exit('rthuthuht');  
-
-//              if($merchant_info['service'] == 8 &&  ($data['trans_type'] == 'delivery' || $data['trans_type'] == 'Delivery') ){
-
-// 	                 ////START  PLACE uppar code here
-	                 
-//         	               //$time_in_selected = $this->data['time_in_selected'];
-//         	               //$data['delivery_asap'] = $this->data['delivery_asap'];
-        	               
-//             	            $time_in_selected = $data['delivery_time'];
-//             	           // $data['delivery_asap'] = '1';
-        	    
-// 				// 			$order_id = $this->data['order_id'];
-				
-// 				            $order_id = $data['order_id'];
-				
-// 				// 			$confirmed = $this->data['confirmed'];
-							
-// 							$confirmed = $data['confirmed'];
-							
-// 							if($data['delivery_asap'] = '1'){
-							   
-// 							    $time_in_selected = '20';
-					
-// 								$delivery_time = date('G:i',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-// 								$delivery_timee = date('h:i A',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-// 								// print_r($delivery_timee); exit('xxx');
-// 								// $delivery_time = date('G:i',strtotime('+20 minutes'));	
-// 							}else
-// 							{
-// 								$delivery_time = $data['delivery_time'];
-// 								$delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-								
-// 								// print_r($delivery_timee); exit('sfs');
-// 								// $delivery_timee = $data['delivery_time'];	
-// 							}
-	                
-// 	                 //END
-	               
-//                           $the_date = strtotime($data['delivery_date']." ".$delivery_time);
-                          
-                          	
-                           
-//                                 date_default_timezone_set('UTC');
-//                                 $doordash_date = date('Y-m-d',$the_date);
-//                                 $doordash_time = date('G:i:s',$the_date);
-//                                 $delivery_date = $doordash_date."T".$doordash_time.'Z';
-                                
-//                                 // print_r($delivery_date); exit('sfs');    // okay hai
-                                
-//                                 // print_r($data); exit('date');
-                                
-                              
- 
-
-//              $doordash_result = FunctionsV3::createDoordashDeliveryAppSide($delivery_date,$data,$merchant_info,$time_in_selected,$confirmed);
-
-// // echo "<pre>";  print_r($data['doordash_drive_tracking_link']);
-// // print_r($data); 
-// // exit('rthuthuht'); 
- 
-//               //here working fine
-
-//               //for further handeling
-              
-//                                     if($doordash_result['code'] == 2){
-//                                     $this->code=3;
-//                                     $this->msg=$doordash_result['msg'];
-//                                     $this->output();
-//                                 }
-                                
-//                           //sending the email here     
-//                                 //   $link=   $data['doordash_drive_tracking_link'];
-//             // $email = $email_address;
-//             //  $email = 'alirehmanarshad@gmail.com';
-//             // print_r($email); exit('sdfs');
-//             // $d = Yii::app()->functions->sendEmail( $email , '', t("DoorDash Tracking link "), $link); 
-
-//             //end the email
-
-//                                 $timezone=Yii::app()->functions->getOption("merchant_timezone",$merchant_id);
-//                                 if (!empty($timezone)){
-//                                     date_default_timezone_set($timezone);
-                                
-//                                 // $data=Yii::app()->functions->getOrder2($this->data['order_id']);
-//                                 $delivery_time = $data['delivery_time'];
-//                                 $date['doordash_drive_pickup_time'] = date('h:i A',strtotime( $data['doordash_drive_pickup_time']));
-//                                 $delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-//                             }else {
-//                                 $params = array(
-//                                     'confirmed' => $confirmed,
-//                                     'pickup_in' => $time_in_selected,
-//                                     'delivery_time' => $delivery_time,
-//                                 );
-//                                 $DbExt = new DbExt;
-//                                 $DbExt->updateData("{{order}}", $params, 'order_id', $order_id);
-//                             }
-                        
-// 						$this->code=1;
-// 						$this->msg="OK";
-              
-//               //end 
-             
-//          }
-                    
-//                 ///here is the ending of door dash api
-                    
-                    
-//                     // echo "<pre>";  print_r($order_id); print_r($data); exit('rthuthuht'); 
-
-//                     $provider_credentials = array();
-//                     $redirect_url = '';
-
-//                     /* SAVE POINTS */
-//                     switch ($payment_provider) {
-
-//                         default:
-//                             mobileWrapper::savePoints(
-//                                     $this->device_uiid,
-//                                     $client_id,
-//                                     $this->merchant_id,
-//                                     $order_id,
-//                                     'initial_order'
-//                             );
-//                             break;
-//                     }
-
-//                     /* PAYMENT DATA */
-//                     switch ($payment_provider) {
-//                         case "cod":
-//                         case "ccr":
-//                         case "ocr":
-//                         case "pyr":
-                            
-//                             mobileWrapper::sendNotification($order_id);
-//                             mobileWrapper::clearCart($this->device_uiid);
-//                             mobileWrapper::executeAddons($order_id);
-
-//                             break;
-
-//                         case "obd":
-//                             FunctionsV3::sendBankInstructionPurchase(
-//                                     $this->merchant_id,
-//                                     $order_id,
-//                                     isset($params['total_w_tax']) ? $params['total_w_tax'] : 0,
-//                                     $client_id
-//                             );
-
-//                             mobileWrapper::sendNotification($order_id);
-//                             mobileWrapper::clearCart($this->device_uiid);
-//                             mobileWrapper::executeAddons($order_id);
-
-//                             break;
-
-//                         case "rzr":
-//                             $next_step = "init_" . $payment_provider;
-//                             $provider_credentials = FunctionsV3::razorPaymentCredentials($this->merchant_id);
-//                             if (!$provider_credentials) {
-//                                 $this->code = 2;
-//                                 $this->msg = $this->t("Merchant payment credentials not properly set");
-//                             }
-//                             break;
-
-//                         case "btr":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/braintree?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "paypal_v2":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/paypal?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "stp":
-//                             $next_step = 'init_stp';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/stripe?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             if($this->data['delivery_time'] != ''){
-//                                 mobileWrapper::sendNotification($order_id);
-//                             }
-//                             break;
-
-//                         case "mercadopago":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mercadopago?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "vog":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/voguepay?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "mollie":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mollie?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "pagseguro":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/pagseguro?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         default:
-//                             $next_step = "init_" . $payment_provider;
-//                             break;
-//                     }
-
-//                     $client_info = array(
-//                         'first_name' => $client_info['first_name'],
-//                         'last_name' => $client_info['last_name'],
-//                         'email_address' => $client_info['email_address'],
-//                         'contact_phone' => $client_info['contact_phone'],
-//                     );
-                    
-                   
-//                     $payment_description = Yii::t("mobile2", "Payment to merchant [merchant_name]. Order ID#[order]", array(
-//                                 '[merchant_name]' => clearString($merchant_info['restaurant_name']),
-//                                 '[order]' => $order_id
-//                     ));
-                    
-                    
-                 
-
-//                     $total = number_format($params['total_w_tax'], 2, '.', '');
-
-//                     $this->details = array(
-//                         'order_id' => $order_id,
-//                         'total_amount' => $params['total_w_tax'],
-//                         'total_amount_by_100' => $total * 100,
-//                         'total_amount_formatted' => $total,
-//                         'card_fee' => (float) $params['card_fee'],
-//                         'sub_less_card_fee' => (float) $params['total_w_tax'] - (float) $params['card_fee'],
-//                         'payment_provider' => $payment_provider,
-//                         'next_step' => $next_step,
-//                         'currency_code' => Yii::app()->functions->adminCurrencyCode(),
-//                         'payment_description' => $payment_description,
-//                         'merchant_name' => clearString($merchant_info['restaurant_name']),
-//                         'provider_credentials' => $provider_credentials,
-//                         'redirect_url' => $redirect_url,
-//                         'client_info' => $client_info
-//                     );
-                    
- 
-//                 } else
-//                     $this->msg = $this->t("Something went wrong cannot insert records. please try again later");
-//             } else
-//                 $this->msg = $msg;
-//         } else
-//             $this->msg = $this->t("Cart is empty");
-
-//         $this->output();
-//     }
-    
-    
-    //end here duplicate
-    
-    
-    ///here creating testing for parameters
-    
-    
-    //changing the Test3 to the live function
-    
-//         public function actionpayNow() {
-          
-//         $db = new DbExt();
-//         $this->setMerchantTimezone();
-//         $lang_code = Yii::app()->language;
-
-//         $search_resp = mobileWrapper::searchMode();
-//         $search_mode = $search_resp['search_mode'];
-//         $location_mode = $search_resp['location_mode'];
-        
-//         $token = isset($this->data['user_token']) ? $this->data['user_token'] : '';
-//         if (!$client_info = mobileWrapper::getCustomerByToken($token)) {
-//             $this->msg = $this->t("Invalid token, please relogin again");
-//             $this->output();
-//         }
-        
-//         if (!$merchant_info = FunctionsV3::getMerchantInfo($this->merchant_id)) {
-//             $this->msg = $this->t("invalid merchant id");
-//             $this->output();
-//         }
-        
-
-//         $client_id = $client_info['client_id'];
-//         $email_address = $client_info['email_address'];
-
-//         if (FunctionsK::emailBlockedCheck($email_address)) {
-//             $this->msg = $this->t("Sorry but your email address is blocked by website admin");
-//             $this->output();
-//         }
-
-//         $transaction_type = isset($this->data['transaction_type']) ? $this->data['transaction_type'] : '';
-//         $delivery_date = isset($this->data['delivery_date']) ? $this->data['delivery_date'] : '';
-        
-//         $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-        
-//         $delivery_asap = isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '';
-        
-//         if(($this->data['delivery_time'] == 'ASAP') || ($this->data['delivery_time'] == 'asap') ){
-            
-//             date_default_timezone_set('UTC');    
-//             $delivery_time = date('h:i A');
-//             $endTime = strtotime("+25 minutes", strtotime($delivery_time));
-//             $delivery_time = date('h:i A', $endTime);
-//         }
-//         else{
-            
-//             $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-//         }
-//         // $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-//         $payment_provider = isset($this->data['payment_provider']) ? $this->data['payment_provider'] : '';
-
-//         if (empty($delivery_date)) {
-//             $this->msg = $this->t("Delivery date is required");
-//             $this->output();
-//         }
-
-//         if (empty($payment_provider)) {
-//             $this->msg = $this->t("Payment provider is empty. please go back and try again");
-//             $this->output();
-//         }
-
-//         $full_delivery = "$delivery_date $delivery_time";
-//         $delivery_day = strtolower(date("D", strtotime($full_delivery)));
-
-//         $delivery_time_formated = '';
-//         if (!empty($delivery_time)) {
-//             $delivery_time_formated = date('h:i A', strtotime($delivery_time));
-//         } else{
-//             $delivery_time_formated = date('h:i A');
-//             $delivery_time = date('h:i A');
-//         }
-            
-        
-//         if (!Yii::app()->functions->isMerchantOpenTimes($this->merchant_id, $delivery_day, $delivery_time_formated)) {
-//             $date_close = date("F,d l Y h:ia", strtotime($full_delivery));
-//             $this->msg = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-//                         '[date_close]' => $date_close
-//             ));
-//             $this->output();
-//         }
-
-//         /* CHECK IF DATE IS HOLIDAY */
-//         if ($res_holiday = Yii::app()->functions->getMerchantHoliday($this->merchant_id)) {
-//             if (in_array($delivery_date, $res_holiday)) {
-//                 $this->msg = Yii::t("mobile2", "were close on [date]", array(
-//                             '[date]' => FunctionsV3::prettyDate($delivery_date)
-//                 ));
-
-//                 $close_msg = getOption($this->merchant_id, 'merchant_close_msg_holiday');
-//                 if (!empty($close_msg)) {
-//                     $this->msg = Yii::t("default", $close_msg, array(
-//                                 '[date]' => FunctionsV3::prettyDate($delivery_date)
-//                     ));
-//                 }
-//                 $this->output();
-//             }
-//         }
-
-//         /* CHECK DELIVERY TIME PAST */
-//         if (!empty($delivery_date) && !empty($delivery_time)) {
-//             $time_1 = date('Y-m-d g:i:s a');
-//             $time_2 = "$delivery_date $delivery_time";
-//             $time_2 = date("Y-m-d g:i:s a", strtotime($time_2));
-//             $time_diff = Yii::app()->functions->dateDifference($time_2, $time_1);
-//             if (is_array($time_diff) && count($time_diff) >= 1) {
-//                 if ($time_diff['hours'] > 0) {
-//                     $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-//                     $this->output();
-//                 }
-//                 if ($time_diff['minutes'] > 0) {
-//                     $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-//                     $this->output();
-//                 }
-//             }
-//         }
-    
-//         if ($res = mobileWrapper::getCart($this->device_uiid)) {
-         
-//             $cart = json_decode($res['cart'], true);
-//             $card_fee = 0;
-
-//             /* CARD FEE */
-//             switch ($payment_provider) {
-//                 case "pyp":
-//                     if (FunctionsV3::isMerchantPaymentToUseAdmin($this->merchant_id)) {
-//                         $card_fee = getOptionA('admin_paypal_fee');
-//                     } else {
-//                         $card_fee = getOption($this->merchant_id, 'merchant_paypal_fee');
-//                     }
-//                     break;
-
-//                 case "paypal_v2":
-//                     if ($credentials = PaypalWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-//                 case "stp":
-//                     if ($credentials = StripeWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-//                 case "mercadopago":
-//                     if ($credentials = mercadopagoWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-//                 case "mollie":
-//                     if ($credentials = MollieWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-//                 case "pagseguro":
-//                     if ($credentials = pagseguroWrapper::getCredentials($this->merchant_id)) {
-//                         if ($credentials['card_fee'] > 0.0001) {
-//                             $card_fee = $credentials['card_fee'];
-//                         }
-//                     }
-//                     break;
-
-
-//                 default:
-//                     break;
-//             }
-
-//             $data = array(
-//                 'delivery_type' => $transaction_type,
-//                 'merchant_id' => $this->merchant_id,
-//                 'card_fee' => $card_fee
-//             );
-            
-            
-//             // print_r($res); exit('response');
-
-//             $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-//             if (is_array($voucher_details) && count($voucher_details) >= 1) {
-//                 $data['voucher_name'] = $voucher_details['voucher_name'];
-//                 $data['voucher_amount'] = $voucher_details['amount'];
-//                 $data['voucher_type'] = $voucher_details['voucher_type'];
-//             }
-
-//             if ($res['tips'] > 0.0001) {
-//                 $data['cart_tip_percentage'] = $res['tips'];
-//                 $data['tip_enabled'] = 2;
-//                 $data['tip_percent'] = $res['tips'];
-//             }
-
-//             /* POINTS */
-//             if ($res['points_amount'] > 0.0001) {
-//                 $data['points_amount'] = $res['points_amount'];
-//             }
-//             //dump($data);die();
-
-//             /* DELIVERY FEE */
-//             unset($_SESSION['shipping_fee']);
-//             if ($res['delivery_fee'] > 0.0001) {
-//                 $data['delivery_charge'] = $res['delivery_fee'];
-//             }
-            
-//             Yii::app()->functions->displayOrderHTML($data, $cart);
-//             $code = Yii::app()->functions->code;
-//             $msg = Yii::app()->functions->msg;
-//             if ($code == 1) {
-//                 $raw = Yii::app()->functions->details['raw'];
-
-//                 /* EURO TAX */
-//                 $is_apply_tax = 0;
-//                 if (EuroTax::isApplyTax($this->merchant_id)) {
-//                     $new_total = EuroTax::computeWithTax($raw, $this->merchant_id);
-//                     $raw['total'] = $new_total;
-//                     $is_apply_tax = 1;
-//                 }
-//                 /* EURO TAX */
-
-//                 $donot_apply_tax_delivery = getOption($this->merchant_id, 'merchant_tax_charges');
-//                 if (empty($donot_apply_tax_delivery)) {
-//                     $donot_apply_tax_delivery = 1;
-//                 }
-                
-
-//                 $params = array(
-//                     'merchant_id' => $this->merchant_id,
-//                     'client_id' => $client_id,
-//                     'json_details' => $res['cart'],
-//                     'trans_type' => $transaction_type,
-//                     'payment_type' => $this->data['payment_provider'],
-//                     'sub_total' => $raw['total']['subtotal'],
-//                     'tax' => $raw['total']['tax'],
-//                     'taxable_total' => $raw['total']['taxable_total'],
-//                     'total_w_tax' => isset($raw['total']['total']) ? $raw['total']['total'] : 0,
-//                     'delivery_charge' => isset($raw['total']['delivery_charges']) ? $raw['total']['delivery_charges'] : 0,
-//                     'delivery_date' => $delivery_date,
-//                     'delivery_time' => $delivery_time,
-//                     'delivery_asap' => isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '',
-//                     'date_created' => FunctionsV3::dateNow(),
-//                     'ip_address' => $_SERVER['REMOTE_ADDR'],
-//                     'delivery_instruction' => isset($res['delivery_instruction']) ? $res['delivery_instruction'] : '',
-//                     'cc_id' => isset($this->data['cc_id']) ? $this->data['cc_id'] : '',
-//                     'order_change' => isset($this->data['order_change']) ? $this->data['order_change'] : 0,
-//                     'payment_provider_name' => '',
-//                     'card_fee' => $card_fee,
-//                     'packaging' => $raw['total']['merchant_packaging_charge'],
-//                     'donot_apply_tax_delivery' => $donot_apply_tax_delivery,
-//                     'order_id_token' => FunctionsV3::generateOrderToken(),
-//                     'request_from' => "mobileapp2",
-//                     'apply_food_tax' => $is_apply_tax,
-//                 );
-            
-//                 $order_id_token = $params['order_id_token'];
-
-//                 /* TIPS */
-//                 if (isset($raw['total']['tips'])) {
-//                     if ($raw['total']['tips'] > 0.0001) {
-//                         $params['cart_tip_percentage'] = $raw['total']['cart_tip_percentage'];
-//                         $params['cart_tip_value'] = $raw['total']['tips'];
-//                     }
-//                 }
-                
-
-//                 switch ($transaction_type) {
-                    
-//                     case "dinein":
-//                         $params['dinein_number_of_guest'] = isset($this->data['dinein_number_of_guest']) ? $this->data['dinein_number_of_guest'] : '';
-//                         $params['dinein_special_instruction'] = isset($this->data['dinein_special_instruction']) ? $this->data['dinein_special_instruction'] : '';
-
-//                         $params['dinein_table_number'] = isset($this->data['dinein_table_number']) ? $this->data['dinein_table_number'] : '';
-
-//                         if (isset($this->data['contact_phone'])) {
-//                             if (!empty($this->data['contact_phone'])) {
-//                                 $db->updateData("{{client}}", array(
-//                                     'contact_phone' => $this->data['contact_phone']
-//                                         ), 'client_id', $client_id);
-//                             }
-//                         }
-//                         break;
-
-//                     case "delivery":
-//                         $delivery_asap = '';
-//                         if (isset($delivery_asap)) {
-                            
-//                             $delivery_asap = $this->data['delivery_asap'] == "true" ? 1 : '';
-                           
-//                             $params['delivery_asap'] = $delivery_asap;
-                               
-//                         }
-//                         break;
-
-//                     default:
-//                         break;
-//                 }
-                
-                
-              
-                
-
-//                 /* DEFAULT ORDER STATUS */
-//                 $default_order_status = getOption($this->merchant_id, 'default_order_status');
-//                 switch ($payment_provider) {
-//                     case "cod":
-//                     case "obd":
-//                         $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-//                         break;
-//                     case "ccr":
-//                     case "ocr":
-//                         $params['cc_id'] = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
-//                         $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-//                         break;
-
-//                     case "pyr":
-//                         $params['payment_provider_name'] = isset($this->data['selected_card']) ? $this->data['selected_card'] : '';
-//                         $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-//                         break;
-
-//                     default:
-//                         $params['status'] = initialStatus();
-//                         break;
-//                 }
-
-//                 /* PROMO */
-//                 //dump($raw);
-//                 if (isset($raw['total']['discounted_amount'])) {
-//                     if ($raw['total']['discounted_amount'] >= 0.0001) {
-//                         $params['discounted_amount'] = $raw['total']['discounted_amount'];
-//                         $params['discount_percentage'] = $raw['total']['merchant_discount_amount'];
-//                     }
-//                 }
-
-//                 /* VOUCHER */
-//                 if (!empty($res['voucher_details'])) {
-//                     $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-//                     if (is_array($voucher_details) && count($voucher_details) >= 1) {
-//                         $params['voucher_amount'] = $voucher_details['amount'];
-//                         $params['voucher_code'] = $voucher_details['voucher_name'];
-//                         $params['voucher_type'] = $voucher_details['voucher_type'];
-//                     }
-//                 }
-
-//                 /* POINTS */
-//                 if ($res['points_amount'] > 0.0001) {
-//                     $params['points_discount'] = $res['points_amount'];
-//                 }
-
-//                 /* SET COMMISSION */
-//                 if (Yii::app()->functions->isMerchantCommission($this->merchant_id)) {
-//                     $admin_commision_ontop = Yii::app()->functions->getOptionAdmin('admin_commision_ontop');
-//                     if ($com = Yii::app()->functions->getMerchantCommission($this->merchant_id)) {
-//                         $params['percent_commision'] = $com;
-//                         $params['total_commission'] = ($com / 100) * $params['total_w_tax'];
-//                         $params['merchant_earnings'] = $params['total_w_tax'] - $params['total_commission'];
-//                         if ($admin_commision_ontop == 1) {
-//                             $params['total_commission'] = ($com / 100) * $params['sub_total'];
-//                             $params['commision_ontop'] = $admin_commision_ontop;
-//                             $params['merchant_earnings'] = $params['sub_total'] - $params['total_commission'];
-//                         }
-//                     }
-
-//                     /** check if merchant commission is fixed  */
-//                     $merchant_com_details = Yii::app()->functions->getMerchantCommissionDetails($this->merchant_id);
-//                     if ($merchant_com_details['commision_type'] == "fixed") {
-//                         $params['percent_commision'] = $merchant_com_details['percent_commision'];
-//                         $params['total_commission'] = $merchant_com_details['percent_commision'];
-//                         $params['merchant_earnings'] = $params['total_w_tax'] - $merchant_com_details['percent_commision'];
-//                         $params['commision_type'] = 'fixed';
-
-//                         if ($admin_commision_ontop == 1) {
-//                             $params['merchant_earnings'] = $params['sub_total'] - $merchant_com_details['percent_commision'];
-//                         }
-//                     }
-//                 }
-//                 /* END COMMISSION */
-
-//                 if (!is_numeric($params['cc_id'])) {
-//                     unset($params['cc_id']);
-//                 }
-//                 if (!is_numeric($params['order_change'])) {
-//                     unset($params['order_change']);
-//                 }
-
-//                 /* BEGIN INSERT ORDER */
-//                 if (!is_numeric($params['sub_total'])) {
-//                     $params['sub_total'] = 0;
-//                 }
-//                 if (!is_numeric($params['tax'])) {
-//                     $params['tax'] = 0;
-//                 }
-//                 if (!is_numeric($params['taxable_total'])) {
-//                     $params['taxable_total'] = 0;
-//                 }
-//                 if (!is_numeric($params['total_w_tax'])) {
-//                     $params['total_w_tax'] = 0;
-//                 }
-
-//                 if (isset($params['order_change'])) {
-//                     if (!is_numeric($params['order_change'])) {
-//                         $params['order_change'] = 0;
-//                     }
-//                 }
-//                 if (!is_numeric($params['card_fee'])) {
-//                     $params['card_fee'] = 0;
-//                 }
-//                 if (!is_numeric($params['packaging'])) {
-//                     $params['packaging'] = 0;
-//                 }
-//                 if (!is_numeric($params['donot_apply_tax_delivery'])) {
-//                     unset($params['donot_apply_tax_delivery']);
-//                 }
-//                 if (!is_numeric($params['apply_food_tax'])) {
-//                     unset($params['apply_food_tax']);
-//                 }
-
-//                 if (isset($params['percent_commision'])) {
-//                     if (!is_numeric($params['percent_commision'])) {
-//                         $params['percent_commision'] = 0;
-//                     }
-//                 }
-
-//                 if (isset($params['total_commission'])) {
-//                     if (!is_numeric($params['total_commission'])) {
-//                         $params['total_commission'] = 0;
-//                     }
-//                 }
-
-//                 if (isset($params['merchant_earnings'])) {
-//                     if (!is_numeric($params['merchant_earnings'])) {
-//                         $params['merchant_earnings'] = 0;
-//                     }
-//                 }
-                
-
-
-//                 if ($db->insertData("{{order}}", $params)) {
-//                     $order_id = Yii::app()->db->getLastInsertID();
-
-//                     $params_history = array(
-//                         'order_id' => $order_id,
-//                         'status' => initialStatus(),
-//                         'remarks' => '',
-//                         'date_created' => FunctionsV3::dateNow(),
-//                         'ip_address' => $_SERVER['REMOTE_ADDR']
-//                     );
-//                     $db->insertData("{{order_history}}", $params_history);
-
-//                     $next_step = "receipt";
-//                     /* SAVE ITEM */
-//                     foreach ($raw['item'] as $val) {
-//                         $params_order_details = array(
-//                             'order_id' => isset($order_id) ? $order_id : '',
-//                             'client_id' => $client_id,
-//                             'item_id' => isset($val['item_id']) ? $val['item_id'] : '',
-//                             'item_name' => isset($val['item_name']) ? $val['item_name'] : '',
-//                             'order_notes' => isset($val['order_notes']) ? $val['order_notes'] : '',
-//                             'normal_price' => isset($val['normal_price']) ? $val['normal_price'] : '',
-//                             'discounted_price' => isset($val['discounted_price']) ? $val['discounted_price'] : '',
-//                             'size' => isset($val['size_words']) ? $val['size_words'] : '',
-//                             'qty' => isset($val['qty']) ? $val['qty'] : '',
-//                             'addon' => isset($val['sub_item']) ? json_encode($val['sub_item']) : '',
-//                             'cooking_ref' => isset($val['cooking_ref']) ? $val['cooking_ref'] : '',
-//                             'ingredients' => isset($val['ingredients']) ? json_encode($val['ingredients']) : '',
-//                             'non_taxable' => isset($val['non_taxable']) ? $val['non_taxable'] : 1
-//                         );
-//                         $db->insertData("{{order_details}}", $params_order_details);
-//                     }
-
-//                     /* SAVE DELIVERY ADDRESS */
-//                     if ($transaction_type == "delivery") {
-//                         $res['zipcode'] = $this->data['zipcode'];
-//                         $res['street'] = $this->data['street'];
-//                         $res['city'] = $this->data['city'];
-//                         $res['state'] = $this->data['state'];
-//                         $res['delivery_contact'] = $this->data['delivery_contact'];
-//                         $res['delivery_instructions'] = $this->data['delivery_instructions'];
-//                         $res['delivery_appartment'] = $this->data['delivery_appartment'];
-//                         $params_address = array(
-//                             'order_id' => $order_id,
-//                             'client_id' => $client_id,
-//                             'street' => isset($res['street']) ? $res['street'] : '',
-//                             'city' => isset($res['city']) ? $res['city'] : '',
-//                             'state' => isset($res['state']) ? $res['state'] : '',
-//                             'zipcode' => isset($res['zipcode']) ? $res['zipcode'] : '',
-//                             'location_name' => isset($res['location_name']) ? $res['location_name'] : '',
-//                             'contact_phone' => isset($res['contact_phone']) ? $res['contact_phone'] : '',
-//                             'country' => Yii::app()->functions->adminCountry(),
-//                             'date_created' => FunctionsV3::dateNow(),
-//                             'ip_address' => $_SERVER['REMOTE_ADDR'],
-//                             'google_lat' => isset($res['delivery_lat']) ? $res['delivery_lat'] : '',
-//                             'google_lng' => isset($res['delivery_long']) ? $res['delivery_long'] : '',
-//                             'contact_phone' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-//                             'delivery_instructions' => isset($res['delivery_instructions']) ? $res['delivery_instructions'] : '',
-//                             'delivery_appartment' => isset($res['delivery_appartment']) ? $res['delivery_appartment'] : '',
-//                             'delivery_contact' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-//                         );
-//                         if ($search_mode == "location") {
-//                             $db->insertData("{{order_delivery_address}}", $params_address);
-//                         } else {
-//                             $db->insertData("{{order_delivery_address}}", $params_address);
-//                         }
-                        
-//                         //here saving the asap
-                        
-//                           ///updating the daTa
-            
-            
-          
-//             //end data
-                        
-//                         //end asap
-                        
-                        
-//                     }
-
-//                     /* SAVE ADDRESS */
-//                     if (isset($res['save_address'])) {
-//                         if ($res['save_address'] == 1) {
-//                             if ($search_mode == "location") {
-//                                 if (!LocationWrapper::isAddressBookExist(
-//                                                 $client_id,
-//                                                 $res['state_id'],
-//                                                 $res['city_id'],
-//                                                 $res['area_id']
-//                                         )) {
-//                                     $params_address_book = array(
-//                                         'client_id' => $client_id,
-//                                         'street' => $res['street'],
-//                                         'location_name' => $res['location_name'],
-//                                         'state_id' => $res['state_id'],
-//                                         'city_id' => $res['city_id'],
-//                                         'area_id' => $res['area_id'],
-//                                         'date_created' => FunctionsV3::dateNow(),
-//                                         'latitude' => $res['delivery_lat'],
-//                                         'longitude' => $res['delivery_long'],
-//                                         'ip_address' => $_SERVER['REMOTE_ADDR']
-//                                     );
-//                                     $db->insertData("{{address_book_location}}", $params_address_book);
-//                                 }
-//                             } else {
-//                                 if (!mobileWrapper::getBookAddress($client_id, $res['street'], $res['city'], $res['state'])) {
-//                                     if (!empty($res['street'])) {
-//                                         $params_address_book = array(
-//                                             'client_id' => $client_id,
-//                                             'street' => $res['street'],
-//                                             'city' => $res['city'],
-//                                             'state' => $res['state'],
-//                                             'zipcode' => $res['zipcode'],
-//                                             'location_name' => $res['location_name'],
-//                                             'country_code' => getOptionA('admin_country_set'),
-//                                             'as_default' => 1,
-//                                             'date_created' => FunctionsV3::dateNow(),
-//                                             'latitude' => $res['delivery_lat'],
-//                                             'longitude' => $res['delivery_long'],
-//                                             'ip_address' => $_SERVER['REMOTE_ADDR']
-//                                         );
-//                                         $db->insertData("{{address_book}}", $params_address_book);
-//                                     }
-//                                 } //else echo 'd1';
-//                             }
-//                         } //else echo 'd2';
-//                     } //else echo 'd3';
-
-//                     $this->code = 1;
-//                     $this->msg = Yii::t("mobile2", "Your this order has been placed. Reference # [order_id]", array(
-//                                 '[order_id]' => $order_id
-//                     ));
-                    
-//                     ///here is the order completed and placing the door dash apiii
-//                     //  $order_id = '351170';  //created by the app side
-//                   //   $order_id = '351116';   //created by the app web  
-//         // echo $order_id;          
-//         // echo $transaction_type;
-//         //  echo "<pre>"; print_r($merchant_info); echo "data"; 
-//         //  print_r($this->data); exit('rthuthuht');  
-//         // exit(' ii'); 
-//                  $data=Yii::app()->functions->getOrder2($order_id);
-                 
-                 
-//                 // echo "<pre>"; 
-//                 // echo "data"; print_r($data); exit('rthuthuht');  
-
-//              if($merchant_info['service'] == 8 &&  ($this->data['trans_type'] == 'delivery' || $this->data['trans_type'] == 'Delivery') ){
-// 	                 ////START  PLACE uppar code here
-	                 
-// 	               //  print_r($data); exit('111');
-	                 
-//         	               //$time_in_selected = $this->data['time_in_selected'];
-//         	               //$data['delivery_asap'] = $this->data['delivery_asap'];
-        	               
-//             	            $time_in_selected = $data['delivery_time'];
-//             	           // $data['delivery_asap'] = '1';
-        	    
-// 				// 			$order_id = $this->data['order_id'];
-				
-// 				            $order_id = $data['order_id'];
-				
-// 				// 			$confirmed = $this->data['confirmed'];
-							
-// 							$confirmed = $data['confirmed'];
-							
-// 							if($data['delivery_asap'] = '1'){
-							   
-// 							    $time_in_selected = '20';
-					
-// 								$delivery_time = date('G:i',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-// 								$delivery_timee = date('h:i A',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-// 								// print_r($delivery_timee); exit('xxx');
-// 								// $delivery_time = date('G:i',strtotime('+20 minutes'));	
-// 							}else
-// 							{
-// 								$delivery_time = $data['delivery_time'];
-// 								$delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-								
-// 								// print_r($delivery_timee); exit('sfs');
-// 								// $delivery_timee = $data['delivery_time'];	
-// 							}
-	                
-// 	                 //END
-	               
-//                           $the_date = strtotime($data['delivery_date']." ".$delivery_time);
-                          
-                          	
-                           
-//                                 date_default_timezone_set('UTC');
-//                                 $doordash_date = date('Y-m-d',$the_date);
-//                                 $doordash_time = date('G:i:s',$the_date);
-//                                 $delivery_date = $doordash_date."T".$doordash_time.'Z';
-                                
-//                                 // print_r($delivery_date); exit('sfs');    // okay hai
-                                
-                                
-                                
-                              
- 
-
-//              $doordash_result = FunctionsV3::createDoordashDeliveryAppSide($delivery_date,$data,$merchant_info,$time_in_selected,$confirmed);
-
-// // echo "<pre>";  print_r($data['doordash_drive_tracking_link']);
-// // print_r($data); 
-// // exit('rthuthuht'); 
- 
-//               //here working fine
-
-//               //for further handeling
-              
-//                                     if($doordash_result['code'] == 2){
-//                                     $this->code=3;
-//                                     $this->msg=$doordash_result['msg'];
-//                                     $this->output();
-//                                 }
-                                
-          
-           
-
-//             //end the email
-
-//                                 $timezone=Yii::app()->functions->getOption("merchant_timezone",$merchant_id);
-//                                 if (!empty($timezone)){
-//                                     date_default_timezone_set($timezone);
-                                
-//                                 // $data=Yii::app()->functions->getOrder2($this->data['order_id']);
-//                                 $delivery_time = $data['delivery_time'];
-//                                 $date['doordash_drive_pickup_time'] = date('h:i A',strtotime( $data['doordash_drive_pickup_time']));
-//                                 $delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-//                             }else {
-//                                 $params = array(
-//                                     'confirmed' => $confirmed,
-//                                     'pickup_in' => $time_in_selected,
-//                                     'delivery_time' => $delivery_time,
-//                                 );
-//                                 $DbExt = new DbExt;
-//                                 $DbExt->updateData("{{order}}", $params, 'order_id', $order_id);
-//                             }
-                            
-    
-// 						$this->code=1;
-// 						$this->msg="OK";
-              
-//               //end 
-             
-//          }
-                    
-//                 ///here is the ending of door dash api
-                    
-                    
-//                     // echo "<pre>";  print_r($order_id); print_r($data); exit('rthuthuht'); 
-
-//                     $provider_credentials = array();
-//                     $redirect_url = '';
-
-//                     /* SAVE POINTS */
-//                     switch ($payment_provider) {
-
-//                         default:
-//                             mobileWrapper::savePoints(
-//                                     $this->device_uiid,
-//                                     $client_id,
-//                                     $this->merchant_id,
-//                                     $order_id,
-//                                     'initial_order'
-//                             );
-//                             break;
-//                     }
-
-//                     /* PAYMENT DATA */
-//                     switch ($payment_provider) {
-//                         case "cod":
-//                         case "ccr":
-//                         case "ocr":
-//                         case "pyr":
-                            
-//                             mobileWrapper::sendNotification($order_id);
-//                             mobileWrapper::clearCart($this->device_uiid);
-//                             mobileWrapper::executeAddons($order_id);
-
-//                             break;
-
-//                         case "obd":
-//                             FunctionsV3::sendBankInstructionPurchase(
-//                                     $this->merchant_id,
-//                                     $order_id,
-//                                     isset($params['total_w_tax']) ? $params['total_w_tax'] : 0,
-//                                     $client_id
-//                             );
-
-//                             mobileWrapper::sendNotification($order_id);
-//                             mobileWrapper::clearCart($this->device_uiid);
-//                             mobileWrapper::executeAddons($order_id);
-
-//                             break;
-
-//                         case "rzr":
-//                             $next_step = "init_" . $payment_provider;
-//                             $provider_credentials = FunctionsV3::razorPaymentCredentials($this->merchant_id);
-//                             if (!$provider_credentials) {
-//                                 $this->code = 2;
-//                                 $this->msg = $this->t("Merchant payment credentials not properly set");
-//                             }
-//                             break;
-
-//                         case "btr":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/braintree?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "paypal_v2":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/paypal?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "stp":
-//                             $next_step = 'init_stp';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/stripe?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             if($this->data['trans_type'] != 'delivery' || $this->data['trans_type'] != 'Delivery'){
-//                                 mobileWrapper::sendNotification($order_id);
-//                             }
-//                             break;
-
-//                         case "mercadopago":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mercadopago?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "vog":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/voguepay?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "mollie":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mollie?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         case "pagseguro":
-//                             $next_step = 'init_webview';
-//                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/pagseguro?id=" . urlencode($order_id) . "&lang=$lang_code";
-//                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-//                             break;
-
-//                         default:
-//                             $next_step = "init_" . $payment_provider;
-//                             break;
-//                     }
-
-//                     $client_info = array(
-//                         'first_name' => $client_info['first_name'],
-//                         'last_name' => $client_info['last_name'],
-//                         'email_address' => $client_info['email_address'],
-//                         'contact_phone' => $client_info['contact_phone'],
-//                     );
-                    
-                   
-//                     $payment_description = Yii::t("mobile2", "Payment to merchant [merchant_name]. Order ID#[order]", array(
-//                                 '[merchant_name]' => clearString($merchant_info['restaurant_name']),
-//                                 '[order]' => $order_id
-//                     ));
-                    
-                    
-                 
-
-//                     $total = number_format($params['total_w_tax'], 2, '.', '');
-
-//                     $this->details = array(
-//                         'order_id' => $order_id,
-//                         'total_amount' => $params['total_w_tax'],
-//                         'total_amount_by_100' => $total * 100,
-//                         'total_amount_formatted' => $total,
-//                         'card_fee' => (float) $params['card_fee'],
-//                         'sub_less_card_fee' => (float) $params['total_w_tax'] - (float) $params['card_fee'],
-//                         'payment_provider' => $payment_provider,
-//                         'next_step' => $next_step,
-//                         'currency_code' => Yii::app()->functions->adminCurrencyCode(),
-//                         'payment_description' => $payment_description,
-//                         'merchant_name' => clearString($merchant_info['restaurant_name']),
-//                         'provider_credentials' => $provider_credentials,
-//                         'redirect_url' => $redirect_url,
-//                         'client_info' => $client_info
-//                     );
-                    
-                    
- 
-//                 } else
-//                     $this->msg = $this->t("Something went wrong cannot insert records. please try again later");
-//             } else
-//                 $this->msg = $msg;
-//         } else
-//             $this->msg = $this->t("Cart is empty");
-
-//         $this->output();
-//     }
-    
-    ///end
-    
-    //creating test function 
-    
-    //making the Test4 function live 
-    //last changes
-    
-  
-    
-      public function actionpayNow() {
-          
         $db = new DbExt();
         $this->setMerchantTimezone();
         $lang_code = Yii::app()->language;
@@ -15356,18 +7480,17 @@ class ApiController extends CController {
         $search_resp = mobileWrapper::searchMode();
         $search_mode = $search_resp['search_mode'];
         $location_mode = $search_resp['location_mode'];
-        
+
         $token = isset($this->data['user_token']) ? $this->data['user_token'] : '';
         if (!$client_info = mobileWrapper::getCustomerByToken($token)) {
             $this->msg = $this->t("Invalid token, please relogin again");
             $this->output();
         }
-        
+
         if (!$merchant_info = FunctionsV3::getMerchantInfo($this->merchant_id)) {
             $this->msg = $this->t("invalid merchant id");
             $this->output();
         }
-        
 
         $client_id = $client_info['client_id'];
         $email_address = $client_info['email_address'];
@@ -15379,23 +7502,8 @@ class ApiController extends CController {
 
         $transaction_type = isset($this->data['transaction_type']) ? $this->data['transaction_type'] : '';
         $delivery_date = isset($this->data['delivery_date']) ? $this->data['delivery_date'] : '';
-        
         $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-        
-        $delivery_asap = isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '';
-        
-        if(($this->data['delivery_time'] == 'ASAP') || ($this->data['delivery_time'] == 'asap') ){
-            
-            date_default_timezone_set('UTC');    
-            $delivery_time = date('h:i A');
-            $endTime = strtotime("+1 minutes", strtotime($delivery_time));
-            $delivery_time = date('h:i A', $endTime);
-        }
-        else{
-            
-            $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-        }
-        // $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
+
         $payment_provider = isset($this->data['payment_provider']) ? $this->data['payment_provider'] : '';
 
         if (empty($delivery_date)) {
@@ -15413,18 +7521,22 @@ class ApiController extends CController {
 
         $delivery_time_formated = '';
         if (!empty($delivery_time)) {
-            $delivery_time_formated = date('h:i A', strtotime($delivery_time));
-        } else{
+            $delivery_time_formated = $delivery_time;// date('h:i A', strtotime($delivery_time));
+        } else {
             $delivery_time_formated = date('h:i A');
+            //12-05-2023
             $delivery_time = date('h:i A');
+            $delivery_time = date('h:i A', strtotime($delivery_time));
+
         }
-            
-        
+
+
         if (!Yii::app()->functions->isMerchantOpenTimes($this->merchant_id, $delivery_day, $delivery_time_formated)) {
             $date_close = date("F,d l Y h:ia", strtotime($full_delivery));
             $this->msg = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-                        '[date_close]' => $date_close
-            ));
+                '[date_close]' => $date_close
+            )
+            );
             $this->output();
         }
 
@@ -15432,14 +7544,16 @@ class ApiController extends CController {
         if ($res_holiday = Yii::app()->functions->getMerchantHoliday($this->merchant_id)) {
             if (in_array($delivery_date, $res_holiday)) {
                 $this->msg = Yii::t("mobile2", "were close on [date]", array(
-                            '[date]' => FunctionsV3::prettyDate($delivery_date)
-                ));
+                    '[date]' => FunctionsV3::prettyDate($delivery_date)
+                )
+                );
 
                 $close_msg = getOption($this->merchant_id, 'merchant_close_msg_holiday');
                 if (!empty($close_msg)) {
                     $this->msg = Yii::t("default", $close_msg, array(
-                                '[date]' => FunctionsV3::prettyDate($delivery_date)
-                    ));
+                        '[date]' => FunctionsV3::prettyDate($delivery_date)
+                    )
+                    );
                 }
                 $this->output();
             }
@@ -15462,9 +7576,9 @@ class ApiController extends CController {
                 }
             }
         }
-    
+
         if ($res = mobileWrapper::getCart($this->device_uiid)) {
-         
+
             $cart = json_decode($res['cart'], true);
             $card_fee = 0;
 
@@ -15528,12 +7642,10 @@ class ApiController extends CController {
                 'merchant_id' => $this->merchant_id,
                 'card_fee' => $card_fee
             );
-            
-            
-            // print_r($res); exit('response');
 
             $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
             if (is_array($voucher_details) && count($voucher_details) >= 1) {
+                $data['promo_name'] = 'Promo by Dindin';
                 $data['voucher_name'] = $voucher_details['voucher_name'];
                 $data['voucher_amount'] = $voucher_details['amount'];
                 $data['voucher_type'] = $voucher_details['voucher_type'];
@@ -15556,7 +7668,7 @@ class ApiController extends CController {
             if ($res['delivery_fee'] > 0.0001) {
                 $data['delivery_charge'] = $res['delivery_fee'];
             }
-            
+
             Yii::app()->functions->displayOrderHTML($data, $cart);
             $code = Yii::app()->functions->code;
             $msg = Yii::app()->functions->msg;
@@ -15576,8 +7688,9 @@ class ApiController extends CController {
                 if (empty($donot_apply_tax_delivery)) {
                     $donot_apply_tax_delivery = 1;
                 }
-                
 
+                // echo $delivery_time;
+                // exit('123');
                 $params = array(
                     'merchant_id' => $this->merchant_id,
                     'client_id' => $client_id,
@@ -15591,6 +7704,7 @@ class ApiController extends CController {
                     'delivery_charge' => isset($raw['total']['delivery_charges']) ? $raw['total']['delivery_charges'] : 0,
                     'delivery_date' => $delivery_date,
                     'delivery_time' => $delivery_time,
+                    // 'delivery_time' => date('h:i A'),
                     'delivery_asap' => isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '',
                     'date_created' => FunctionsV3::dateNow(),
                     'ip_address' => $_SERVER['REMOTE_ADDR'],
@@ -15605,7 +7719,7 @@ class ApiController extends CController {
                     'request_from' => "mobileapp2",
                     'apply_food_tax' => $is_apply_tax,
                 );
-            
+
                 $order_id_token = $params['order_id_token'];
 
                 /* TIPS */
@@ -15615,10 +7729,8 @@ class ApiController extends CController {
                         $params['cart_tip_value'] = $raw['total']['tips'];
                     }
                 }
-                
 
                 switch ($transaction_type) {
-                    
                     case "dinein":
                         $params['dinein_number_of_guest'] = isset($this->data['dinein_number_of_guest']) ? $this->data['dinein_number_of_guest'] : '';
                         $params['dinein_special_instruction'] = isset($this->data['dinein_special_instruction']) ? $this->data['dinein_special_instruction'] : '';
@@ -15629,30 +7741,30 @@ class ApiController extends CController {
                             if (!empty($this->data['contact_phone'])) {
                                 $db->updateData("{{client}}", array(
                                     'contact_phone' => $this->data['contact_phone']
-                                        ), 'client_id', $client_id);
+                                ), 'client_id', $client_id);
                             }
                         }
                         break;
 
                     case "delivery":
                         $delivery_asap = '';
-                        if (isset($delivery_asap)) {
-                            
-                            $delivery_asap = $this->data['delivery_asap'] == "true" ? 1 : '';
-                           
+
+                        if (isset($this->data['delivery_asap'])) {
+                            //changes 11-27-2023, when auto confirm is off, type is delievery and ASAP, the value was not assigning properly.
+                            //before
+                            //$delivery_asap = $this->data['delivery_asap'] == "true" ? 1 : '';
+                            //after fix
+                            $delivery_asap = $this->data['delivery_asap'] == 1 ? 1 : '';
+
                             $params['delivery_asap'] = $delivery_asap;
-                               
                         }
                         break;
 
                     default:
                         break;
                 }
-                
-                
-              
-                
 
+                //exit('outside');
                 /* DEFAULT ORDER STATUS */
                 $default_order_status = getOption($this->merchant_id, 'default_order_status');
                 switch ($payment_provider) {
@@ -15785,7 +7897,7 @@ class ApiController extends CController {
                         $params['merchant_earnings'] = 0;
                     }
                 }
-                
+
 
 
                 if ($db->insertData("{{order}}", $params)) {
@@ -15854,30 +7966,20 @@ class ApiController extends CController {
                         } else {
                             $db->insertData("{{order_delivery_address}}", $params_address);
                         }
-                        
-                        //here saving the asap
-                        
-                          ///updating the daTa
-            
-            
-          
-            //end data
-                        
-                        //end asap
-                        
-                        
                     }
 
                     /* SAVE ADDRESS */
                     if (isset($res['save_address'])) {
                         if ($res['save_address'] == 1) {
                             if ($search_mode == "location") {
-                                if (!LocationWrapper::isAddressBookExist(
-                                                $client_id,
-                                                $res['state_id'],
-                                                $res['city_id'],
-                                                $res['area_id']
-                                        )) {
+                                if (
+                                    !LocationWrapper::isAddressBookExist(
+                                        $client_id,
+                                        $res['state_id'],
+                                        $res['city_id'],
+                                        $res['area_id']
+                                    )
+                                ) {
                                     $params_address_book = array(
                                         'client_id' => $client_id,
                                         'street' => $res['street'],
@@ -15918,131 +8020,25 @@ class ApiController extends CController {
 
                     $this->code = 1;
                     $this->msg = Yii::t("mobile2", "Your this order has been placed. Reference # [order_id]", array(
-                                '[order_id]' => $order_id
-                    ));
-                    
-                    ///here is the order completed and placing the door dash apiii
-                    //  $order_id = '351170';  //created by the app side
-                  //   $order_id = '351116';   //created by the app web  
-        // echo $order_id;          
-        // echo $transaction_type;
-        //  echo "<pre>"; print_r($merchant_info); echo "data"; 
-        //  print_r($this->data); exit('rthuthuht');  
-        // exit(' ii'); 
-                 $data=Yii::app()->functions->getOrder2($order_id);
-                 
-                 
-                // echo "<pre>"; 
-                // echo "data"; print_r($data); exit('rthuthuht');  
+                        '[order_id]' => $order_id
+                    )
+                    );
 
-//              if($merchant_info['service'] == 8 &&  ($this->data['trans_type'] == 'delivery' || $this->data['trans_type'] == 'Delivery') ){
-// 	                 ////START  PLACE uppar code here
-	                 
-// 	               //  print_r($data); exit('111');
-	                 
-//         	               //$time_in_selected = $this->data['time_in_selected'];
-//         	               //$data['delivery_asap'] = $this->data['delivery_asap'];
-        	               
-//             	            $time_in_selected = $data['delivery_time'];
-//             	           // $data['delivery_asap'] = '1';
-        	    
-// 				// 			$order_id = $this->data['order_id'];
-				
-// 				            $order_id = $data['order_id'];
-				
-// 				// 			$confirmed = $this->data['confirmed'];
-							
-// 							$confirmed = $data['confirmed'];
-							
-// 							if($data['delivery_asap'] = '1'){
-							   
-// 							    $time_in_selected = '20';
-					
-// 								$delivery_time = date('G:i',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-// 								$delivery_timee = date('h:i A',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-// 								// print_r($delivery_timee); exit('xxx');
-// 								// $delivery_time = date('G:i',strtotime('+20 minutes'));	
-// 							}else
-// 							{
-// 								$delivery_time = $data['delivery_time'];
-// 								$delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-								
-// 								// print_r($delivery_timee); exit('sfs');
-// 								// $delivery_timee = $data['delivery_time'];	
-// 							}
-	                
-// 	                 //END
-	               
-//                           $the_date = strtotime($data['delivery_date']." ".$delivery_time);
-                          
-                          	
-                           
-//                                 date_default_timezone_set('UTC');
-//                                 $doordash_date = date('Y-m-d',$the_date);
-//                                 $doordash_time = date('G:i:s',$the_date);
-//                                 $delivery_date = $doordash_date."T".$doordash_time.'Z';
-                                
-//                                 // print_r($delivery_date); exit('sfs');    // okay hai
-                                
-                                
-                                
-                              
- 
+                    //auto prep time 
+                    $merchant_enabled_auto_confirm_prep_time = getOption($this->merchant_id, 'merchant_enabled_auto_confirm_prep_time');
+                    $merchant_auto_prep_time = getOption($this->merchant_id, 'merchant_auto_prep_time');
 
-//              $doordash_result = FunctionsV3::createDoordashDeliveryAppSide($delivery_date,$data,$merchant_info,$time_in_selected,$confirmed);
+                    if (
+                        ($merchant_enabled_auto_confirm_prep_time != '' && $merchant_enabled_auto_confirm_prep_time == 1) && ($merchant_auto_prep_time != '') &&
+                        (isset($this->data['delivery_asap']) && $this->data['delivery_asap'] == 1)
+                    ) {
 
-// // echo "<pre>";  print_r($data['doordash_drive_tracking_link']);
-// // print_r($data); 
-// // exit('rthuthuht'); 
- 
-//               //here working fine
+                        $this->UpdateStatusPrepTime($order_id, 0, $merchant_auto_prep_time);
 
-//               //for further handeling
-              
-//                                     if($doordash_result['code'] == 2){
-//                                     $this->code=3;
-//                                     $this->msg=$doordash_result['msg'];
-//                                     $this->output();
-//                                 }
-                                
-          
-           
+                    }
 
-//             //end the email
 
-//                                 $timezone=Yii::app()->functions->getOption("merchant_timezone",$merchant_id);
-//                                 if (!empty($timezone)){
-//                                     date_default_timezone_set($timezone);
-                                
-//                                 // $data=Yii::app()->functions->getOrder2($this->data['order_id']);
-//                                 $delivery_time = $data['delivery_time'];
-//                                 $date['doordash_drive_pickup_time'] = date('h:i A',strtotime( $data['doordash_drive_pickup_time']));
-//                                 $delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-//                             }else {
-//                                 $params = array(
-//                                     'confirmed' => $confirmed,
-//                                     'pickup_in' => $time_in_selected,
-//                                     'delivery_time' => $delivery_time,
-//                                 );
-//                                 $DbExt = new DbExt;
-//                                 $DbExt->updateData("{{order}}", $params, 'order_id', $order_id);
-//                             }
-                            
-    
-// 						$this->code=1;
-// 						$this->msg="OK";
-              
-//               //end 
-             
-//          }
-                    
-                ///here is the ending of door dash api
-                    
-                    
-                    // echo "<pre>";  print_r($order_id); print_r($data); exit('rthuthuht'); 
-
+                    // auto prep time end
                     $provider_credentials = array();
                     $redirect_url = '';
 
@@ -16051,11 +8047,11 @@ class ApiController extends CController {
 
                         default:
                             mobileWrapper::savePoints(
-                                    $this->device_uiid,
-                                    $client_id,
-                                    $this->merchant_id,
-                                    $order_id,
-                                    'initial_order'
+                                $this->device_uiid,
+                                $client_id,
+                                $this->merchant_id,
+                                $order_id,
+                                'initial_order'
                             );
                             break;
                     }
@@ -16066,8 +8062,8 @@ class ApiController extends CController {
                         case "ccr":
                         case "ocr":
                         case "pyr":
-                            
-                            // mobileWrapper::sendNotification($order_id);
+
+                            mobileWrapper::sendNotification($order_id);
                             mobileWrapper::clearCart($this->device_uiid);
                             mobileWrapper::executeAddons($order_id);
 
@@ -16075,13 +8071,13 @@ class ApiController extends CController {
 
                         case "obd":
                             FunctionsV3::sendBankInstructionPurchase(
-                                    $this->merchant_id,
-                                    $order_id,
-                                    isset($params['total_w_tax']) ? $params['total_w_tax'] : 0,
-                                    $client_id
+                                $this->merchant_id,
+                                $order_id,
+                                isset($params['total_w_tax']) ? $params['total_w_tax'] : 0,
+                                $client_id
                             );
 
-                            // mobileWrapper::sendNotification($order_id);
+                            mobileWrapper::sendNotification($order_id);
                             mobileWrapper::clearCart($this->device_uiid);
                             mobileWrapper::executeAddons($order_id);
 
@@ -16112,7 +8108,7 @@ class ApiController extends CController {
                             $next_step = 'init_stp';
                             $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/stripe?id=" . urlencode($order_id) . "&lang=$lang_code";
                             $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-                            if($this->data['trans_type'] != 'delivery' || $this->data['trans_type'] != 'Delivery'){
+                            if ($this->data['delivery_time'] != '') {
                                 // mobileWrapper::sendNotification($order_id);
                             }
                             break;
@@ -16152,15 +8148,12 @@ class ApiController extends CController {
                         'email_address' => $client_info['email_address'],
                         'contact_phone' => $client_info['contact_phone'],
                     );
-                    
-                   
+
                     $payment_description = Yii::t("mobile2", "Payment to merchant [merchant_name]. Order ID#[order]", array(
-                                '[merchant_name]' => clearString($merchant_info['restaurant_name']),
-                                '[order]' => $order_id
-                    ));
-                    
-                    
-                 
+                        '[merchant_name]' => clearString($merchant_info['restaurant_name']),
+                        '[order]' => $order_id
+                    )
+                    );
 
                     $total = number_format($params['total_w_tax'], 2, '.', '');
 
@@ -16180,24 +8173,6 @@ class ApiController extends CController {
                         'redirect_url' => $redirect_url,
                         'client_info' => $client_info
                     );
-                    
-               
-               //here upating the function to hit api with customer
-               
-            //   print_r($data['trans_type']); exit('sds');
-               
-               if(isset($data['trans_type']) == 'delivery'){
-                        $del_asap_update = array(
-                                    
-                                    'delivery_asap' => '1',
-                                );
-                                $DbExt = new DbExt;
-                                $DbExt->updateData("{{order}}", $del_asap_update, 'order_id', $order_id);
-               }
-               
-                
-                    
- 
                 } else
                     $this->msg = $this->t("Something went wrong cannot insert records. please try again later");
             } else
@@ -16207,875 +8182,10 @@ class ApiController extends CController {
 
         $this->output();
     }
-    
-    //endddd
-    
-    ///this is test 5
-    
-    public function actionpayNowTest5() {
-          
-        $db = new DbExt();
-        $this->setMerchantTimezone();
-        $lang_code = Yii::app()->language;
-
-        $search_resp = mobileWrapper::searchMode();
-        $search_mode = $search_resp['search_mode'];
-        $location_mode = $search_resp['location_mode'];
-        
-        $token = isset($this->data['user_token']) ? $this->data['user_token'] : '';
-        if (!$client_info = mobileWrapper::getCustomerByToken($token)) {
-            $this->msg = $this->t("Invalid token, please relogin again");
-            $this->output();
-        }
-        
-        if (!$merchant_info = FunctionsV3::getMerchantInfo($this->merchant_id)) {
-            $this->msg = $this->t("invalid merchant id");
-            $this->output();
-        }
-        
-
-        $client_id = $client_info['client_id'];
-        $email_address = $client_info['email_address'];
-
-        if (FunctionsK::emailBlockedCheck($email_address)) {
-            $this->msg = $this->t("Sorry but your email address is blocked by website admin");
-            $this->output();
-        }
-
-        $transaction_type = isset($this->data['transaction_type']) ? $this->data['transaction_type'] : '';
-        $delivery_date = isset($this->data['delivery_date']) ? $this->data['delivery_date'] : '';
-        
-        $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-        
-        $delivery_asap = isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '';
-        
-        if(($this->data['delivery_time'] == 'ASAP') || ($this->data['delivery_time'] == 'asap') ){
-            
-            date_default_timezone_set('UTC');    
-            $delivery_time = date('h:i A');
-            $endTime = strtotime("+1 minutes", strtotime($delivery_time));
-            $delivery_time = date('h:i A', $endTime);
-        }
-        else{
-            
-            $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-        }
-        // $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
-        $payment_provider = isset($this->data['payment_provider']) ? $this->data['payment_provider'] : '';
-
-        if (empty($delivery_date)) {
-            $this->msg = $this->t("Delivery date is required");
-            $this->output();
-        }
-
-        if (empty($payment_provider)) {
-            $this->msg = $this->t("Payment provider is empty. please go back and try again");
-            $this->output();
-        }
-
-        $full_delivery = "$delivery_date $delivery_time";
-        $delivery_day = strtolower(date("D", strtotime($full_delivery)));
-
-        $delivery_time_formated = '';
-        if (!empty($delivery_time)) {
-            $delivery_time_formated = date('h:i A', strtotime($delivery_time));
-        } else{
-            $delivery_time_formated = date('h:i A');
-            $delivery_time = date('h:i A');
-        }
-            
-        
-        if (!Yii::app()->functions->isMerchantOpenTimes($this->merchant_id, $delivery_day, $delivery_time_formated)) {
-            $date_close = date("F,d l Y h:ia", strtotime($full_delivery));
-            $this->msg = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
-                        '[date_close]' => $date_close
-            ));
-            $this->output();
-        }
-
-        /* CHECK IF DATE IS HOLIDAY */
-        if ($res_holiday = Yii::app()->functions->getMerchantHoliday($this->merchant_id)) {
-            if (in_array($delivery_date, $res_holiday)) {
-                $this->msg = Yii::t("mobile2", "were close on [date]", array(
-                            '[date]' => FunctionsV3::prettyDate($delivery_date)
-                ));
-
-                $close_msg = getOption($this->merchant_id, 'merchant_close_msg_holiday');
-                if (!empty($close_msg)) {
-                    $this->msg = Yii::t("default", $close_msg, array(
-                                '[date]' => FunctionsV3::prettyDate($delivery_date)
-                    ));
-                }
-                $this->output();
-            }
-        }
-
-        /* CHECK DELIVERY TIME PAST */
-        if (!empty($delivery_date) && !empty($delivery_time)) {
-            $time_1 = date('Y-m-d g:i:s a');
-            $time_2 = "$delivery_date $delivery_time";
-            $time_2 = date("Y-m-d g:i:s a", strtotime($time_2));
-            $time_diff = Yii::app()->functions->dateDifference($time_2, $time_1);
-            if (is_array($time_diff) && count($time_diff) >= 1) {
-                if ($time_diff['hours'] > 0) {
-                    $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-                    $this->output();
-                }
-                if ($time_diff['minutes'] > 0) {
-                    $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
-                    $this->output();
-                }
-            }
-        }
-    
-        if ($res = mobileWrapper::getCart($this->device_uiid)) {
-         
-            $cart = json_decode($res['cart'], true);
-            $card_fee = 0;
-
-            /* CARD FEE */
-            switch ($payment_provider) {
-                case "pyp":
-                    if (FunctionsV3::isMerchantPaymentToUseAdmin($this->merchant_id)) {
-                        $card_fee = getOptionA('admin_paypal_fee');
-                    } else {
-                        $card_fee = getOption($this->merchant_id, 'merchant_paypal_fee');
-                    }
-                    break;
-
-                case "paypal_v2":
-                    if ($credentials = PaypalWrapper::getCredentials($this->merchant_id)) {
-                        if ($credentials['card_fee'] > 0.0001) {
-                            $card_fee = $credentials['card_fee'];
-                        }
-                    }
-                    break;
-
-                case "stp":
-                    if ($credentials = StripeWrapper::getCredentials($this->merchant_id)) {
-                        if ($credentials['card_fee'] > 0.0001) {
-                            $card_fee = $credentials['card_fee'];
-                        }
-                    }
-                    break;
-
-                case "mercadopago":
-                    if ($credentials = mercadopagoWrapper::getCredentials($this->merchant_id)) {
-                        if ($credentials['card_fee'] > 0.0001) {
-                            $card_fee = $credentials['card_fee'];
-                        }
-                    }
-                    break;
-
-                case "mollie":
-                    if ($credentials = MollieWrapper::getCredentials($this->merchant_id)) {
-                        if ($credentials['card_fee'] > 0.0001) {
-                            $card_fee = $credentials['card_fee'];
-                        }
-                    }
-                    break;
-
-                case "pagseguro":
-                    if ($credentials = pagseguroWrapper::getCredentials($this->merchant_id)) {
-                        if ($credentials['card_fee'] > 0.0001) {
-                            $card_fee = $credentials['card_fee'];
-                        }
-                    }
-                    break;
-
-
-                default:
-                    break;
-            }
-
-            $data = array(
-                'delivery_type' => $transaction_type,
-                'merchant_id' => $this->merchant_id,
-                'card_fee' => $card_fee
-            );
-            
-            
-            // print_r($res); exit('response');
-
-            $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-            if (is_array($voucher_details) && count($voucher_details) >= 1) {
-                $data['voucher_name'] = $voucher_details['voucher_name'];
-                $data['voucher_amount'] = $voucher_details['amount'];
-                $data['voucher_type'] = $voucher_details['voucher_type'];
-            }
-
-            if ($res['tips'] > 0.0001) {
-                $data['cart_tip_percentage'] = $res['tips'];
-                $data['tip_enabled'] = 2;
-                $data['tip_percent'] = $res['tips'];
-            }
-
-            /* POINTS */
-            if ($res['points_amount'] > 0.0001) {
-                $data['points_amount'] = $res['points_amount'];
-            }
-            //dump($data);die();
-
-            /* DELIVERY FEE */
-            unset($_SESSION['shipping_fee']);
-            if ($res['delivery_fee'] > 0.0001) {
-                $data['delivery_charge'] = $res['delivery_fee'];
-            }
-            
-            Yii::app()->functions->displayOrderHTML($data, $cart);
-            $code = Yii::app()->functions->code;
-            $msg = Yii::app()->functions->msg;
-            if ($code == 1) {
-                $raw = Yii::app()->functions->details['raw'];
-
-                /* EURO TAX */
-                $is_apply_tax = 0;
-                if (EuroTax::isApplyTax($this->merchant_id)) {
-                    $new_total = EuroTax::computeWithTax($raw, $this->merchant_id);
-                    $raw['total'] = $new_total;
-                    $is_apply_tax = 1;
-                }
-                /* EURO TAX */
-
-                $donot_apply_tax_delivery = getOption($this->merchant_id, 'merchant_tax_charges');
-                if (empty($donot_apply_tax_delivery)) {
-                    $donot_apply_tax_delivery = 1;
-                }
-                
-
-                $params = array(
-                    'merchant_id' => $this->merchant_id,
-                    'client_id' => $client_id,
-                    'json_details' => $res['cart'],
-                    'trans_type' => $transaction_type,
-                    'payment_type' => $this->data['payment_provider'],
-                    'sub_total' => $raw['total']['subtotal'],
-                    'tax' => $raw['total']['tax'],
-                    'taxable_total' => $raw['total']['taxable_total'],
-                    'total_w_tax' => isset($raw['total']['total']) ? $raw['total']['total'] : 0,
-                    'delivery_charge' => isset($raw['total']['delivery_charges']) ? $raw['total']['delivery_charges'] : 0,
-                    'delivery_date' => $delivery_date,
-                    'delivery_time' => $delivery_time,
-                    'delivery_asap' => isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '',
-                    'date_created' => FunctionsV3::dateNow(),
-                    'ip_address' => $_SERVER['REMOTE_ADDR'],
-                    'delivery_instruction' => isset($res['delivery_instruction']) ? $res['delivery_instruction'] : '',
-                    'cc_id' => isset($this->data['cc_id']) ? $this->data['cc_id'] : '',
-                    'order_change' => isset($this->data['order_change']) ? $this->data['order_change'] : 0,
-                    'payment_provider_name' => '',
-                    'card_fee' => $card_fee,
-                    'packaging' => $raw['total']['merchant_packaging_charge'],
-                    'donot_apply_tax_delivery' => $donot_apply_tax_delivery,
-                    'order_id_token' => FunctionsV3::generateOrderToken(),
-                    'request_from' => "mobileapp2",
-                    'apply_food_tax' => $is_apply_tax,
-                );
-            
-                $order_id_token = $params['order_id_token'];
-
-                /* TIPS */
-                if (isset($raw['total']['tips'])) {
-                    if ($raw['total']['tips'] > 0.0001) {
-                        $params['cart_tip_percentage'] = $raw['total']['cart_tip_percentage'];
-                        $params['cart_tip_value'] = $raw['total']['tips'];
-                    }
-                }
-                
-
-                switch ($transaction_type) {
-                    
-                    case "dinein":
-                        $params['dinein_number_of_guest'] = isset($this->data['dinein_number_of_guest']) ? $this->data['dinein_number_of_guest'] : '';
-                        $params['dinein_special_instruction'] = isset($this->data['dinein_special_instruction']) ? $this->data['dinein_special_instruction'] : '';
-
-                        $params['dinein_table_number'] = isset($this->data['dinein_table_number']) ? $this->data['dinein_table_number'] : '';
-
-                        if (isset($this->data['contact_phone'])) {
-                            if (!empty($this->data['contact_phone'])) {
-                                $db->updateData("{{client}}", array(
-                                    'contact_phone' => $this->data['contact_phone']
-                                        ), 'client_id', $client_id);
-                            }
-                        }
-                        break;
-
-                    case "delivery":
-                        $delivery_asap = '';
-                        if (isset($delivery_asap)) {
-                            
-                            $delivery_asap = $this->data['delivery_asap'] == "true" ? 1 : '';
-                           
-                            $params['delivery_asap'] = $delivery_asap;
-                               
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-                
-                
-              
-                
-
-                /* DEFAULT ORDER STATUS */
-                $default_order_status = getOption($this->merchant_id, 'default_order_status');
-                switch ($payment_provider) {
-                    case "cod":
-                    case "obd":
-                        $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-                        break;
-                    case "ccr":
-                    case "ocr":
-                        $params['cc_id'] = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
-                        $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-                        break;
-
-                    case "pyr":
-                        $params['payment_provider_name'] = isset($this->data['selected_card']) ? $this->data['selected_card'] : '';
-                        $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
-                        break;
-
-                    default:
-                        $params['status'] = initialStatus();
-                        break;
-                }
-
-                /* PROMO */
-                //dump($raw);
-                if (isset($raw['total']['discounted_amount'])) {
-                    if ($raw['total']['discounted_amount'] >= 0.0001) {
-                        $params['discounted_amount'] = $raw['total']['discounted_amount'];
-                        $params['discount_percentage'] = $raw['total']['merchant_discount_amount'];
-                    }
-                }
-
-                /* VOUCHER */
-                if (!empty($res['voucher_details'])) {
-                    $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
-                    if (is_array($voucher_details) && count($voucher_details) >= 1) {
-                        $params['voucher_amount'] = $voucher_details['amount'];
-                        $params['voucher_code'] = $voucher_details['voucher_name'];
-                        $params['voucher_type'] = $voucher_details['voucher_type'];
-                    }
-                }
-
-                /* POINTS */
-                if ($res['points_amount'] > 0.0001) {
-                    $params['points_discount'] = $res['points_amount'];
-                }
-
-                /* SET COMMISSION */
-                if (Yii::app()->functions->isMerchantCommission($this->merchant_id)) {
-                    $admin_commision_ontop = Yii::app()->functions->getOptionAdmin('admin_commision_ontop');
-                    if ($com = Yii::app()->functions->getMerchantCommission($this->merchant_id)) {
-                        $params['percent_commision'] = $com;
-                        $params['total_commission'] = ($com / 100) * $params['total_w_tax'];
-                        $params['merchant_earnings'] = $params['total_w_tax'] - $params['total_commission'];
-                        if ($admin_commision_ontop == 1) {
-                            $params['total_commission'] = ($com / 100) * $params['sub_total'];
-                            $params['commision_ontop'] = $admin_commision_ontop;
-                            $params['merchant_earnings'] = $params['sub_total'] - $params['total_commission'];
-                        }
-                    }
-
-                    /** check if merchant commission is fixed  */
-                    $merchant_com_details = Yii::app()->functions->getMerchantCommissionDetails($this->merchant_id);
-                    if ($merchant_com_details['commision_type'] == "fixed") {
-                        $params['percent_commision'] = $merchant_com_details['percent_commision'];
-                        $params['total_commission'] = $merchant_com_details['percent_commision'];
-                        $params['merchant_earnings'] = $params['total_w_tax'] - $merchant_com_details['percent_commision'];
-                        $params['commision_type'] = 'fixed';
-
-                        if ($admin_commision_ontop == 1) {
-                            $params['merchant_earnings'] = $params['sub_total'] - $merchant_com_details['percent_commision'];
-                        }
-                    }
-                }
-                /* END COMMISSION */
-
-                if (!is_numeric($params['cc_id'])) {
-                    unset($params['cc_id']);
-                }
-                if (!is_numeric($params['order_change'])) {
-                    unset($params['order_change']);
-                }
-
-                /* BEGIN INSERT ORDER */
-                if (!is_numeric($params['sub_total'])) {
-                    $params['sub_total'] = 0;
-                }
-                if (!is_numeric($params['tax'])) {
-                    $params['tax'] = 0;
-                }
-                if (!is_numeric($params['taxable_total'])) {
-                    $params['taxable_total'] = 0;
-                }
-                if (!is_numeric($params['total_w_tax'])) {
-                    $params['total_w_tax'] = 0;
-                }
-
-                if (isset($params['order_change'])) {
-                    if (!is_numeric($params['order_change'])) {
-                        $params['order_change'] = 0;
-                    }
-                }
-                if (!is_numeric($params['card_fee'])) {
-                    $params['card_fee'] = 0;
-                }
-                if (!is_numeric($params['packaging'])) {
-                    $params['packaging'] = 0;
-                }
-                if (!is_numeric($params['donot_apply_tax_delivery'])) {
-                    unset($params['donot_apply_tax_delivery']);
-                }
-                if (!is_numeric($params['apply_food_tax'])) {
-                    unset($params['apply_food_tax']);
-                }
-
-                if (isset($params['percent_commision'])) {
-                    if (!is_numeric($params['percent_commision'])) {
-                        $params['percent_commision'] = 0;
-                    }
-                }
-
-                if (isset($params['total_commission'])) {
-                    if (!is_numeric($params['total_commission'])) {
-                        $params['total_commission'] = 0;
-                    }
-                }
-
-                if (isset($params['merchant_earnings'])) {
-                    if (!is_numeric($params['merchant_earnings'])) {
-                        $params['merchant_earnings'] = 0;
-                    }
-                }
-                
-
-
-                if ($db->insertData("{{order}}", $params)) {
-                    $order_id = Yii::app()->db->getLastInsertID();
-
-                    $params_history = array(
-                        'order_id' => $order_id,
-                        'status' => initialStatus(),
-                        'remarks' => '',
-                        'date_created' => FunctionsV3::dateNow(),
-                        'ip_address' => $_SERVER['REMOTE_ADDR']
-                    );
-                    $db->insertData("{{order_history}}", $params_history);
-
-                    $next_step = "receipt";
-                    /* SAVE ITEM */
-                    foreach ($raw['item'] as $val) {
-                        $params_order_details = array(
-                            'order_id' => isset($order_id) ? $order_id : '',
-                            'client_id' => $client_id,
-                            'item_id' => isset($val['item_id']) ? $val['item_id'] : '',
-                            'item_name' => isset($val['item_name']) ? $val['item_name'] : '',
-                            'order_notes' => isset($val['order_notes']) ? $val['order_notes'] : '',
-                            'normal_price' => isset($val['normal_price']) ? $val['normal_price'] : '',
-                            'discounted_price' => isset($val['discounted_price']) ? $val['discounted_price'] : '',
-                            'size' => isset($val['size_words']) ? $val['size_words'] : '',
-                            'qty' => isset($val['qty']) ? $val['qty'] : '',
-                            'addon' => isset($val['sub_item']) ? json_encode($val['sub_item']) : '',
-                            'cooking_ref' => isset($val['cooking_ref']) ? $val['cooking_ref'] : '',
-                            'ingredients' => isset($val['ingredients']) ? json_encode($val['ingredients']) : '',
-                            'non_taxable' => isset($val['non_taxable']) ? $val['non_taxable'] : 1
-                        );
-                        $db->insertData("{{order_details}}", $params_order_details);
-                    }
-
-                    /* SAVE DELIVERY ADDRESS */
-                    if ($transaction_type == "delivery") {
-                        $res['zipcode'] = $this->data['zipcode'];
-                        $res['street'] = $this->data['street'];
-                        $res['city'] = $this->data['city'];
-                        $res['state'] = $this->data['state'];
-                        $res['delivery_contact'] = $this->data['delivery_contact'];
-                        $res['delivery_instructions'] = $this->data['delivery_instructions'];
-                        $res['delivery_appartment'] = $this->data['delivery_appartment'];
-                        $params_address = array(
-                            'order_id' => $order_id,
-                            'client_id' => $client_id,
-                            'street' => isset($res['street']) ? $res['street'] : '',
-                            'city' => isset($res['city']) ? $res['city'] : '',
-                            'state' => isset($res['state']) ? $res['state'] : '',
-                            'zipcode' => isset($res['zipcode']) ? $res['zipcode'] : '',
-                            'location_name' => isset($res['location_name']) ? $res['location_name'] : '',
-                            'contact_phone' => isset($res['contact_phone']) ? $res['contact_phone'] : '',
-                            'country' => Yii::app()->functions->adminCountry(),
-                            'date_created' => FunctionsV3::dateNow(),
-                            'ip_address' => $_SERVER['REMOTE_ADDR'],
-                            'google_lat' => isset($res['delivery_lat']) ? $res['delivery_lat'] : '',
-                            'google_lng' => isset($res['delivery_long']) ? $res['delivery_long'] : '',
-                            'contact_phone' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-                            'delivery_instructions' => isset($res['delivery_instructions']) ? $res['delivery_instructions'] : '',
-                            'delivery_appartment' => isset($res['delivery_appartment']) ? $res['delivery_appartment'] : '',
-                            'delivery_contact' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
-                        );
-                        if ($search_mode == "location") {
-                            $db->insertData("{{order_delivery_address}}", $params_address);
-                        } else {
-                            $db->insertData("{{order_delivery_address}}", $params_address);
-                        }
-                        
-                        //here saving the asap
-                        
-                          ///updating the daTa
-            
-            
-          
-            //end data
-                        
-                        //end asap
-                        
-                        
-                    }
-
-                    /* SAVE ADDRESS */
-                    if (isset($res['save_address'])) {
-                        if ($res['save_address'] == 1) {
-                            if ($search_mode == "location") {
-                                if (!LocationWrapper::isAddressBookExist(
-                                                $client_id,
-                                                $res['state_id'],
-                                                $res['city_id'],
-                                                $res['area_id']
-                                        )) {
-                                    $params_address_book = array(
-                                        'client_id' => $client_id,
-                                        'street' => $res['street'],
-                                        'location_name' => $res['location_name'],
-                                        'state_id' => $res['state_id'],
-                                        'city_id' => $res['city_id'],
-                                        'area_id' => $res['area_id'],
-                                        'date_created' => FunctionsV3::dateNow(),
-                                        'latitude' => $res['delivery_lat'],
-                                        'longitude' => $res['delivery_long'],
-                                        'ip_address' => $_SERVER['REMOTE_ADDR']
-                                    );
-                                    $db->insertData("{{address_book_location}}", $params_address_book);
-                                }
-                            } else {
-                                if (!mobileWrapper::getBookAddress($client_id, $res['street'], $res['city'], $res['state'])) {
-                                    if (!empty($res['street'])) {
-                                        $params_address_book = array(
-                                            'client_id' => $client_id,
-                                            'street' => $res['street'],
-                                            'city' => $res['city'],
-                                            'state' => $res['state'],
-                                            'zipcode' => $res['zipcode'],
-                                            'location_name' => $res['location_name'],
-                                            'country_code' => getOptionA('admin_country_set'),
-                                            'as_default' => 1,
-                                            'date_created' => FunctionsV3::dateNow(),
-                                            'latitude' => $res['delivery_lat'],
-                                            'longitude' => $res['delivery_long'],
-                                            'ip_address' => $_SERVER['REMOTE_ADDR']
-                                        );
-                                        $db->insertData("{{address_book}}", $params_address_book);
-                                    }
-                                } //else echo 'd1';
-                            }
-                        } //else echo 'd2';
-                    } //else echo 'd3';
-
-                    $this->code = 1;
-                    $this->msg = Yii::t("mobile2", "Your this order has been placed. Reference # [order_id]", array(
-                                '[order_id]' => $order_id
-                    ));
-                    
-                    ///here is the order completed and placing the door dash apiii
-                    //  $order_id = '351170';  //created by the app side
-                  //   $order_id = '351116';   //created by the app web  
-        // echo $order_id;          
-        // echo $transaction_type;
-        //  echo "<pre>"; print_r($merchant_info); echo "data"; 
-        //  print_r($this->data); exit('rthuthuht');  
-        // exit(' ii'); 
-                //  $data=Yii::app()->functions->getOrder2($order_id);
-                 
-                // echo "<pre>"; 
-                // echo "data"; print_r($data); exit('rthuthuht');  
-
-//              if($merchant_info['service'] == 8 &&  ($this->data['trans_type'] == 'delivery' || $this->data['trans_type'] == 'Delivery') ){
-// 	                 ////START  PLACE uppar code here
-	                 
-// 	               //  print_r($data); exit('111');
-	                 
-//         	               //$time_in_selected = $this->data['time_in_selected'];
-//         	               //$data['delivery_asap'] = $this->data['delivery_asap'];
-        	               
-//             	            $time_in_selected = $data['delivery_time'];
-//             	           // $data['delivery_asap'] = '1';
-        	    
-// 				// 			$order_id = $this->data['order_id'];
-				
-// 				            $order_id = $data['order_id'];
-				
-// 				// 			$confirmed = $this->data['confirmed'];
-							
-// 							$confirmed = $data['confirmed'];
-							
-// 							if($data['delivery_asap'] = '1'){
-							   
-// 							    $time_in_selected = '20';
-					
-// 								$delivery_time = date('G:i',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-// 								$delivery_timee = date('h:i A',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
-								
-// 								// print_r($delivery_timee); exit('xxx');
-// 								// $delivery_time = date('G:i',strtotime('+20 minutes'));	
-// 							}else
-// 							{
-// 								$delivery_time = $data['delivery_time'];
-// 								$delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-								
-// 								// print_r($delivery_timee); exit('sfs');
-// 								// $delivery_timee = $data['delivery_time'];	
-// 							}
-	                
-// 	                 //END
-	               
-//                           $the_date = strtotime($data['delivery_date']." ".$delivery_time);
-                          
-                          	
-                           
-//                                 date_default_timezone_set('UTC');
-//                                 $doordash_date = date('Y-m-d',$the_date);
-//                                 $doordash_time = date('G:i:s',$the_date);
-//                                 $delivery_date = $doordash_date."T".$doordash_time.'Z';
-                                
-//                                 // print_r($delivery_date); exit('sfs');    // okay hai
-                                
-                                
-                                
-                              
- 
-
-//              $doordash_result = FunctionsV3::createDoordashDeliveryAppSide($delivery_date,$data,$merchant_info,$time_in_selected,$confirmed);
-
-// // echo "<pre>";  print_r($data['doordash_drive_tracking_link']);
-// // print_r($data); 
-// // exit('rthuthuht'); 
- 
-//               //here working fine
-
-//               //for further handeling
-              
-//                                     if($doordash_result['code'] == 2){
-//                                     $this->code=3;
-//                                     $this->msg=$doordash_result['msg'];
-//                                     $this->output();
-//                                 }
-                                
-          
-           
-
-//             //end the email
-
-//                                 $timezone=Yii::app()->functions->getOption("merchant_timezone",$merchant_id);
-//                                 if (!empty($timezone)){
-//                                     date_default_timezone_set($timezone);
-                                
-//                                 // $data=Yii::app()->functions->getOrder2($this->data['order_id']);
-//                                 $delivery_time = $data['delivery_time'];
-//                                 $date['doordash_drive_pickup_time'] = date('h:i A',strtotime( $data['doordash_drive_pickup_time']));
-//                                 $delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
-//                             }else {
-//                                 $params = array(
-//                                     'confirmed' => $confirmed,
-//                                     'pickup_in' => $time_in_selected,
-//                                     'delivery_time' => $delivery_time,
-//                                 );
-//                                 $DbExt = new DbExt;
-//                                 $DbExt->updateData("{{order}}", $params, 'order_id', $order_id);
-//                             }
-                            
-    
-// 						$this->code=1;
-// 						$this->msg="OK";
-              
-//               //end 
-             
-//          }
-                    
-                ///here is the ending of door dash api
-                // echo "<pre>";  print_r($order_id); print_r($data); exit('rthuthuht'); 
-
-                    $provider_credentials = array();
-                    $redirect_url = '';
-
-                    /* SAVE POINTS */
-                    switch ($payment_provider) {
-
-                        default:
-                            mobileWrapper::savePoints(
-                                    $this->device_uiid,
-                                    $client_id,
-                                    $this->merchant_id,
-                                    $order_id,
-                                    'initial_order'
-                            );
-                            break;
-                    }
-
-                    /* PAYMENT DATA */
-                    switch ($payment_provider) {
-                        case "cod":
-                        case "ccr":
-                        case "ocr":
-                        case "pyr":
-                            
-                         // mobileWrapper::sendNotification($order_id);
-                            mobileWrapper::clearCart($this->device_uiid);
-                            mobileWrapper::executeAddons($order_id);
-
-                            break;
-
-                        case "obd":
-                            FunctionsV3::sendBankInstructionPurchase(
-                                    $this->merchant_id,
-                                    $order_id,
-                                    isset($params['total_w_tax']) ? $params['total_w_tax'] : 0,
-                                    $client_id
-                            );
-
-                            // mobileWrapper::sendNotification($order_id);
-                            mobileWrapper::clearCart($this->device_uiid);
-                            mobileWrapper::executeAddons($order_id);
-
-                            break;
-
-                        case "rzr":
-                            $next_step = "init_" . $payment_provider;
-                            $provider_credentials = FunctionsV3::razorPaymentCredentials($this->merchant_id);
-                            if (!$provider_credentials) {
-                                $this->code = 2;
-                                $this->msg = $this->t("Merchant payment credentials not properly set");
-                            }
-                            break;
-
-                        case "btr":
-                            $next_step = 'init_webview';
-                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/braintree?id=" . urlencode($order_id) . "&lang=$lang_code";
-                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-                            break;
-
-                        case "paypal_v2":
-                            $next_step = 'init_webview';
-                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/paypal?id=" . urlencode($order_id) . "&lang=$lang_code";
-                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-                            break;
-
-                        case "stp":
-                            $next_step = 'init_stp';
-                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/stripe?id=" . urlencode($order_id) . "&lang=$lang_code";
-                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-                            if($this->data['trans_type'] != 'delivery' || $this->data['trans_type'] != 'Delivery'){
-                                // mobileWrapper::sendNotification($order_id);
-                            }
-                            break;
-
-                        case "mercadopago":
-                            $next_step = 'init_webview';
-                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mercadopago?id=" . urlencode($order_id) . "&lang=$lang_code";
-                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-                            break;
-
-                        case "vog":
-                            $next_step = 'init_webview';
-                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/voguepay?id=" . urlencode($order_id) . "&lang=$lang_code";
-                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-                            break;
-
-                        case "mollie":
-                            $next_step = 'init_webview';
-                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mollie?id=" . urlencode($order_id) . "&lang=$lang_code";
-                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-                            break;
-
-                        case "pagseguro":
-                            $next_step = 'init_webview';
-                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/pagseguro?id=" . urlencode($order_id) . "&lang=$lang_code";
-                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
-                            break;
-
-                        default:
-                            $next_step = "init_" . $payment_provider;
-                            break;
-                    }
-
-                    $client_info = array(
-                        'first_name' => $client_info['first_name'],
-                        'last_name' => $client_info['last_name'],
-                        'email_address' => $client_info['email_address'],
-                        'contact_phone' => $client_info['contact_phone'],
-                    );
-                    
-                   
-                    $payment_description = Yii::t("mobile2", "Payment to merchant [merchant_name]. Order ID#[order]", array(
-                                '[merchant_name]' => clearString($merchant_info['restaurant_name']),
-                                '[order]' => $order_id
-                    ));
-                    
-                    
-                 
-
-                    $total = number_format($params['total_w_tax'], 2, '.', '');
-
-                    $this->details = array(
-                        'order_id' => $order_id,
-                        'total_amount' => $params['total_w_tax'],
-                        'total_amount_by_100' => $total * 100,
-                        'total_amount_formatted' => $total,
-                        'card_fee' => (float) $params['card_fee'],
-                        'sub_less_card_fee' => (float) $params['total_w_tax'] - (float) $params['card_fee'],
-                        'payment_provider' => $payment_provider,
-                        'next_step' => $next_step,
-                        'currency_code' => Yii::app()->functions->adminCurrencyCode(),
-                        'payment_description' => $payment_description,
-                        'merchant_name' => clearString($merchant_info['restaurant_name']),
-                        'provider_credentials' => $provider_credentials,
-                        'redirect_url' => $redirect_url,
-                        'client_info' => $client_info
-                    );
-                    
-               
-               //here upating the function to hit api with customer
-               
-            //   print_r($data['trans_type']); exit('sds');
-               
-               if(isset($data['trans_type']) == 'delivery'){
-                        $del_asap_update = array(
-                                    
-                                    'delivery_asap' => '1',
-                                );
-                                $DbExt = new DbExt;
-                                $DbExt->updateData("{{order}}", $del_asap_update, 'order_id', $order_id);
-               }
-               
-                
-                    
- 
-                } else
-                    $this->msg = $this->t("Something went wrong cannot insert records. please try again later");
-            } else
-                $this->msg = $msg;
-        } else
-            $this->msg = $this->t("Cart is empty");
-
-        $this->output();
-    }
-    
-    
-    
-    
     //end
 
-    public function actionverifyCustomerToken() {
+    public function actionverifyCustomerToken()
+    {
         $user_token = isset($this->data['user_token']) ? $this->data['user_token'] : '';
         $action = isset($this->data['action']) ? $this->data['action'] : '';
         if ($res = mobileWrapper::getCustomerByToken($user_token)) {
@@ -17110,7 +8220,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetAddressFromCart() {
+    public function actionGetAddressFromCart()
+    {
         $country_list = require_once('CountryCode.php');
         $default_country_code = getOptionA('admin_country_set');
 
@@ -17170,7 +8281,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsetAddressBook() {
+    public function actionsetAddressBook()
+    {
         $addressbook_id = isset($this->data['addressbook_id']) ? $this->data['addressbook_id'] : '';
         if ($addressbook_id > 0) {
             if ($res = Yii::app()->functions->getAddressBookByID($addressbook_id)) {
@@ -17198,7 +8310,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionOrderList() {
+    public function actionOrderList()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -17287,9 +8400,10 @@ class ApiController extends CController {
                 $val['merchant_name'] = clearString($val['merchant_name']);
                 $val['status'] = mt($val['status']);
                 $val['transaction'] = mobileWrapper::t("[trans_type] #[order_id]", array(
-                            '[trans_type]' => t($val['trans_type']),
-                            '[order_id]' => t($val['order_id']),
-                ));
+                    '[trans_type]' => t($val['trans_type']),
+                    '[order_id]' => t($val['order_id']),
+                )
+                );
                 $val['date_created'] = FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']);
                 $val['total_w_tax'] = FunctionsV3::prettyPrice($val['total_w_tax']);
                 $val['payment_type'] = mobileWrapper::t(FunctionsV3::prettyPaymentTypeTrans($val['trans_type'], $val['payment_type']));
@@ -17303,8 +8417,10 @@ class ApiController extends CController {
                 if ($add_review) {
                     if ($val['client_id'] == $client_id) {
                         $date_diff = Yii::app()->functions->dateDifference(
-                                date('Y-m-d g:i:s a', strtotime($val['date_created_raw']))
-                                , $date_now);
+                            date('Y-m-d g:i:s a', strtotime($val['date_created_raw']))
+                            ,
+                            $date_now
+                        );
                         if (is_array($date_diff) && count($date_diff) >= 1) {
                             if ($date_diff['days'] >= 5) {
                                 $add_review = false;
@@ -17335,8 +8451,9 @@ class ApiController extends CController {
 
                 if ($val['request_cancel_status'] != 'pending') {
                     $cancel_status = Yii::t("mobile2", "Request cancel : [status]", array(
-                                '[status]' => t($val['request_cancel_status'])
-                    ));
+                        '[status]' => t($val['request_cancel_status'])
+                    )
+                    );
                 }
 
                 $val['add_cancel'] = $show_cancel;
@@ -17388,7 +8505,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionBookingList() {
+    public function actionBookingList()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -17455,19 +8573,22 @@ class ApiController extends CController {
             foreach ($res as $val) {
                 $val['status'] = mt($val['status']);
                 $val['number_guest'] = mobileWrapper::t("No. of guest [count]", array(
-                            '[count]' => $val['number_guest']
-                ));
+                    '[count]' => $val['number_guest']
+                )
+                );
                 $val['booking_ref'] = mobileWrapper::t("Booking ID#[booking_id]", array(
-                            '[booking_id]' => $val['booking_id']
-                ));
+                    '[booking_id]' => $val['booking_id']
+                )
+                );
                 $val['date_created'] = FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']);
                 $val['logo'] = mobileWrapper::getImage($val['logo']);
 
                 $ratings = Yii::app()->functions->getRatings($val['merchant_id']);
 
                 $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-                            '[count]' => $ratings['votes']
-                ));
+                    '[count]' => $ratings['votes']
+                )
+                );
                 $val['rating'] = $ratings;
 
                 $data[] = $val;
@@ -17505,7 +8626,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionFavoriteList() {
+    public function actionFavoriteList()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -17556,15 +8678,17 @@ class ApiController extends CController {
             foreach ($res as $val) {
                 $date_added = FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']);
                 $val['date_added'] = mobileWrapper::t("Added [date]", array(
-                            '[date]' => $date_added
-                ));
+                    '[date]' => $date_added
+                )
+                );
                 $val['logo'] = mobileWrapper::getImage($val['logo']);
 
                 $ratings = Yii::app()->functions->getRatings($val['merchant_id']);
 
                 $ratings['review_count'] = mobileWrapper::t("[count] reviews", array(
-                            '[count]' => $ratings['votes']
-                ));
+                    '[count]' => $ratings['votes']
+                )
+                );
                 $val['rating'] = $ratings;
 
                 $val['background_url'] = mobileWrapper::getMerchantBackground($val['merchant_id'], 'resto_banner.jpg');
@@ -17593,7 +8717,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionCrediCartList() {
+    public function actionCrediCartList()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -17638,8 +8763,9 @@ class ApiController extends CController {
             foreach ($res as $val) {
                 $date_added = FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']);
                 $val['date_added'] = mobileWrapper::t("Added [date]", array(
-                            '[date]' => $date_added
-                ));
+                    '[date]' => $date_added
+                )
+                );
                 $val['date_created'] = FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']);
                 $data[] = $val;
             }
@@ -17665,7 +8791,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionAddressBookList() {
+    public function actionAddressBookList()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -17750,8 +8877,9 @@ class ApiController extends CController {
             foreach ($res as $val) {
                 $date_added = FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']);
                 $val['date_added'] = mobileWrapper::t("Added [date]", array(
-                            '[date]' => $date_added
-                ));
+                    '[date]' => $date_added
+                )
+                );
                 $val['date_created'] = FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']);
 
                 if ($search_mode == "location") {
@@ -17784,7 +8912,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetlanguageList() {
+    public function actiongetlanguageList()
+    {
         $data = array();
         if ($lang_list = FunctionsV3::getLanguageList(false)) {
             $enabled_lang = FunctionsV3::getEnabledLanguage();
@@ -17813,18 +8942,20 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetOrderDetails() {
+    public function actiongetOrderDetails()
+    {
         $data = array();
         $order_id = isset($this->data['order_id']) ? $this->data['order_id'] : 0;
         if ($order_id > 0) {
             if ($res = mobileWrapper::orderAllDetails($order_id)) {
-                
-                $res['items'] = mobileWrapper::itemsByOrder($order_id);   
+
+                $res['items'] = mobileWrapper::itemsByOrder($order_id);
                 $res['review_as'] = '';
                 if ($clien_info = Yii::app()->functions->getClientInfo($res['client_id'])) {
                     $res['review_as'] = mobileWrapper::t("Review as [customer_name]", array(
-                                '[customer_name]' => $clien_info['first_name']
-                    ));
+                        '[customer_name]' => $clien_info['first_name']
+                    )
+                    );
                 }
                 $this->code = 1;
                 $this->msg = "ok";
@@ -17832,13 +8963,14 @@ class ApiController extends CController {
                 $res['logo'] = $res['logo'] = mobileWrapper::getImage($res['logo']);
 
                 $res['transaction'] = mobileWrapper::t("[trans_type] #[order_id]", array(
-                            '[trans_type]' => t($res['trans_type']),
-                            '[order_id]' => t($res['order_id']),
-                ));
+                    '[trans_type]' => t($res['trans_type']),
+                    '[order_id]' => t($res['order_id']),
+                )
+                );
 
                 $res['payment_type'] = mobileWrapper::t(FunctionsV3::prettyPaymentTypeTrans($res['trans_type'], $res['payment_type']));
                 $res['merchant_name'] = clearString($res['merchant_name']);
-                
+
 
                 $this->details = array(
                     'data' => $res
@@ -17850,7 +8982,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionaddReview() {
+    public function actionaddReview()
+    {
         $this->data = $_POST;
         $db = new DbExt();
         $order_id = isset($this->data['order_id']) ? $this->data['order_id'] : '';
@@ -17900,8 +9033,13 @@ class ApiController extends CController {
 
                         if (FunctionsV3::hasModuleAddon("pointsprogram")) {
                             if (method_exists('PointsProgram', 'addReviewsPerOrder')) {
-                                PointsProgram::addReviewsPerOrder($order_id,
-                                        $client_id, $review_id, $order_info['merchant_id'], $order_info['status']);
+                                PointsProgram::addReviewsPerOrder(
+                                    $order_id,
+                                    $client_id,
+                                    $review_id,
+                                    $order_info['merchant_id'],
+                                    $order_info['status']
+                                );
                             }
                         }
 
@@ -17950,8 +9088,13 @@ class ApiController extends CController {
 
                         if (FunctionsV3::hasModuleAddon("pointsprogram")) {
                             if (method_exists('PointsProgram', 'addReviewsPerOrder')) {
-                                PointsProgram::addReviewsPerOrder($order_id,
-                                        $client_id, $review_id, $order_info['merchant_id'], $order_info['status']);
+                                PointsProgram::addReviewsPerOrder(
+                                    $order_id,
+                                    $client_id,
+                                    $review_id,
+                                    $order_info['merchant_id'],
+                                    $order_info['status']
+                                );
                             }
                         }
 
@@ -17976,7 +9119,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionCancelOrder() {
+    public function actionCancelOrder()
+    {
         $this->getPOSTData();
         $this->data = $_POST;
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
@@ -18027,7 +9171,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetOrderHistory() {
+    public function actiongetOrderHistory()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -18038,12 +9183,12 @@ class ApiController extends CController {
 
         $p = new CHtmlPurifier();
         $page_action = isset($this->data['page_action']) ? $this->data['page_action'] : '';
-        
+
         if ($order_id > 0) {
             if ($res = mobileWrapper::orderHistory($order_id)) {
                 $data = array();
                 $address = array();
-                
+
                 foreach ($res as $val) {
 
                     $remarks = $p->purify(clearString($val['remarks']));
@@ -18067,13 +9212,13 @@ class ApiController extends CController {
                 }
 
                 $order_info = mobileWrapper::orderDetails($order_id);
-                
                 $order_info['merchant_name'] = clearString($order_info['merchant_name']);
                 $order_info['logo'] = $order_info['logo'] = mobileWrapper::getImage($order_info['logo']);
                 $order_info['transaction'] = mobileWrapper::t("[trans_type] #[order_id]", array(
-                            '[trans_type]' => t($order_info['trans_type']),
-                            '[order_id]' => t($order_info['order_id']),
-                ));
+                    '[trans_type]' => t($order_info['trans_type']),
+                    '[order_id]' => t($order_info['order_id']),
+                )
+                );
                 $order_info['payment_type'] = mobileWrapper::t(FunctionsV3::prettyPaymentTypeTrans($order_info['trans_type'], $order_info['payment_type']));
                 // $order_info['zipcode'] = $res[0]['zipcode'];
                 // $order_info['street'] = $res[0]['street'];
@@ -18112,168 +9257,12 @@ class ApiController extends CController {
         }
         $this->output();
     }
-    
-    //orignal unchanged func
 
-    // public function actionCustomerHistory(){
-    //     $res = mobileWrapper::getCustomerByToken($this->data['user_token']);
-        
-        
-    //     if (!$res) {
-    //         $this->code = 3;
-    //         $this->msg = $this->t("token not found");
-    //         $this->output();
-    //     }
+    public function actionCustomerHistory()
+    {
+        $res = mobileWrapper::getCustomerByToken($this->data['user_token']);
 
-    //     if ($client_id = $this->checkToken()) {
-            
-    //         $data = array();
-    //         if (!empty($res['client_id'])) {
-    //             $db = new DbExt();
-    //             $stmt = "SELECT 
-    // 			a.*,
-    // 			b.restaurant_name,
-    // 			b.latitude,
-    // 			b.lontitude,
-    // 			b.street,
-    // 			b.city,
-    // 			b.state,
-    // 			b.post_code,
-    // 			b.country_code,
-    // 			b.logo,
-    // 			c.zipcode as order_delivery_address_zipcode,
-    // 			c.state as order_delivery_address_state,
-    // 			c.city as order_delivery_address_city,
-    // 			c.location_name as order_delivery_address_location_name,
-    // 			c.street as order_delivery_address_street,
-    // 			c.delivery_contact as order_delivery_address_delivery_contact,
-    // 			c.delivery_appartment as order_delivery_address_delivery_appartment,
-    // 			c.delivery_instructions as order_delivery_address_delivery_instructions
-    // 			FROM {{order}} a			
-    // 			left join {{merchant}} b
-    //             ON
-    //             a.merchant_id = b.merchant_id
-    //             left join {{order_delivery_address}} c
-    //             ON
-    //             a.order_id = c.order_id
-    //             WHERE a.client_id=" . FunctionsV3::q($client_id) . "
-    //             ORDER BY a.order_id DESC
-    //             ";
-                
-    //             //  print_r($stmt); exit('szda');
-                
-    //             if (isset($_GET['debug'])) {
-    //                 dump($stmt);
-    //             }
-                
-            
-    //             if ($res = $db->rst($stmt)) {
-    //                 $address = [];
-    //                 foreach ($res as $val) {
-                        
-    //                     $val['payment_type'] = mobileWrapper::t(FunctionsV3::prettyPaymentTypeTrans($val['trans_type'], $val['payment_type']));
-    //                     $val['restaurant_name'] = mobileWrapper::highlight_word($val['restaurant_name'], $search_str);
-    //                     $val['transaction'] = mobileWrapper::t("[trans_type] #[order_id]", array(
-    //                                 '[trans_type]' => t($val['trans_type']),
-    //                                 '[order_id]' => t($val['order_id']),
-    //                     ));
-    //                     $val['payment_type'] = mobileWrapper::highlight_word($val['payment_type'], $search_str);
-    //                     $val['restaurant_name'] = mobileWrapper::highlight_word($val['restaurant_name'], $search_str);
-    //                     $val['transaction'] = mobileWrapper::highlight_word($val['transaction'], $search_str);
-                        
-                        
-    //                     if($val['order_delivery_address_zipcode'] == null){
-    //                         $val['order_delivery_address_zipcode'] = "";
-    //                     }
-                        
-    //                     if($val['order_delivery_address_state'] == null){
-    //                         $val['order_delivery_address_state'] = "";
-    //                     }
-                        
-                        
-    //                     if($val['order_delivery_address_city'] == null){
-    //                         $val['order_delivery_address_city'] = '';
-    //                     }                        
-                        
-    //                     if($val['order_delivery_address_location_name'] == null){
-    //                         $val['order_delivery_address_location_name'] = "";
-    //                     }                                      
-                        
-    //                     if($val['order_delivery_address_street'] == null){
-    //                         $val['order_delivery_address_street'] = "";
-    //                     }
-                        
-    //                     if($val['street'] == null){
-    //                         $val['street'] = "";
-    //                     }
-                        
-    //                     if($val['city'] == null){
-    //                         $val['city'] = "";
-    //                     }  
-                        
-    //                     if($val['state'] == null){
-    //                         $val['state'] = "";
-    //                     }  
-                        
-    //                     if($val['post_code'] == null){
-    //                         $val['post_code'] = "";
-    //                     }  
-                        
-    //                     if($val['country_code'] == null){
-    //                         $val['country_code'] = "";
-    //                     }
-                        
-    //                     if($val['restaurant_name'] == null){
-    //                         $val['restaurant_name'] = "";
-    //                     } 
-                        
-    //                     if($val['lontitude'] == null){
-    //                         $val['lontitude'] = "";
-    //                     } 
-                        
-    //                     if($val['latitude'] == null){
-    //                         $val['latitude'] = "";
-    //                     } 
-                        
-                        
-    //                     $val['items'] = mobileWrapper::itemsByOrder($val['order_id']);
-                        
-                       
-    //                     foreach($val['items'] as $index => $item)
-    //                     {
-    //                         if($item['addon'] == '')
-    //                         {
-                                
-    //                           $val['items'][$index]['addon']=[]; 
-                              
-    //                         }
-    //                     }
-                        
-    //                     $data[] = $val;
-    //                 }
 
-    //                 $this->code = 1;
-    //                 $this->msg = "OK";
-    //                 $this->details = array(
-    //                     'list' => $data
-    //                 );
-    //             } else
-    //                 $this->msg = $this->t("No results");
-    //         } else
-    //             $this->msg = $this->t("invalid search string");
-    //     }
-    //     $this->output();
-
-    // }
-    
-    //end.
-
-   //here creating the test function making it live after adding doordash link
-    
-      public function actionCustomerHistory(){
-      $res = mobileWrapper::getCustomerByToken($this->data['user_token']);
-        
-        
         if (!$res) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -18281,7 +9270,7 @@ class ApiController extends CController {
         }
 
         if ($client_id = $this->checkToken()) {
-            
+
             $data = array();
             if (!empty($res['client_id'])) {
                 $db = new DbExt();
@@ -18314,121 +9303,120 @@ class ApiController extends CController {
                 WHERE a.client_id=" . FunctionsV3::q($client_id) . "
                 ORDER BY a.order_id DESC
                 ";
-                
+
                 //  print_r($stmt); exit('szda');
-                
+
                 if (isset($_GET['debug'])) {
                     dump($stmt);
                 }
-                
-            
+
+
                 if ($res = $db->rst($stmt)) {
-                    
-                    
+
+
                     $address = [];
                     foreach ($res as $val) {
-                        
+
                         $val['doordash_tracking_link'] = $val['doordash_drive_tracking_link'];
                         $val['payment_type'] = mobileWrapper::t(FunctionsV3::prettyPaymentTypeTrans($val['trans_type'], $val['payment_type']));
                         $val['restaurant_name'] = mobileWrapper::highlight_word($val['restaurant_name'], $search_str);
                         $val['transaction'] = mobileWrapper::t("[trans_type] #[order_id]", array(
-                                    '[trans_type]' => t($val['trans_type']),
-                                    '[order_id]' => t($val['order_id']),
-                        ));
-                        
+                            '[trans_type]' => t($val['trans_type']),
+                            '[order_id]' => t($val['order_id']),
+                        )
+                        );
+
                         // print_r($val['trans_type']);
-                        
+
                         // print_r($val['transaction']['trans_type']);
                         // exit('444');
-                        
+
                         $val['payment_type'] = mobileWrapper::highlight_word($val['payment_type'], $search_str);
                         $val['restaurant_name'] = mobileWrapper::highlight_word($val['restaurant_name'], $search_str);
                         $val['transaction'] = mobileWrapper::highlight_word($val['transaction'], $search_str);
-                        
-                    //     if($val['trans_type'] = 'delivery'){
-                    //   $val['doordash_tracking_link'] = $val['doordash_drive_tracking_link'];  
-                    //     }
-                        
-                    //     else{
-                    //         $val['doordash_tracking_link'] = "";
-                    //     }
-                        
-                    //     if($val['doordash_tracking_link'] == null){
-                    //         $val['doordash_tracking_link'] = "";
-                    //     }
-                    
-                    if( $val['doordash_tracking_link'] == "" || $val['doordash_tracking_link'] == null ){
-                        $val['doordash_tracking_link'] == "";
-                    }
-                        
-                        
-                        if($val['order_delivery_address_zipcode'] == null){
+
+                        //     if($val['trans_type'] = 'delivery'){
+                        //   $val['doordash_tracking_link'] = $val['doordash_drive_tracking_link'];  
+                        //     }
+
+                        //     else{
+                        //         $val['doordash_tracking_link'] = "";
+                        //     }
+
+                        //     if($val['doordash_tracking_link'] == null){
+                        //         $val['doordash_tracking_link'] = "";
+                        //     }
+
+                        if ($val['doordash_tracking_link'] == "" || $val['doordash_tracking_link'] == null) {
+                            $val['doordash_tracking_link'] == "";
+                        }
+
+
+                        if ($val['order_delivery_address_zipcode'] == null) {
                             $val['order_delivery_address_zipcode'] = "";
                         }
-                        
-                        if($val['order_delivery_address_state'] == null){
+
+                        if ($val['order_delivery_address_state'] == null) {
                             $val['order_delivery_address_state'] = "";
                         }
-                        
-                        
-                        if($val['order_delivery_address_city'] == null){
+
+
+                        if ($val['order_delivery_address_city'] == null) {
                             $val['order_delivery_address_city'] = '';
-                        }                        
-                        
-                        if($val['order_delivery_address_location_name'] == null){
+                        }
+
+                        if ($val['order_delivery_address_location_name'] == null) {
                             $val['order_delivery_address_location_name'] = "";
-                        }                                      
-                        
-                        if($val['order_delivery_address_street'] == null){
+                        }
+
+                        if ($val['order_delivery_address_street'] == null) {
                             $val['order_delivery_address_street'] = "";
                         }
-                        
-                        if($val['street'] == null){
+
+                        if ($val['street'] == null) {
                             $val['street'] = "";
                         }
-                        
-                        if($val['city'] == null){
+
+                        if ($val['city'] == null) {
                             $val['city'] = "";
-                        }  
-                        
-                        if($val['state'] == null){
+                        }
+
+                        if ($val['state'] == null) {
                             $val['state'] = "";
-                        }  
-                        
-                        if($val['post_code'] == null){
+                        }
+
+                        if ($val['post_code'] == null) {
                             $val['post_code'] = "";
-                        }  
-                        
-                        if($val['country_code'] == null){
+                        }
+
+                        if ($val['country_code'] == null) {
                             $val['country_code'] = "";
                         }
-                        
-                        if($val['restaurant_name'] == null){
+
+                        if ($val['restaurant_name'] == null) {
                             $val['restaurant_name'] = "";
-                        } 
-                        
-                        if($val['lontitude'] == null){
+                        }
+
+                        if ($val['lontitude'] == null) {
                             $val['lontitude'] = "";
-                        } 
-                        
-                        if($val['latitude'] == null){
+                        }
+
+                        if ($val['latitude'] == null) {
                             $val['latitude'] = "";
-                        } 
-                        
-                        
+                        }
+
+
                         $val['items'] = mobileWrapper::itemsByOrder($val['order_id']);
-                        
-                       
-                        foreach($val['items'] as $index => $item)
-                        {
-                            if($item['addon'] == '')
-                            {
-                                
-                              $val['items'][$index]['addon']=[]; 
-                              
+
+
+                        foreach ($val['items'] as $index => $item) {
+                            if ($item['addon'] == '') {
+
+                                $val['items'][$index]['addon'] = [];
+
                             }
                         }
-                        
+
                         $data[] = $val;
                     }
 
@@ -18445,11 +9433,12 @@ class ApiController extends CController {
         $this->output();
 
     }
-    
+
     //end test
-    
-    
-    public function actionsearchOrder() {
+
+
+    public function actionsearchOrder()
+    {
         if ($client_id = $this->checkToken()) {
             $data = array();
             $search_str = isset($this->data['search_str']) ? $this->data['search_str'] : '';
@@ -18487,9 +9476,10 @@ class ApiController extends CController {
                         $val['payment_type'] = mobileWrapper::t(FunctionsV3::prettyPaymentTypeTrans($val['trans_type'], $val['payment_type']));
                         $val['restaurant_name'] = mobileWrapper::highlight_word($val['restaurant_name'], $search_str);
                         $val['transaction'] = mobileWrapper::t("[trans_type] #[order_id]", array(
-                                    '[trans_type]' => t($val['trans_type']),
-                                    '[order_id]' => t($val['order_id']),
-                        ));
+                            '[trans_type]' => t($val['trans_type']),
+                            '[order_id]' => t($val['order_id']),
+                        )
+                        );
 
                         $val['payment_type'] = mobileWrapper::highlight_word($val['payment_type'], $search_str);
                         $val['restaurant_name'] = mobileWrapper::highlight_word($val['restaurant_name'], $search_str);
@@ -18513,7 +9503,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionViewOrder() {
+    public function actionViewOrder()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -18530,26 +9521,27 @@ class ApiController extends CController {
 
                 if ($json_details != false) {
 
-                    Yii::app()->functions->displayOrderHTML(array(
-                        'merchant_id' => $data['merchant_id'],
-                        'order_id' => $data['order_id'],
-                        'delivery_type' => $data['trans_type'],
-                        'delivery_charge' => $data['delivery_charge'],
-                        'packaging' => $data['packaging'],
-                        'cart_tip_value' => $data['cart_tip_value'],
-                        'cart_tip_percentage' => $data['cart_tip_percentage'] / 100,
-                        'card_fee' => $data['card_fee'],
-                        'donot_apply_tax_delivery' => $data['donot_apply_tax_delivery'],
-                        'points_discount' => isset($data['points_discount']) ? $data['points_discount'] : '' /* POINTS PROGRAM */,
-                        'voucher_amount' => $data['voucher_amount'],
-                        'voucher_type' => $data['voucher_type']
-                            ), $json_details, true, $data['order_id']);
+                    Yii::app()->functions->displayOrderHTML(
+                        array(
+                            'merchant_id' => $data['merchant_id'],
+                            'order_id' => $data['order_id'],
+                            'delivery_type' => $data['trans_type'],
+                            'delivery_charge' => $data['delivery_charge'],
+                            'packaging' => $data['packaging'],
+                            'cart_tip_value' => $data['cart_tip_value'],
+                            'cart_tip_percentage' => $data['cart_tip_percentage'] / 100,
+                            'card_fee' => $data['card_fee'],
+                            'donot_apply_tax_delivery' => $data['donot_apply_tax_delivery'],
+                            'points_discount' => isset($data['points_discount']) ? $data['points_discount'] : '' /* POINTS PROGRAM */ ,
+                            'voucher_amount' => $data['voucher_amount'],
+                            'voucher_type' => $data['voucher_type']
+                        ), $json_details, true, $data['order_id']);
 
                     $data2 = Yii::app()->functions->details;
 
                     $merchant_info = Yii::app()->functions->getMerchant($data['merchant_id']);
                     $full_merchant_address = $merchant_info['street'] . " " . $merchant_info['city'] . " " . $merchant_info['state'] .
-                            " " . $merchant_info['post_code'];
+                        " " . $merchant_info['post_code'];
 
                     if (isset($data['contact_phone1'])) {
                         if (!empty($data['contact_phone1'])) {
@@ -18577,8 +9569,9 @@ class ApiController extends CController {
                     }
 
                     $new_data[] = mobileWrapper::receiptFormater("TRN Type", t($data['trans_type']));
-                    $new_data[] = mobileWrapper::receiptFormater("Payment Type",
-                                    FunctionsV3::prettyPaymentType('payment_order', $data['payment_type'], $data['order_id'], $data['trans_type'])
+                    $new_data[] = mobileWrapper::receiptFormater(
+                        "Payment Type",
+                        FunctionsV3::prettyPaymentType('payment_order', $data['payment_type'], $data['order_id'], $data['trans_type'])
                     );
 
                     if ($data['payment_provider_name']) {
@@ -18588,8 +9581,9 @@ class ApiController extends CController {
                     if ($data['payment_type'] == "pyp") {
                         $paypal_info = Yii::app()->functions->getPaypalOrderPayment($data['order_id']);
 
-                        $new_data[] = mobileWrapper::receiptFormater("Paypal Transaction ID",
-                                        isset($paypal_info['TRANSACTIONID']) ? $paypal_info['TRANSACTIONID'] : ''
+                        $new_data[] = mobileWrapper::receiptFormater(
+                            "Paypal Transaction ID",
+                            isset($paypal_info['TRANSACTIONID']) ? $paypal_info['TRANSACTIONID'] : ''
                         );
                     }
 
@@ -18599,14 +9593,16 @@ class ApiController extends CController {
                         $new_data[] = mobileWrapper::receiptFormater("Payment Ref", $data['payment_reference']);
                     }
                     if ($data['payment_type'] == "ccr" || $data['payment_type'] == "ocr") {
-                        $new_data[] = mobileWrapper::receiptFormater("Card #",
-                                        Yii::app()->functions->maskCardnumber($data['credit_card_number'])
+                        $new_data[] = mobileWrapper::receiptFormater(
+                            "Card #",
+                            Yii::app()->functions->maskCardnumber($data['credit_card_number'])
                         );
                     }
 
                     $trn_date = date('M d,Y G:i:s', strtotime($data['date_created']));
-                    $new_data[] = mobileWrapper::receiptFormater("TRN Date",
-                                    Yii::app()->functions->translateDate($trn_date)
+                    $new_data[] = mobileWrapper::receiptFormater(
+                        "TRN Date",
+                        Yii::app()->functions->translateDate($trn_date)
                     );
 
                     switch ($data['trans_type']) {
@@ -18620,8 +9616,9 @@ class ApiController extends CController {
 
                             if (isset($data['delivery_time'])) {
                                 if (!empty($data['delivery_time'])) {
-                                    $new_data[] = mobileWrapper::receiptFormater("Delivery Time",
-                                                    Yii::app()->functions->timeFormat($data['delivery_time'], true)
+                                    $new_data[] = mobileWrapper::receiptFormater(
+                                        "Delivery Time",
+                                        Yii::app()->functions->timeFormat($data['delivery_time'], true)
                                     );
                                 }
                             }
@@ -18710,7 +9707,7 @@ class ApiController extends CController {
                         $file = Yii::getPathOfAlias('webroot') . "/protected/modules/" . APP_FOLDER . "/views/api/cart.php";
                         $new_total_html = $this->renderFile($file, array(
                             'data' => $data
-                                ), true);
+                        ), true);
                     }
 
                     $this->code = 1;
@@ -18730,7 +9727,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionReOrder() {
+    public function actionReOrder()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -18848,7 +9846,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionRemoveFavorites() {
+    public function actionRemoveFavorites()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -18867,7 +9866,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsearchFavorites() {
+    public function actionsearchFavorites()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -18903,8 +9903,9 @@ class ApiController extends CController {
                 foreach ($res as $val) {
                     $date_added = FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']);
                     $val['date_added'] = mobileWrapper::t("Added [date]", array(
-                                '[date]' => $date_added
-                    ));
+                        '[date]' => $date_added
+                    )
+                    );
                     $val['logo'] = mobileWrapper::getImage($val['logo']);
 
                     $val['merchant_name'] = mobileWrapper::highlight_word($val['merchant_name'], $search_str);
@@ -18924,9 +9925,10 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsaveCreditCard() {
+    public function actionsaveCreditCard()
+    {
         $this->data = $_POST;
-        
+
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -18944,14 +9946,14 @@ class ApiController extends CController {
         //     $this->msg = $this->t("Invalid credit card length");
         //     $this->output();
         // }
-        
+
         // echo strlen($this->data['credit_card_number']); exit('e');
-        
-        
-        if ((strlen($this->data['credit_card_number']) < 14) || (strlen($this->data['credit_card_number']) > 16) ) {
+
+
+        if ((strlen($this->data['credit_card_number']) < 14) || (strlen($this->data['credit_card_number']) > 16)) {
             $this->msg = $this->t("Invalid credit card length");
             $this->output();
-        }        
+        }
 
         // echo strlen($this->data['credit_card_number']); exit('e');
 
@@ -18974,78 +9976,13 @@ class ApiController extends CController {
         $params['credit_card_number'] = FunctionsV3::maskCardnumber($p->purify($params['credit_card_number']));
 
         try {
-            $params['encrypted_card'] = CreditCardWrapper::encryptCard($p->purify($this->data['credit_card_number']));
-        } catch (Exception $e) {
-            $this->msg = Yii::t("default", "Caught exception: [error]", array(
-                        '[error]' => $e->getMessage()
-            ));
-            $this->output();
-            return;
-        }
-
-        $db = new DbExt();
-
-        if ($id > 0) {
-            unset($params['date_created']);
-            unset($params['ip_address']);
-            $db->updateData("{{client_cc}}", $params, 'cc_id', $id);
-            $this->code = 1;
-            $this->msg = $this->t("Successfully updated");
-        } else {
-            if (!Yii::app()->functions->getCCbyCard($params['credit_card_number'], $client_id)) {
-                $db->insertData("{{client_cc}}", $params);
-                $this->code = 1;
-                $this->msg = $this->t("Successful");
-            } else
-                $this->msg = $this->t("Credit card already exits");
-        }
-        $this->output();
-    }
-    
-    public function actionsaveCreditCardTest() {
-        $this->data = $_POST;
-        if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
-            $this->code = 3;
-            $this->msg = $this->t("token not found");
-            $this->output();
-        }
-        $client_id = $res['client_id'];
-
-        if (isset($this->data['credit_card_number'])) {
-            if (!empty($this->data['credit_card_number'])) {
-                $this->data['credit_card_number'] = str_replace(" ", "", $this->data['credit_card_number']);
-            }
-        }
-
-        if (strlen($this->data['credit_card_number']) != 16) {
-            $this->msg = $this->t("Invalid credit card length");
-            $this->output();
-        }
-
-        $id = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
-
-        $p = new CHtmlPurifier();
-        $params = array(
-            'client_id' => $client_id,
-            'card_name' => isset($this->data['card_name']) ? $p->purify($this->data['card_name']) : '',
-            'credit_card_number' => isset($this->data['credit_card_number']) ? $this->data['credit_card_number'] : '',
-            'billing_address' => isset($this->data['billing_address']) ? $p->purify($this->data['billing_address']) : '',
-            'cvv' => isset($this->data['cvv']) ? $this->data['cvv'] : '',
-            'zipcode' => isset($this->data['zipcode']) ? $this->data['zipcode'] : '',
-            'expiration_month' => isset($this->data['expiration_month']) ? $this->data['expiration_month'] : '',
-            'expiration_yr' => isset($this->data['expiration_yr']) ? $this->data['expiration_yr'] : '',
-            'date_created' => FunctionsV3::dateNow(),
-            'ip_address' => $_SERVER['REMOTE_ADDR']
-        );
-        
-        $params['credit_card_number'] = FunctionsV3::maskCardnumber($p->purify($params['credit_card_number']));
-        
-        try {
-            $params['encrypted_card'] = CreditCardWrapper::encryptCard($p->purify($this->data['credit_card_number']));
+            // $params['encrypted_card'] = CreditCardWrapper::encryptCard($p->purify($this->data['credit_card_number']));
+            $params['encrypted_card'] = CreditCardWrapper::encryptCard($this->data['credit_card_number']);
         } catch (Exception $e) {
             $this->msg = Yii::t("default", "Caught exception: [error]", array(
                 '[error]' => $e->getMessage()
-            ));
+            )
+            );
             $this->output();
             return;
         }
@@ -19069,184 +10006,111 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetCedittCardInfo() {
-        
+    public function actiongetCedittCardInfo()
+    {
+
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
             $this->output();
         }
         $client_id = $res['client_id'];
-
         $id = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
+
         if ($id > 0) {
             if ($res = Yii::app()->functions->getCreditCardInfo($id)) {
                 unset($res['client_id']);
                 unset($res['date_created']);
                 unset($res['date_modified']);
                 unset($res['ip_address']);
+                // unset($res['encrypted_card']);
+
                 $this->code = 1;
                 $this->msg = "OK";
 
                 $decryp_card = isset($res['credit_card_number']) ? $res['credit_card_number'] : '';
-                
 
                 if (isset($res['encrypted_card'])) {
+
                     try {
+
+                        // incase of wrong encript run following commented code.
+                        // $db = new DbExt();
+                        // $params['encrypted_card'] = CreditCardWrapper::encryptCard('4242424242424242');
+                        // $db->updateData("{{client_cc}}", $params, 'cc_id', 129);
+
                         $decryp_card = CreditCardWrapper::decryptCard($res['encrypted_card']);
+
                     } catch (Exception $e) {
+
                         $decryp_card = Yii::t("default", "Caught exception: [error]", array(
-                                    '[error]' => $e->getMessage()
-                        ));
+                            '[error]' => $e->getMessage()
+                        )
+                        );
                     }
                 }
 
                 $res['credit_card_number'] = $decryp_card;
-                
+
                 unset($res['encrypted_card']);
                 $this->details = array(
                     'data' => $res
                 );
             } else
                 $this->msg = $this->t("card information not found");
-        } else{
+        } else {
             if ($ress = Yii::app()->functions->getCreditCardInfoByclient($client_id)) {
 
-                $cards  = array();
-                foreach($ress as $res){
+                $cards = array();
+                foreach ($ress as $res) {
                     unset($res['client_id']);
                     unset($res['date_created']);
                     unset($res['date_modified']);
                     unset($res['ip_address']);
+
                     $this->code = 1;
                     $this->msg = "OK";
-    
+
                     $decryp_card = isset($res['credit_card_number']) ? $res['credit_card_number'] : '';
-                
+
                     if (isset($res['encrypted_card'])) {
-                        try {  
+                        try {
                             $decryp_card = CreditCardWrapper::decryptCard($res['encrypted_card']);
                         } catch (Exception $e) {
                             $decryp_card = Yii::t("default", "Caught exception: [error]", array(
-                                        '[error]' => $e->getMessage()
-                            ));
+                                '[error]' => $e->getMessage()
+                            )
+                            );
                         }
                     }
-    
+
                     $res['credit_card_number'] = $decryp_card;
-                    
-                    
-    
+
+
+
                     unset($res['encrypted_card']);
-                    array_push($cards,$res);
-                    
+                    array_push($cards, $res);
+
                 }
-                
-                
+
+
                 $this->details = array(
                     'data' => $cards
                 );
-            } else
-                {   
-                    $this->details = array();
-                    $this->code = 1;
-                    $this->msg = $this->t("card information not found");
-                }
-            
-        }
-        $this->output();
-    }
-
-    public function actiongetCedittCardInfoTest() {
-        
-        if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
-            $this->code = 3;
-            $this->msg = $this->t("token not found");
-            $this->output();
-        }
-        $client_id = $res['client_id'];
-
-        $id = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
-        $id = 52;
-        if ($id > 0) {
-            if ($res = Yii::app()->functions->getCreditCardInfo($id)) {
-                unset($res['client_id']);
-                unset($res['date_created']);
-                unset($res['date_modified']);
-                unset($res['ip_address']);
+            } else {
+                $this->details = array();
                 $this->code = 1;
-                $this->msg = "OK";
-
-                $decryp_card = isset($res['credit_card_number']) ? $res['credit_card_number'] : '';
-                
-
-                if (isset($res['encrypted_card'])) {
-                    try {
-                        $decryp_card = CreditCardWrapper::decryptCard($res['encrypted_card']);
-                    } catch (Exception $e) {
-                        $decryp_card = Yii::t("default", "Caught exception: [error]", array(
-                                    '[error]' => $e->getMessage()
-                        ));
-                    }
-                }
-
-                $res['credit_card_number'] = $decryp_card;
-                
-                unset($res['encrypted_card']);
-                $this->details = array(
-                    'data' => $res
-                );
-            } else
                 $this->msg = $this->t("card information not found");
-        } else{
-            if ($ress = Yii::app()->functions->getCreditCardInfoByclient($client_id)) {
+            }
 
-                $cards  = array();
-                foreach($ress as $res){
-                    unset($res['client_id']);
-                    unset($res['date_created']);
-                    unset($res['date_modified']);
-                    unset($res['ip_address']);
-                    $this->code = 1;
-                    $this->msg = "OK";
-    
-                    $decryp_card = isset($res['credit_card_number']) ? $res['credit_card_number'] : '';
-                
-                    if (isset($res['encrypted_card'])) {
-                        try {  
-                            $decryp_card = CreditCardWrapper::decryptCard($res['encrypted_card']);
-                        } catch (Exception $e) {
-                            $decryp_card = Yii::t("default", "Caught exception: [error]", array(
-                                        '[error]' => $e->getMessage()
-                            ));
-                        }
-                    }
-    
-                    $res['credit_card_number'] = $decryp_card;
-                    
-                    
-    
-                    unset($res['encrypted_card']);
-                    array_push($cards,$res);
-                    
-                }
-                
-                
-                $this->details = array(
-                    'data' => $cards
-                );
-            } else
-                {   
-                    $this->details = array();
-                    $this->code = 1;
-                    $this->msg = $this->t("card information not found");
-                }
-            
         }
         $this->output();
     }
 
-    public function actionDeleteCreditCard() {
+
+
+    public function actionDeleteCreditCard()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -19273,7 +10137,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionDeleteAddressBook() {
+    public function actionDeleteAddressBook()
+    {
         if ($client_id = $this->checkToken()) {
             $id = isset($this->data['id']) ? $this->data['id'] : '';
 
@@ -19294,7 +10159,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetCountryList() {
+    public function actiongetCountryList()
+    {
         $country_list = require_once('CountryCode.php');
         $this->code = 1;
         $this->msg = "OK";
@@ -19305,7 +10171,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsaveAddressBook() {
+    public function actionsaveAddressBook()
+    {
         $this->data = $_POST;
         if ($client_id = $this->checkToken()) {
             $params = array(
@@ -19365,7 +10232,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actiongetAddressBookByID() {
+    public function actiongetAddressBookByID()
+    {
         if ($client_id = $this->checkToken()) {
             $id = isset($this->data['id']) ? $this->data['id'] : '';
             if ($id >= 1) {
@@ -19392,13 +10260,14 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetProfile() {
+    public function actionGetProfile()
+    {
         $data = array();
-       
+
         if ($client_id = $this->checkToken()) {
             if ($res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
                 if ($ress = mobileWrapper::getPushNotificationByDevice_uiid($this->data['device_uiid'])) {
-                   $data['push_enabled']=$ress['push_enabled'];
+                    $data['push_enabled'] = $ress['push_enabled'];
                 }
                 $data['avatar'] = mobileWrapper::getImage($res['avatar'], 'avatar.png');
                 $data['first_name'] = $res['first_name'];
@@ -19419,7 +10288,8 @@ class ApiController extends CController {
     }
 
 
-    public function actionUpdateProfile() {
+    public function actionUpdateProfile()
+    {
         $this->data = $_POST;
         if ($client_id = $this->checkToken()) {
             $params = array(
@@ -19439,7 +10309,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionChangePassword() {
+    public function actionChangePassword()
+    {
         $this->data = $_POST;
         if ($client_id = $this->checkToken()) {
             if ($res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
@@ -19479,7 +10350,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionUploadProfile() {
+    public function actionUploadProfile()
+    {
 
         $this->data = $_POST;
         $profile_photo = '';
@@ -19517,7 +10389,8 @@ class ApiController extends CController {
         Yii::app()->end();
     }
 
-    public function actionGetMerchantAbout() {
+    public function actionGetMerchantAbout()
+    {
         $data = array();
         $merchant_id = $this->merchant_id;
         if ($merchant_id > 0) {
@@ -19534,8 +10407,9 @@ class ApiController extends CController {
                 $ratings = Yii::app()->functions->getRatings($merchant_id);
                 $data['rating'] = $ratings;
                 $data['review_count'] = mobileWrapper::t("[count] reviews", array(
-                            '[count]' => $ratings['votes']
-                ));
+                    '[count]' => $ratings['votes']
+                )
+                );
 
                 $data['opening'] = array();
                 if ($opening = FunctionsV3::getMerchantOpeningHours($merchant_id)) {
@@ -19586,7 +10460,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionReviewList() {
+    public function actionReviewList()
+    {
         $website_title = getOptionA('website_title');
 
         $pagelimit = mobileWrapper::paginateLimit();
@@ -19634,14 +10509,16 @@ class ApiController extends CController {
             foreach ($res as $val) {
                 if ($val['as_anonymous'] == 1) {
                     $val['customer_name'] = mobileWrapper::t("By [sitename] Customer", array(
-                                '[sitename]' => $website_title
-                    ));
+                        '[sitename]' => $website_title
+                    )
+                    );
                     $val['avatar'] = mobileWrapper::getImage('x.png', 'avatar.png');
                 } else {
                     $val['avatar'] = mobileWrapper::getImage($val['avatar'], 'avatar.png');
                     $val['customer_name'] = mobileWrapper::t("By [customer_name]", array(
-                                '[customer_name]' => $val['customer_name']
-                    ));
+                        '[customer_name]' => $val['customer_name']
+                    )
+                    );
                 }
 
                 $pretyy_date = PrettyDateTime::parse(new DateTime($val['date_created']));
@@ -19675,7 +10552,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetMerchantDateList() {
+    public function actionGetMerchantDateList()
+    {
         $customer = array();
         if (isset($this->data['user_token'])) {
             if ($res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
@@ -19696,7 +10574,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetMerchantTimeList() {
+    public function actionGetMerchantTimeList()
+    {
         $date = isset($this->data['date']) ? $this->data['date'] : date("Y-m-d");
         if ($res = FunctionsV3::getTimeList($this->merchant_id, $date)) {
             $this->code = 1;
@@ -19709,7 +10588,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionSaveBooking() {
+    public function actionSaveBooking()
+    {
         $this->data = $_POST;
         $merchant_id = isset($this->data['book_merchant_id']) ? $this->data['book_merchant_id'] : '';
 
@@ -19743,8 +10623,9 @@ class ApiController extends CController {
 
         if (!Yii::app()->functions->isMerchantOpenTimes($merchant_id, $full_booking_day, $booking_time)) {
             $this->msg = Yii::t("mobile2", "Sorry but we are closed on [date]. Please check merchant opening hours", array(
-                        '[date]' => date("F,d Y h:ia", strtotime($full_booking_time))
-            ));
+                '[date]' => date("F,d Y h:ia", strtotime($full_booking_time))
+            )
+            );
             $this->output();
         }
 
@@ -19792,8 +10673,9 @@ class ApiController extends CController {
             $this->code = 1;
 
             $this->msg = Yii::t("mobile2", "Your booking has been placed. Reference # [booking_id]", array(
-                        '[booking_id]' => $booking_id
-            ));
+                '[booking_id]' => $booking_id
+            )
+            );
 
             $this->details = $booking_id;
 
@@ -19820,7 +10702,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetGallery() {
+    public function actionGetGallery()
+    {
         $data = array();
         if ($this->merchant_id > 0) {
             $gallery = mobileWrapper::getMerchantGallery($this->merchant_id);
@@ -19853,7 +10736,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetMerchantInformation() {
+    public function actionGetMerchantInformation()
+    {
         $data = array();
         if ($this->merchant_id > 0) {
             $data['information'] = nl2br(clearString(getOption($this->merchant_id, 'merchant_information')));
@@ -19874,7 +10758,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetMerchantPromo() {
+    public function actionGetMerchantPromo()
+    {
         $data = array();
         if ($this->merchant_id > 0) {
             $merchant_id = $this->merchant_id;
@@ -19900,7 +10785,8 @@ class ApiController extends CController {
                         $promo['voucher'][] = mt("[discount] off | Use coupon [code]", array(
                             '[discount]' => $amount,
                             '[code]' => $val['voucher_name']
-                        ));
+                        )
+                        );
                     }
                 }
             }
@@ -19939,7 +10825,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetPointSummary() {
+    public function actionGetPointSummary()
+    {
         if (!FunctionsV3::hasModuleAddon("pointsprogram")) {
             $this->code = 6;
             $this->msg = $this->t("Points not available");
@@ -19994,7 +10881,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetPointDetails() {
+    public function actionGetPointDetails()
+    {
         $pagelimit = mobileWrapper::paginateLimit();
         if (isset($this->data['page'])) {
             $page = $this->data['page'] * $pagelimit;
@@ -20116,8 +11004,12 @@ class ApiController extends CController {
                             break;
 
                         case "expenses_points":
-                            $label = PointsProgram::PointsDefinition($val['points_type'], $val['trans_type'],
-                                            $val['order_id'], $val['total_points']);
+                            $label = PointsProgram::PointsDefinition(
+                                $val['points_type'],
+                                $val['trans_type'],
+                                $val['order_id'],
+                                $val['total_points']
+                            );
                             $data[] = array(
                                 'date' => FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']),
                                 'label' => $label,
@@ -20126,8 +11018,12 @@ class ApiController extends CController {
                             break;
 
                         case "expired_points":
-                            $label = PointsProgram::PointsDefinition($val['points_type'], $val['trans_type'],
-                                            $val['order_id'], $val['total_points_earn']);
+                            $label = PointsProgram::PointsDefinition(
+                                $val['points_type'],
+                                $val['trans_type'],
+                                $val['order_id'],
+                                $val['total_points_earn']
+                            );
 
                             $data[] = array(
                                 'date' => FunctionsV3::prettyDate($val['date_created']) . " " . FunctionsV3::prettyTime($val['date_created']),
@@ -20171,7 +11067,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsearchFoodCategory() {
+    public function actionsearchFoodCategory()
+    {
         $item_name = isset($this->data['item_name']) ? $this->data['item_name'] : '';
         if ($this->merchant_id > 0) {
             if (!empty($item_name)) {
@@ -20199,7 +11096,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetRecentLocation() {
+    public function actionGetRecentLocation()
+    {
         if (!empty($this->device_uiid)) {
 
             $page_limit = mobileWrapper::paginateLimit();
@@ -20250,7 +11148,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionSetLocation() {
+    public function actionSetLocation()
+    {
         $this->getPOSTData();
         $this->data = $_POST;
         $lat = isset($this->data['lat']) ? $this->data['lat'] : '';
@@ -20315,7 +11214,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionAddFavorite() {
+    public function actionAddFavorite()
+    {
         if ($client_id = $this->checkToken()) {
             if ($this->merchant_id > 0) {
                 $res = FunctionsV3::addToFavorites($client_id, $this->merchant_id);
@@ -20335,7 +11235,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsearchMerchantFood() {
+    public function actionsearchMerchantFood()
+    {
         $search_string = isset($this->data['search_string']) ? $this->data['search_string'] : '';
         if (!empty($search_string)) {
             $db = new DbExt;
@@ -20396,7 +11297,7 @@ class ApiController extends CController {
             if (isset($_GET['debug'])) {
                 dump($stmt);
             }
-            
+
 
             if ($res = $db->rst($stmt)) {
                 $data = array();
@@ -20417,11 +11318,11 @@ class ApiController extends CController {
                         } else
                             $val['category'] = '';
                     }
-                    
+
                     // if($this->data['distance'] == null){
                     //     $this->data['distance'] = '';
                     // }
-                    
+
                     // if($this->data['distance_unit'] == null){
                     //     $this->data['distance_unit'] = '';
                     // }
@@ -20451,7 +11352,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionGetRecentSearch() {
+    public function actionGetRecentSearch()
+    {
         if (!empty($this->device_uiid)) {
 
             $page_limit = mobileWrapper::paginateLimit();
@@ -20500,7 +11402,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionDriverSignup() {
+    public function actionDriverSignup()
+    {
         $this->data = $_POST;
 
         if (FunctionsV3::hasModuleAddon('driver')) {
@@ -20531,9 +11434,10 @@ class ApiController extends CController {
                 }
             }
 
-            $Validator->email(array(
-                'email' => "Invalid email address"
-                    ), $this->data);
+            $Validator->email(
+                array(
+                    'email' => "Invalid email address"
+                ), $this->data);
 
             $Validator->required($req, $this->data);
             if ($Validator->validate()) {
@@ -20576,15 +11480,22 @@ class ApiController extends CController {
                         $admin_email = getOptionA('driver_send_admin_notification_email');
                         if (!empty($admin_email)) {
                             $tpl = EmailTemplate::newDriverSignup();
-                            $tpl = Driver::smarty('full_name', $this->data['first_name'] . " " .
-                                            $this->data['last_name']
-                                            , $tpl);
+                            $tpl = Driver::smarty(
+                                'full_name',
+                                $this->data['first_name'] . " " .
+                                $this->data['last_name']
+                                ,
+                                $tpl
+                            );
                             $tpl = Driver::smarty('email', $this->data['email'], $tpl);
                             $tpl = Driver::smarty('phone', $this->data['phone'], $tpl);
                             $tpl = Driver::smarty('username', $this->data['username'], $tpl);
                             $tpl = Driver::smarty('transport_type_id', $this->data['transport_type_id'], $tpl);
                             Yii::app()->functions->sendEmail(
-                                    $admin_email, '', t("New driver Signup"), $tpl
+                                $admin_email,
+                                '',
+                                t("New driver Signup"),
+                                $tpl
                             );
                         }
                     }
@@ -20594,11 +11505,14 @@ class ApiController extends CController {
                     $DRIVER_NEW_SIGNUP_EMAIL_TPL = getOptionA('DRIVER_NEW_SIGNUP_EMAIL_TPL');
                     if ($DRIVER_NEW_SIGNUP_EMAIL == 1 && !empty($DRIVER_NEW_SIGNUP_EMAIL_TPL)) {
                         $tpl = $DRIVER_NEW_SIGNUP_EMAIL_TPL;
-                        $company_name = Yii ::app()->functions->getOptionAdmin('website_title');
+                        $company_name = Yii::app()->functions->getOptionAdmin('website_title');
                         $tpl = Driver::smarty('DriverName', $this->data['first_name'], $tpl);
                         $tpl = Driver::smarty('CompanyName', $company_name, $tpl);
                         Yii::app()->functions->sendEmail(
-                                $this->data['email'], '', t("Thank you for signing up"), $tpl
+                            $this->data['email'],
+                            '',
+                            t("Thank you for signing up"),
+                            $tpl
                         );
                     }
                 } else
@@ -20610,7 +11524,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionsendOrderSMSCode() {
+    public function actionsendOrderSMSCode()
+    {
         if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
@@ -20628,8 +11543,9 @@ class ApiController extends CController {
         if ($sms_balance >= 1) {
             $code = FunctionsK::generateSMSOrderCode($contact_phone);
             $sms_msg = Yii::t("mobile2", "Your order sms code is [code]", array(
-                        '[code]' => $code
-            ));
+                '[code]' => $code
+            )
+            );
             if ($resp = Yii::app()->functions->sendSMS($contact_phone, $sms_msg)) {
                 if ($resp['msg'] != "process") {
 
@@ -20637,8 +11553,9 @@ class ApiController extends CController {
 
                     $this->code = 1;
                     $this->msg = Yii::t("mobile2", "Your order sms code has been sent to [mobile]", array(
-                                '[mobile]' => $contact_phone
-                    ));
+                        '[mobile]' => $contact_phone
+                    )
+                    );
 
                     $this->details = array(
                         'sms_order_session' => $sms_order_session
@@ -20681,7 +11598,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionverifyOrderSMScode() {
+    public function actionverifyOrderSMScode()
+    {
         $this->getPOSTData();
         $this->data = $_POST;
         $sms_order_session = isset($this->data['sms_order_session']) ? $this->data['sms_order_session'] : '';
@@ -20697,7 +11615,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionapplyRedeemPoints() {
+    public function actionapplyRedeemPoints()
+    {
         $points = isset($this->data['points']) ? $this->data['points'] : 0;
 
         if (!is_numeric($this->merchant_id)) {
@@ -20706,7 +11625,7 @@ class ApiController extends CController {
         }
 
         if ($points > 0.0001) {
-            
+
         } else {
             $this->msg = $this->t("Invalid redeem points");
             $this->output();
@@ -20811,8 +11730,9 @@ class ApiController extends CController {
             if ($points_apply_order_amt > 0.0001) {
                 if ($points_apply_order_amt > $subtotal) {
                     $this->msg = Yii::t("mobile2", "Sorry but you can only redeem points on orders over [amount]", array(
-                                '[amount]' => FunctionsV3::prettyPrice($points_apply_order_amt)
-                    ));
+                        '[amount]' => FunctionsV3::prettyPrice($points_apply_order_amt)
+                    )
+                    );
                     $this->output();
                 }
             }
@@ -20829,8 +11749,9 @@ class ApiController extends CController {
             if ($points_minimum > 0.0001) {
                 if ($points_minimum > $points) {
                     $this->msg = Yii::t("mobile2", "Sorry but Minimum redeem points can be used is [points]", array(
-                                '[points]' => $points_minimum
-                    ));
+                        '[points]' => $points_minimum
+                    )
+                    );
                     $this->output();
                 }
             }
@@ -20849,8 +11770,9 @@ class ApiController extends CController {
             if ($points_max > 0.0001) {
                 if ($points_max < $points) {
                     $this->msg = Yii::t("mobile2", "Sorry but Maximum redeem points can be used is [points]", array(
-                                '[points]' => $points_max
-                    ));
+                        '[points]' => $points_max
+                    )
+                    );
                     $this->output();
                 }
             }
@@ -20886,7 +11808,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionremovePoints() {
+    public function actionremovePoints()
+    {
         $DbExt = new DbExt;
         $params = array(
             'date_modified' => FunctionsV3::dateNow(),
@@ -20902,7 +11825,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionapplyVoucher() {
+    public function actionapplyVoucher()
+    {
         if (!is_numeric($this->merchant_id)) {
             $this->msg = $this->t("Invalid merchant id");
             $this->output();
@@ -20957,7 +11881,7 @@ class ApiController extends CController {
 
             /* CHECK IF ALREADY USE */
             if ($res['found'] <= 0) {
-                
+
             } else {
                 $this->msg = $this->t("Sorry but you have already use this voucher code");
                 $this->output();
@@ -20988,7 +11912,7 @@ class ApiController extends CController {
                 if (!empty($res['joining_merchant'])) {
                     $joining_merchant = json_decode($res['joining_merchant']);
                     if (in_array($this->merchant_id, (array) $joining_merchant)) {
-                        
+
                     } else {
                         $this->msg = $this->t("Sorry this voucher code cannot be used on this merchant");
                         $this->output();
@@ -21034,7 +11958,7 @@ class ApiController extends CController {
             $DbExt = new DbExt;
             $DbExt->updateData("{{mobile2_cart}}", array(
                 'voucher_details' => json_encode($params)
-                    ), 'device_uiid', $this->device_uiid);
+            ), 'device_uiid', $this->device_uiid);
             $this->code = 1;
             $this->msg = "OK";
             $this->details = '';
@@ -21044,7 +11968,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionremoveVoucher() {
+    public function actionremoveVoucher()
+    {
         mobileWrapper::removeVoucher($this->device_uiid);
         $this->code = 1;
         $this->msg = "OK";
@@ -21052,7 +11977,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionapplyTips() {
+    public function actionapplyTips()
+    {
         if (!is_numeric($this->merchant_id)) {
             $this->msg = $this->t("Invalid merchant id");
             $this->output();
@@ -21081,7 +12007,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionremoveTip() {
+    public function actionremoveTip()
+    {
         mobileWrapper::removeTip($this->device_uiid);
         $this->code = 1;
         $this->msg = "OK";
@@ -21089,7 +12016,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionPayOnDeliveryCardList() {
+    public function actionPayOnDeliveryCardList()
+    {
         if (!is_numeric($this->merchant_id)) {
             $this->msg = $this->t("Invalid merchant id");
             $this->output();
@@ -21122,7 +12050,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionrazorPaymentSuccessfull() {
+    public function actionrazorPaymentSuccessfull()
+    {
         $db = new DbExt();
         $device_uiid = isset($_GET['device_uiid']) ? $_GET['device_uiid'] : '';
 
@@ -21144,8 +12073,9 @@ class ApiController extends CController {
                     if ($db->insertData("{{payment_order}}", $params)) {
                         $this->code = 1;
                         $this->msg = Yii::t("mobile2", "Your order has been placed. Reference # [order_id]", array(
-                                    '[order_id]' => $order_id
-                        ));
+                            '[order_id]' => $order_id
+                        )
+                        );
 
                         $total = $order_details['total_w_tax'];
 
@@ -21158,8 +12088,13 @@ class ApiController extends CController {
                         /* SEND EMAIL RECEIPT */
                         mobileWrapper::sendNotification($order_id);
 
-                        FunctionsV3::updateOrderPayment($order_id, 'rzr',
-                                $payment_gateway_ref, $payment_gateway_ref, $order_id);
+                        FunctionsV3::updateOrderPayment(
+                            $order_id,
+                            'rzr',
+                            $payment_gateway_ref,
+                            $payment_gateway_ref,
+                            $order_id
+                        );
 
                         mobileWrapper::executeAddons($order_id);
 
@@ -21175,7 +12110,8 @@ class ApiController extends CController {
         $this->output();
     }
 
-    public function actionPayAuthorize() {
+    public function actionPayAuthorize()
+    {
         $this->getPOSTData();
         $this->data = $_POST;
 
@@ -21223,8 +12159,13 @@ class ApiController extends CController {
                 if ($resp = AuthorizePayWrapper::Paynow($params, $client_id)) {
                     $payment_reference = $resp['payment_reference'];
 
-                    FunctionsV3::updateOrderPayment($order_id, "atz",
-                            $payment_reference, $resp, $reference_id);
+                    FunctionsV3::updateOrderPayment(
+                        $order_id,
+                        "atz",
+                        $payment_reference,
+                        $resp,
+                        $reference_id
+                    );
 
                     mobileWrapper::executeAddons($order_id);
 
@@ -21236,8 +12177,9 @@ class ApiController extends CController {
 
                     $this->code = 1;
                     $this->msg = Yii::t("mobile2", "Your order has been placed. Reference # [order_id]", array(
-                                '[order_id]' => $order_id
-                    ));
+                        '[order_id]' => $order_id
+                    )
+                    );
 
                     $this->details = array(
                         'order_id' => $order_id,
@@ -21251,13 +12193,14 @@ class ApiController extends CController {
         }
         $this->output();
     }
-    
-    public function TestToken(){
-//        $this->getPOSTData();
-        ini_set("display_errors",1);
-error_reporting(E_ALL & ~E_NOTICE);
-$publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
-//$cs = Yii::app()->getClientScript();
+
+    public function TestToken()
+    {
+        //        $this->getPOSTData();
+        ini_set("display_errors", 1);
+        error_reporting(E_ALL & ~E_NOTICE);
+        $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
+        //$cs = Yii::app()->getClientScript();
 //$cs->registerScriptFile("https://js.stripe.com/v2/");
 //$publish_key = "Stripe('$publish_key')";
 //
@@ -21267,50 +12210,50 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
 //           alert(stripe);               ',
 //        CClientScript::POS_HEAD
 //);
-?>
-<script type="text/javascript" src="https://js.stripe.com/v2/"></script>
-<script>
-        var token = '';
-        Stripe.setPublishableKey("<?php echo $publish_key; ?>");
-        Stripe.createToken({
+        ?>
+        <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
+        <script>
+            var token = '';
+            Stripe.setPublishableKey("<?php echo $publish_key; ?>");
+            Stripe.createToken({
                 number: '5254520008175779',
                 cvc: '089',
                 exp_month: 11,
                 exp_year: 2023
             }, stripeResponseHandler);
-            
-        function stripeResponseHandler(status, response){
+
+            function stripeResponseHandler(status, response) {
                 if (response.error) {
                     alert(response.error.message);
                 } else {
                     token = response["id"];
-                    
-                    createCookie("token", token, "10"); 
+
+                    createCookie("token", token, "10");
                 }
             }
-        function createCookie(name, value, days) { 
-                var expires; 
+            function createCookie(name, value, days) {
+                var expires;
 
-                if (days) { 
-                    var date = new Date(); 
-                    date.setTime(date.getTime() + (1000)); 
-                    expires = "; expires=" + date.toGMTString(); 
-                } 
-                else { 
-                    expires = ""; 
-                } 
+                if (days) {
+                    var date = new Date();
+                    date.setTime(date.getTime() + (1000));
+                    expires = "; expires=" + date.toGMTString();
+                }
+                else {
+                    expires = "";
+                }
 
-                document.cookie = escape(name) + "=" +  
-                    escape(value) + expires + "; path=/"; 
+                document.cookie = escape(name) + "=" +
+                    escape(value) + expires + "; path=/";
             } 
-</script>
-            <?php
-            print_r($_COOKIE);
-            echo $_COOKIE["token"]; 
+        </script>
+        <?php
+        print_r($_COOKIE);
+        echo $_COOKIE["token"];
         exit('cc');
-//       print_r(StripeWrapper::createToken());
+        //       print_r(StripeWrapper::createToken());
     }
-    
+
     protected function createToken($credentials){
         $curl = curl_init();
         curl_setopt_array($curl, array(
@@ -21330,130 +12273,31 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         ));
 
         $response = curl_exec($curl);
+
         curl_close($curl);
         $response = json_decode($response,true);
-        // print_r($response['card']['cvc_check']); exit('ti');
-        // print_r($response); exit('ti');
-        
-        // if(isset($response) && !empty($response)){
-        // if(isset($response['card']['cvc_check']) && $response['card']['cvc_check'] = 'unchecked' ){
-             
-        //      $error =  "Your card was declined.You have used a known test card or disable card."; 
-        //                 $this->msg = $error;
-        //                 $this->code = 2;  
-        //                 $this->output();
-            
-        // }
-        
-        // }
-        
-        if(isset($response) && !empty($response)){
-            
-            if(isset($response['error']['message']) && !empty($response['error']['message'])){
-                
-                    //   $data = $response['error']['message'];
-                        $error =  $response['error']['message']; 
-                        $this->msg = $error;
-                        $this->code = 2;  
-                        $this->output();
-                       
-                      
-            }
-            else{
-                
-                return $response['id'];
-            }
-    
-        }
-        
+        return $response['id'];
     }
     
-    
-    ///testtt
-    
-     protected function createTokenTest($credentials){
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://api.stripe.com/v1/tokens",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => "card[number]=".$credentials['card']."&card[exp_month]=".$credentials['exp_month']."&card[exp_year]=".$credentials['exp_year']."&card[cvc]=".$credentials['cvc'],
-            CURLOPT_HTTPHEADER => array(
-                "Authorization: Bearer ".$credentials['publish_key'],
-                "Content-Type: application/x-www-form-urlencoded"
-            ),
-        ));
 
-        $response = curl_exec($curl);
-        curl_close($curl);
-        $response = json_decode($response,true);
-        // print_r($response['card']['cvc_check']); exit('ti');
-        print_r($response); exit('ti');
-        
-        // if(isset($response) && !empty($response)){
-        // if(isset($response['card']['cvc_check']) && $response['card']['cvc_check'] = 'unchecked' ){
-             
-        //      $error =  "Your card was declined.You have used a known test card or disable card."; 
-        //                 $this->msg = $error;
-        //                 $this->code = 2;  
-        //                 $this->output();
-            
-        // }
-        
-        // }
-        
-        if(isset($response) && !empty($response)){
-            
-            if(isset($response['error']['message']) && !empty($response['error']['message'])){
-                
-                    //   $data = $response['error']['message'];
-                        $error =  $response['error']['message']; 
-                        $this->msg = $error;
-                        $this->code = 2;  
-                        $this->output();
-                       
-                      
-            }
-            else{
-                
-                return $response['id'];
-            }
-    
-        }
-        
-    }
-    
-    
 
-///from devv
-
-  protected function doPayment($amount_to_pay,$order_id,$credential,$payment_description,$client_info,$payment_intent,$token){
+    ///from devv
+    protected function doPayment($amount_to_pay,$order_id,$credential,$payment_description,$client_info,$payment_intent,$token){
         
 
         $customerDetailsAry = array(
             'email' => $client_info['email_address'],
-            // 'email' => 'brew2@gmail.com',
             'source' => $token
         );
-      
-       
+        // print_r($customerDetailsAry); exit('f'); 
         $customer = new Customer();
-        
-      
-     
+
         // ini_set("display_errors",1);
 
         // error_reporting(E_ALL & ~E_NOTICE);
-        
+
         $customerDetails = $customer->create($customerDetailsAry);
-        
-        //  print_r($customerDetails); exit('sadas');
-                
+
         $cardDetailsAry = array(
             'customer' => $customerDetails->id,
             'amount' => $amount_to_pay,
@@ -21464,62 +12308,9 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
             )
         );
         
-        $charge = new Charge();
-        $result = $charge->create($cardDetailsAry);
-         
-        $strip_result = $result->jsonSerialize();
-        return $strip_result;
-    }
-    
-
-    //here for test2 
-    
-      protected function doPaymenttest($amount_to_pay,$order_id,$credential,$payment_description,$client_info,$payment_intent,$token){
-        
-        
-      ini_set('display_errors', 1);
-      ini_set('display_startup_errors', 1);
-       error_reporting(E_ALL);
-
-        $customerDetailsAry = array(
-            'email' => $client_info['email_address'],
-            'source' => $token
-        );
-      
        
-        $customer = new Customer();
-        
-        //  $customercheck = json_decode($customer, true);
-        
- 
-     
-        // ini_set("display_errors",1);
-
-        // error_reporting(E_ALL & ~E_NOTICE);
-        
-        $customerDetails = $customer->create($customerDetailsAry);
-        
-            // $customercheck = json_decode($customerDetails, true);
-            // if(empty($customerDetails)){
-            //     exit('ssdcsd');
-                
-            // }
-        
-            //   print_r($customerDetails); exit('sadas');
-        
-        
-                
-        $cardDetailsAry = array(
-            'customer' => $customerDetails->id,
-            'amount' => $amount_to_pay,
-            'currency' => Yii::app()->functions->adminCurrencyCode(),
-            'description' => $payment_description,
-            'metadata' => array(
-                'order_id' => $order_id
-            )
-        );
-        
         $charge = new Charge();
+        
         $result = $charge->create($cardDetailsAry);
          
         $strip_result = $result->jsonSerialize();
@@ -21527,224 +12318,7 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
     }
     
     
-//     public function actionPayStripe() {
-        
-     
-    
-// // ini_set('display_errors', 1);
-// // ini_set('display_startup_errors', 1);
-// // error_reporting(E_ALL);
-        
-//         $this->getPOSTData();
-//         $this->data = $_POST;
-//         $this->code = 1;
-//         if ($client_id = $this->checkToken()) {
-//             $order_id = isset($this->data['order_id']) ? $this->data['order_id'] : '';
-//             $_POST['id'] = $order_id;
-//             $response = array();
-//             if ($data = Yii::app()->functions->getOrder($order_id)) {  
-//                 $client_id = $data['client_id'];
-//                 $merchant_id = isset($data['merchant_id']) ? $data['merchant_id'] : '';
-//                 $default_order_status = Yii::app()->functions->getOption("default_order_status", $merchant_id);
-//                 $client_info = Yii::app()->functions->getClientInfo($client_id);
-//                 $amount_to_pay = Yii::app()->functions->normalPrettyPrice($data['total_w_tax']);
-//                 $amount_to_pay = $amount_to_pay;
-//                 $merchant_info = array();
-//                 if ($merchant_info_raw = FunctionsV3::getMerchantById($merchant_id)) {
-//                     $merchant_info['restaurant_name'] = clearString($merchant_info_raw['restaurant_name']);
-//                     $merchant_info['rating'] = $merchant_info_raw['ratings'] > 0 ? $merchant_info_raw['ratings'] : 0;
-//                     $merchant_info['background_url'] = mobileWrapper::getMerchantBackground($merchant_id);
-//                 }
-                
-//                 $reference_id = $data['order_id_token'];
-//                 $error = '';   
-//                 if ($credentials = StripeWrapper::getCredentials($merchant_id)) { 
-                                    
-//                     $payment_description = Yii::t("mobile2", "Payment to merchant [merchant_name]. Order ID#[order]", array(
-//                                             '[merchant_name]' => clearString($merchant_info['restaurant_name']),
-//                                             '[order]' => $order_id
-//                     ));
-//                     $description = Yii::t("default", "Purchase Order ID# [order_id]", array(
-//                                 '[order_id]' => $_POST['id']
-//                     ));
-//                      $trans_type = 'order';
-                     
-//                     $params = array(
-//                         'customer_email' => $_POST['email'],
-//                         // 'customer_email' => 'alirehmanarshad@gmail.com',
-//                         'payment_method_types' => array('card'),
-//                         'client_reference_id' => $trans_type . "-" . $reference_id,
-//                         'line_items' => array(
-//                             array(
-//                                 'name' => $payment_description,
-//                                 'description' => $description,
-//                                 'amount' => $amount_to_pay*100,
-//                                 'currency' => FunctionsV3::getCurrencyCode(),
-//                                 'quantity' => 1
-//                             )
-//                         ),
-//                         'success_url' => websiteUrl() . "/stripe_success?reference_id=" . urlencode($reference_id) . "&trans_type=$trans_type",
-//                         'cancel_url' => websiteUrl() . "/paymentoption",
-//                             //'locale'=>'es'
-//                     );
-                    
-//                     $resp = StripeWrapper::createSession($credentials['secret_key'], $params);
-//                     $stripe_session = $resp['id'];
-//                     $payment_intent = $resp['payment_intent'];
-//                     $scret_key = $credentials['secret_key'];
-//                     $credentials = [
-//                          'card' => $_POST['card'],
-//                          'exp_month' => $_POST['exp_month'],
-//                          'exp_year' =>  $_POST['exp_year'],
-//                          'cvc' => $_POST['cvc']
-//                     ];
-//                     $respp = StripeWrapper::getCredentials($merchant_id);
-//                     $credentials['publish_key'] = $respp['publish_key'];
-//                     $token  = $this->createToken($credentials);
-                    
-//                       //If the Card is invalid or test token will not generate on live mode
-//                         if(!($token)){
-//                         $error = t("Your card is not valid or expried"); 
-//                         $this->msg = $error;
-//                         $this->code = 2;  
-//                         $this->output();                            
-//                     }
-                    
-                    
-//                     $db = new DbExt();
-//                         $db->updateData("{{order}}", array(
-//                             'payment_gateway_ref' => $payment_intent
-//                                 ), 'order_id', $order_id);
-
-
-//                         $cs = Yii::app()->getClientScript();
-//                         $cs->registerScriptFile("https://js.stripe.com/v3/");
-
-//                         $publish_key = $credentials['publish_key'];
-//                         $publish_key = "Stripe('$publish_key')";
-
-//                         $cs->registerScript(
-//                                 'stripe',
-//                                 'var stripe = ' . $publish_key . ';
-//                                                   ',
-//                                 CClientScript::POS_HEAD
-//                         );
-//                         $cs->registerScript(
-//                                 'stripe_session',
-//                                 "var stripe_session='$stripe_session';",
-//                                 CClientScript::POS_HEAD
-//                         );
-
-//                         $cs->registerScript(
-//                                 'payment_reference_id',
-//                                 "var payment_reference_id='$reference_id';",
-//                                 CClientScript::POS_HEAD
-//                         );
-                        
-                    
-
-//                     $strip_result = $this->doPayment($amount_to_pay*100,$order_id,$credentials,$payment_description,$client_info,$resp['payment_intent'],$token);
-                    
-//                         if(is_array($strip_result) && isset($strip_result['error'])){
-//                         $error = t($strip_result['error']); 
-//                         $this->msg = $error;
-//                         $this->code = 2;  
-//                         $this->output();
-//                     }
-                    
-                    
-                    
-//                     if ($strip_result['status'] == 'succeeded') {
-//                         $back_url = Yii::app()->createUrl('/store/confirmorder');
-//                                       /*update credit card details*/
-//                                         $dbb = new DbExt();
-//                                          $dbb->updateData("{{order}}", array(
-//                                             'credit_card' => $_POST['card']
-//                                         ), 'order_id', $order_id);
-                        
-//                         if (!empty($reference_id)) {
-//                             if ($data = FunctionsV3::getOrderInfoByToken($reference_id)) {
-//                                 $payment_gateway_ref = isset($data['payment_gateway_ref']) ? $data['payment_gateway_ref'] : '';
-//                                 $merchant_id = isset($data['merchant_id']) ? $data['merchant_id'] : '';
-//                                 $client_id = $data['client_id'];
-//                                 $order_id = $data['order_id'];
-//                                 $credentials['secret_key']= $scret_key;
-//                                 try {
-                                    
-//                                     $resp = StripeWrapper::retrievePaymentIntent($credentials['secret_key'], $payment_gateway_ref);
-
-//                                     if ($data['status'] == "Paid") {
-//                                         $response['code'] = 1;
-//                                         $response['message'] = 'Already Paid';
-
-//                                         $this->code = 1;
-//                                         $this->msg = Yii::t("mobile2", "Already Paid. Reference # [order_id]", array(
-//                                                     '[order_id]' => $order_id
-//                                         ));
-//                                     } else {
-//                                         FunctionsV3::updateOrderPayment($order_id, StripeWrapper::paymentCode(),
-//                                                 $payment_gateway_ref, $resp, $reference_id, 'Paid');
-                                     
-//                                         FunctionsV3::callAddons($order_id);
-
-//                                         /* SEND EMAIL RECEIPT */
-                                        
-                                        
-//                                         //here stoping mail 
-//                                         mobileWrapper::sendNotification($order_id);
-
-//                                         /* CLEAR CART */
-//                                         mobileWrapper::clearCart($this->device_uiid);
-
-//                                         $this->code = 1;
-//                                         $this->msg = Yii::t("mobile2", "Your order has been placed. Reference # [order_id]", array(
-//                                                     '[order_id]' => $order_id
-//                                         ));
-//                                     }
-
-//                                     $this->details = array(
-//                                         'order_id' => $order_id,
-//                                         'total_amount' => $amount_to_pay,
-//                                         'next_step' => 'receipt'
-//                                     );
-//                                 } catch (Exception $e) {
-//                                     $error = Yii::t("default", "Caught exception: [error]", array(
-//                                                 '[error]' => $e->getMessage()
-//                                     ));
-//                                 }
-//                             }
-//                         } else
-//                             $error = t("Failed getting order information");
-//                     } else{
-//                         $error = t("Sorry but we cannot find what your are looking for.");
-                        
-                        
-//                     }
-//                     if (!empty($error)) {
-//                         $error .= '<p style="margin-top:20px;"><a href="' . $back_url . '" />' . t("Go back") . '</a></p>';
-//                     }
-//                 } else
-//                     $error = t("invalid payment credentials");
-//             } else {
-//                 $error .= '<p> Invalid Order Id </p>';
-//             }
-//             if ($error != '') {
-//                 $this->msg = $error;
-//                 $this->code = 2;
-//             }
-//         }
-//         $this->output();
-//     }
-    
-    
-    //this is test functionn
-     public function actionPayStripe() {
-        
-     
-    
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
+    public function actionPayStripe() {
         
         $this->getPOSTData();
         $this->data = $_POST;
@@ -21782,7 +12356,6 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                      
                     $params = array(
                         'customer_email' => $_POST['email'],
-                        // 'customer_email' => 'alirehmanarshad@gmail.com',
                         'payment_method_types' => array('card'),
                         'client_reference_id' => $trans_type . "-" . $reference_id,
                         'line_items' => array(
@@ -21812,14 +12385,6 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                     $respp = StripeWrapper::getCredentials($merchant_id);
                     $credentials['publish_key'] = $respp['publish_key'];
                     $token  = $this->createToken($credentials);
-                    
-                       //If the Card is invalid or test token will not generate on live mode
-                        if(!($token)){
-                        $error = t("Your card is not valid or expried"); 
-                        $this->msg = $error;
-                        $this->code = 2;  
-                        $this->output();                            
-                    }
                     
                     
                     $db = new DbExt();
@@ -21851,19 +12416,11 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                                 "var payment_reference_id='$reference_id';",
                                 CClientScript::POS_HEAD
                         );
-                        
                     
 
                     $strip_result = $this->doPayment($amount_to_pay*100,$order_id,$credentials,$payment_description,$client_info,$resp['payment_intent'],$token);
                     
-                        if(is_array($strip_result) && isset($strip_result['error'])){
-                        $error = t($strip_result['error']); 
-                        $this->msg = $error;
-                        $this->code = 2;  
-                        $this->output();
-                    }
-                    
-                    
+                    // print_r($strip_result); exit('stripe');
                     
                     if ($strip_result['status'] == 'succeeded') {
                         $back_url = Yii::app()->createUrl('/store/confirmorder');
@@ -21899,13 +12456,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                                         FunctionsV3::callAddons($order_id);
 
                                         /* SEND EMAIL RECEIPT */
-                                        
-                                        
-                                        //here stoping mail
-              
-                                           if(isset($data['delivery_asap']) != 'delivery'){
-                                               mobileWrapper::sendNotification($order_id);
-                                           } 
+                                        // mobileWrapper::sendNotification($order_id);
+
                                         /* CLEAR CART */
                                         mobileWrapper::clearCart($this->device_uiid);
 
@@ -21948,13 +12500,14 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         }
         $this->output();
     }
-    
+
     //end test
-    
-    
-    
-     
-    public function actionReject() {
+
+
+
+
+    public function actionReject()
+    {
         if ($data = Yii::app()->functions->getOrder($_GET['order_id'])) {
             $reference_id = $data['order_id_token'];
             if ($data = FunctionsV3::getOrderInfoByToken($reference_id)) {
@@ -21965,9 +12518,15 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                 $order_id = $data['order_id'];
                 if ($credentials = StripeWrapper::getCredentials($merchant_id)) {
                     try {
-//                        $resp = StripeWrapper::retrievePaymentIntent($credentials['secret_key'], $payment_gateway_ref);
-                        FunctionsV3::updateOrderPayment($order_id, StripeWrapper::paymentCode(),
-                                $payment_gateway_ref, '', $reference_id, 'Rejected');
+                        //                        $resp = StripeWrapper::retrievePaymentIntent($credentials['secret_key'], $payment_gateway_ref);
+                        FunctionsV3::updateOrderPayment(
+                            $order_id,
+                            StripeWrapper::paymentCode(),
+                            $payment_gateway_ref,
+                            '',
+                            $reference_id,
+                            'Rejected'
+                        );
                         if ($client_id = $this->checkToken()) {
                             $this->data['client_id'] = $client_id;
                         }
@@ -21983,8 +12542,9 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                         );
                     } catch (Exception $e) {
                         $error = Yii::t("default", "Caught exception: [error]", array(
-                                    '[error]' => $e->getMessage()
-                        ));
+                            '[error]' => $e->getMessage()
+                        )
+                        );
                     }
                 } else {
                     $error = t("invalid payment credentials");
@@ -21996,12 +12556,13 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
             $this->msg = $error;
             $this->code = 2;
         }
-        
+
         $this->output();
         /* START CUSTOM CODE */
     }
-    
-    public function actionsavePushSettings() {
+
+    public function actionsavePushSettings()
+    {
         if (!empty($this->device_uiid)) {
             $enabled_push = isset($this->data['enabled_push']) ? $this->data['enabled_push'] : '';
             $params = array(
@@ -22022,7 +12583,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actiongetPushSettings() {
+    public function actiongetPushSettings()
+    {
         if (!empty($this->device_uiid)) {
             if ($res = mobileWrapper::getDeviceByUIID($this->device_uiid)) {
                 $this->code = 1;
@@ -22037,7 +12599,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionreRegisterDevice() {
+    public function actionreRegisterDevice()
+    {
         if ($client_id = $this->checkToken()) {
             $this->data['client_id'] = $client_id;
         }
@@ -22048,7 +12611,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionlogout() {
+    public function actionlogout()
+    {
         if ($client_id = $this->checkToken()) {
             $this->data['client_id'] = $client_id;
         }
@@ -22060,24 +12624,27 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionregisterUsingFb() {
+    public function actionregisterUsingFb()
+    {
         $this->data = $_POST;
         $this->data['social_strategy'] = 'fb_mobile';
         $this->socialLogin();
         $this->output();
     }
 
-    public function actiongoogleLogin() {
+    public function actiongoogleLogin()
+    {
         $this->data = $_POST;
         $this->data['social_strategy'] = 'google_mobile';
         $this->socialLogin();
         $this->output();
     }
 
-    private function socialLogin() {
-        
+    private function socialLogin()
+    {
+
         $DbExt = new DbExt;
-        
+
         $email_address = isset($this->data['email_address']) ? $this->data['email_address'] : '';
 
         $Validator = new Validator;
@@ -22126,7 +12693,7 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                     'social_id' => $this->data['social_id'],
                     'last_login' => FunctionsV3::dateNow(),
                     'ip_address' => $_SERVER['REMOTE_ADDR']
-                        ), 'client_id', $client_id);
+                ), 'client_id', $client_id);
 
                 $this->code = 1;
                 $this->msg = $this->t("Registration successful");
@@ -22204,12 +12771,13 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionretrievePassword() {
+    public function actionretrievePassword()
+    {
         $user_mobile = isset($this->data['user_mobile']) ? $this->data['user_mobile'] : '';
 
         $res = array();
         if ($res = mobileWrapper::getAccountByEmail($user_mobile)) {
-            
+
         } else {
             $res = mobileWrapper::getAccountByPhone($user_mobile);
         }
@@ -22226,7 +12794,7 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                 'lost_password_token' => $token,
                 'date_modified' => FunctionsV3::dateNow(),
                 'ip_address' => $_SERVER['REMOTE_ADDR']
-                    ), 'client_id', $client_id);
+            ), 'client_id', $client_id);
 
             $email_address = $res['email_address'];
             mobileWrapper::SendForgotPassword($email_address, $res);
@@ -22242,11 +12810,13 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionmapboxgeocode() {
+    public function actionmapboxgeocode()
+    {
         $this->actiongeocode();
     }
 
-    private function actiongeocode() {
+    private function actiongeocode()
+    {
         $lat = isset($this->data['lat']) ? $this->data['lat'] : '';
         $lng = isset($this->data['lng']) ? $this->data['lng'] : '';
 
@@ -22263,7 +12833,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionclearRecentLocation() {
+    public function actionclearRecentLocation()
+    {
         if (mobileWrapper::clearRecentLocation($this->device_uiid)) {
             $this->code = 1;
             $this->msg = 'OK';
@@ -22273,7 +12844,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionGetPage() {
+    public function actionGetPage()
+    {
         $lang = Yii::app()->language;
         $page_id = isset($this->data['page_id']) ? $this->data['page_id'] : '';
         if ($res = mobileWrapper::getPageByID($page_id)) {
@@ -22308,7 +12880,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionclearRecentSearches() {
+    public function actionclearRecentSearches()
+    {
         if (mobileWrapper::clearRecentSearches($this->device_uiid)) {
             $this->code = 1;
             $this->msg = 'OK';
@@ -22318,7 +12891,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionTaskInformation() {
+    public function actionTaskInformation()
+    {
         $this->code = 6;
         $this->details = array(
             'element' => '.map_wrapper',
@@ -22352,7 +12926,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                     case "declined":
                         $resp_status = mt("Sorry but this Delivery is already set to [status]", array(
                             '[status]' => mt($res['status'])
-                        ));
+                        )
+                        );
                         break;
 
                     case "successful":
@@ -22361,7 +12936,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
 		    		  ", array(
                             '[status]' => mt($res['status']),
                             '[rating]' => $res['rating']
-                        ));
+                        )
+                        );
                         break;
 
                     default:
@@ -22383,7 +12959,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionDriverInformation() {
+    public function actionDriverInformation()
+    {
         $driver_id = isset($this->data['driver_id']) ? $this->data['driver_id'] : '';
         if ($res = mobileWrapper::DriverInformation($driver_id)) {
             $res['profile_photo'] = mobileWrapper::getImage($res['profile_photo'], 'avatar.png', false, 'driver');
@@ -22434,7 +13011,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionTrackDriver() {
+    public function actionTrackDriver()
+    {
         $driver_id = isset($this->data['driver_id']) ? $this->data['driver_id'] : '';
         $order_id = isset($this->data['track_order_id']) ? $this->data['track_order_id'] : '';
 
@@ -22464,7 +13042,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                         case "declined":
                             $resp_status = mt("Sorry but this Delivery status is [status]", array(
                                 '[status]' => mt($resp['status'])
-                            ));
+                            )
+                            );
                             break;
 
                         case "successful":
@@ -22473,7 +13052,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
 			    		  ", array(
                                 '[status]' => mt($resp['status']),
                                 '[rating]' => $resp['rating']
-                            ));
+                            )
+                            );
                             break;
 
                         default:
@@ -22496,7 +13076,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionGetTask() {
+    public function actionGetTask()
+    {
         $task_id = isset($this->data['task_id']) ? $this->data['task_id'] : '';
         if ($client_id = $this->checkToken()) {
             $this->data['client_id'] = $client_id;
@@ -22504,8 +13085,9 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
 
                 $res['profile_photo'] = mobileWrapper::getImage($res['driver_photo'], 'avatar.png', false, 'driver');
                 $res['review_as'] = mobileWrapper::t("Review as [customer_name]", array(
-                            '[customer_name]' => $res['customer_firstname']
-                ));
+                    '[customer_name]' => $res['customer_firstname']
+                )
+                );
 
                 $this->code = 1;
                 $this->msg = "OK";
@@ -22518,7 +13100,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionaddTaskReview() {
+    public function actionaddTaskReview()
+    {
 
         /* $this->code = 1;
           $this->msg = mt("Your review has submitted. Thank you!");
@@ -22565,12 +13148,17 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actiongetOrderDetailsCancel() {
+    public function actiongetOrderDetailsCancel()
+    {
         $this->actiongetOrderDetails();
     }
 
     public function actionGetNotifications() {
-        if (!$res = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
+        $user_token = $this->data['user_token'];
+        $device_uiid = $this->device_uiid;
+        // $user_token = 'zpls96u3kfbpa28454aa8fcda8cbcdd5e7da4a140ea87cb';
+        // $device_uiid = '6C9F2748-C35A-4331-B298-F06ECB1A34F3';
+        if (!$res = mobileWrapper::getCustomerByToken($user_token)) {
             $this->code = 3;
             $this->msg = $this->t("token not found");
             $this->output();
@@ -22586,7 +13174,7 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $paginate_total = 0;
         $limit = "LIMIT $page,$pagelimit";
 
-        //WHERE a.client_id=".FunctionsV3::q($client_id)."
+        //   WHERE a.device_id=" . FunctionsV3::q($device_uiid) . "
 
         $db = new DbExt();
         $stmt = "
@@ -22597,20 +13185,16 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
 		a.date_created		
 		FROM
 		{{mobile2_push_logs}} a
-				       
-		WHERE a.device_uiid=" . FunctionsV3::q($this->device_uiid) . "
-		AND is_read != '1'
-				
-		ORDER BY a.id DESC
-		$limit
+	    WHERE a.client_id=".FunctionsV3::q($client_id)."
+	    GROUP BY broadcast_id	
+		ORDER BY a.id DESC LIMIT 0,10
 		";
 
         if (isset($_GET['debug'])) {
             dump($stmt);
         }
-
-        if ($res = $db->rst($stmt)) {
-
+// dump($stmt);
+        if ($res = $db->rst_special($stmt)) {
             $total_records = 0;
             $stmtc = "SELECT FOUND_ROWS() as total_records";
             if ($resp = $db->rst($stmtc)) {
@@ -22645,7 +13229,9 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionReadNotification() {
+
+    public function actionReadNotification()
+    {
         if ($client_id = $this->checkToken()) {
             $id = isset($this->data['id']) ? $this->data['id'] : '';
             if ($id > 0) {
@@ -22665,7 +13251,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionmarkAllNotifications() {
+    public function actionmarkAllNotifications()
+    {
         if ($client_id = $this->checkToken()) {
             $stmt = "
 			UPDATE {{mobile2_push_logs}}
@@ -22683,7 +13270,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionsearchBooking() {
+    public function actionsearchBooking()
+    {
         if ($client_id = $this->checkToken()) {
             $search_str = isset($this->data['search_str']) ? $this->data['search_str'] : '';
             if (!empty($search_str)) {
@@ -22718,11 +13306,13 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                         $val['restaurant_name'] = clearString($val['restaurant_name']);
                         $val['logo'] = mobileWrapper::getImage($val['logo']);
                         $val['booking_ref'] = mobileWrapper::t("Booking ID#[booking_id]", array(
-                                    '[booking_id]' => $val['booking_id']
-                        ));
+                            '[booking_id]' => $val['booking_id']
+                        )
+                        );
                         $val['number_guest'] = mobileWrapper::t("No. of guest [count]", array(
-                                    '[count]' => $val['number_guest']
-                        ));
+                            '[count]' => $val['number_guest']
+                        )
+                        );
 
                         $val['restaurant_name'] = mobileWrapper::highlight_word($val['restaurant_name'], $search_str);
                         $val['booking_ref'] = mobileWrapper::highlight_word($val['booking_ref'], $search_str);
@@ -22742,7 +13332,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionGetBookingDetails() {
+    public function actionGetBookingDetails()
+    {
         if ($client_id = $this->checkToken()) {
             $booking_id = isset($this->data['booking_id']) ? $this->data['booking_id'] : '';
             if ($res = mobileWrapper::GetBookingDetails($booking_id, $client_id)) {
@@ -22802,7 +13393,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actiongetlanguageList2() {
+    public function actiongetlanguageList2()
+    {
         $data = array();
         if ($lang_list = FunctionsV3::getLanguageList(false)) {
             $enabled_lang = FunctionsV3::getEnabledLanguage();
@@ -22831,7 +13423,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actioncheckRunTrackHistory() {
+    public function actioncheckRunTrackHistory()
+    {
         $run_track = true;
         $order_id = isset($this->data['order_id']) ? $this->data['order_id'] : '';
         if ($order_id > 0) {
@@ -22860,11 +13453,13 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actiongetOrderHistory2() {
+    public function actiongetOrderHistory2()
+    {
         $this->actiongetOrderHistory();
     }
 
-    public function actionCityList() {
+    public function actionCityList()
+    {
         $page_limit = mobileWrapper::paginateLimit();
         if (isset($this->data['page'])) {
             $page = $this->data['page'] * $page_limit;
@@ -22896,7 +13491,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionAreaList() {
+    public function actionAreaList()
+    {
         $page_limit = mobileWrapper::paginateLimit();
         if (isset($this->data['page'])) {
             $page = $this->data['page'] * $page_limit;
@@ -22919,7 +13515,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionStateList() {
+    public function actionStateList()
+    {
         $page_limit = mobileWrapper::paginateLimit();
         if (isset($this->data['page'])) {
             $page = $this->data['page'] * $page_limit;
@@ -22941,7 +13538,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionsaveAddressBookLocation() {
+    public function actionsaveAddressBookLocation()
+    {
         $this->data = $_POST;
 
         if ($client_id = $this->checkToken()) {
@@ -22982,9 +13580,15 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                 unset($params['date_created']);
                 $params['date_modified'] = FunctionsV3::dateNow();
 
-                if (LocationWrapper::isAddressBookExist($client_id, $params['state_id'],
-                                $params['city_id'], $params['area_id'], $id
-                        )) {
+                if (
+                    LocationWrapper::isAddressBookExist(
+                        $client_id,
+                        $params['state_id'],
+                        $params['city_id'],
+                        $params['area_id'],
+                        $id
+                    )
+                ) {
                     $this->msg = mt("Address already exist");
                     $this->output();
                 }
@@ -22997,9 +13601,14 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
                 $this->msg = $this->t("Successfully updated");
             } else {
 
-                if (LocationWrapper::isAddressBookExist($client_id, $params['state_id'],
-                                $params['city_id'], $params['area_id']
-                        )) {
+                if (
+                    LocationWrapper::isAddressBookExist(
+                        $client_id,
+                        $params['state_id'],
+                        $params['city_id'],
+                        $params['area_id']
+                    )
+                ) {
                     $this->msg = mt("Address already exist");
                     $this->output();
                 }
@@ -23018,7 +13627,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actiongetAddressBookLocationByID() {
+    public function actiongetAddressBookLocationByID()
+    {
         if ($client_id = $this->checkToken()) {
             $id = isset($this->data['id']) ? $this->data['id'] : '';
             if ($id >= 1) {
@@ -23041,7 +13651,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionGetAddressFromCartLocation() {
+    public function actionGetAddressFromCartLocation()
+    {
         $customer_phone = '';
         if ($client = mobileWrapper::getCustomerByToken($this->data['user_token'])) {
             $customer_phone = $client['contact_phone'];
@@ -23081,7 +13692,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionsetAddressBookLocation() {
+    public function actionsetAddressBookLocation()
+    {
         if ($client_id = $this->checkToken()) {
             $addressbook_id = isset($this->data['addressbook_id']) ? $this->data['addressbook_id'] : '';
             if ($addressbook_id > 0) {
@@ -23112,7 +13724,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionsetDeliveryLocation() {
+    public function actionsetDeliveryLocation()
+    {
         $db = new DbExt();
         $params = array();
         $params['street'] = isset($this->data['street']) ? $this->data['street'] : '';
@@ -23132,11 +13745,11 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $delivery_fee = getOption($this->merchant_id, 'merchant_delivery_charges');
 
         $resp_delivery = LocationWrapper::getDeliveryFee(
-                        $this->merchant_id,
-                        $delivery_fee,
-                        $params['state_id'],
-                        $params['city_id'],
-                        $params['area_id']
+            $this->merchant_id,
+            $delivery_fee,
+            $params['state_id'],
+            $params['city_id'],
+            $params['area_id']
         );
 
         if ($resp_delivery) {
@@ -23181,7 +13794,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actiongetAddressLocationBookDropDown() {
+    public function actiongetAddressLocationBookDropDown()
+    {
         if ($client_id = $this->checkToken()) {
             if ($res = LocationWrapper::getAddressBook($client_id)) {
                 foreach ($res as $val) {
@@ -23199,7 +13813,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionPostalCodeList() {
+    public function actionPostalCodeList()
+    {
         $page_limit = mobileWrapper::paginateLimit();
         if (isset($this->data['page'])) {
             $page = $this->data['page'] * $page_limit;
@@ -23221,7 +13836,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actionrecheckLocation() {
+    public function actionrecheckLocation()
+    {
         $new_lat = isset($this->data['new_lat']) ? $this->data['new_lat'] : '';
         $new_lng = isset($this->data['new_lng']) ? $this->data['new_lng'] : '';
 
@@ -23252,7 +13868,8 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
         $this->output();
     }
 
-    public function actiongetActiveMerchantCategory() {
+    public function actiongetActiveMerchantCategory()
+    {
         $timezone = $this->data['timezone'];
         $this->getGETData();
         if ($this->merchant_id > 0) {
@@ -23268,14 +13885,15 @@ $publish_key = 'pk_test_tw7aCGYR0XXBzvhATib95IVz00x0GW9Ld8';
             $this->msg = mt("invalid merchant id");
         $this->output();
     }
-//testing purpose	
-    public function actiongetActiveMerchantCategoryNew() { 
-		$timezone = $this->data['timezone'];
+    //testing purpose	
+    public function actiongetActiveMerchantCategoryNew()
+    {
+        $timezone = $this->data['timezone'];
         $this->getGETData();
-        if ($this->merchant_id > 0) { 
-			if ($res = itemWrapper::getMerchantCategoryNew($this->merchant_id, $timezone)) {
+        if ($this->merchant_id > 0) {
+            if ($res = itemWrapper::getMerchantCategoryNew($this->merchant_id, $timezone)) {
 
-$this->code = 1;
+                $this->code = 1;
                 $this->msg = "ok";
                 $this->details = array(
                     'data' => $res
@@ -23286,163 +13904,167 @@ $this->code = 1;
             $this->msg = mt("invalid merchant id");
         $this->output();
     }
-//testing purpose end	
-    public function actiongetReportOrder() {
-        
-       
-        
-        if(!($this->data['user_token'])){
+    //testing purpose end	
+    public function actiongetReportOrder()
+    {
+
+
+
+        if (!($this->data['user_token'])) {
             $this->msg = mt("invalid user_token");
             $this->output();
         }
-        if(!($this->data['order_id'])){
+        if (!($this->data['order_id'])) {
             $this->msg = mt("invalid order_id");
             $this->output();
         }
-        if(!($this->data['type'])){
+        if (!($this->data['type'])) {
             $this->msg = mt("invalid type");
             $this->output();
         }
-        
+
         $email = getOptionA('mobileapp2_report_order_email');
-        if(!($email)){
+        if (!($email)) {
             $this->msg = mt("Email is not available in settings");
             $this->output();
         }
-        
+
         $client_info = mobileWrapper::getCustomerByToken($this->data['user_token']);
-        
+
         $client_info['order_id'] = $this->data['order_id'];
         $data = Yii::app()->functions->getOrder($client_info['order_id']);
-        
-        
-        
+
+
+
         $client_info['merchant_name'] = $data['merchant_name'];
-        $client_info['date_created'] = date('m-d-Y H:i A',strtotime($data['date_created']));
-        
+        $client_info['date_created'] = date('m-d-Y H:i A', strtotime($data['date_created']));
+
         $client_info['type'] = $this->data['type'];
         $client_info['contact_phone'] = $this->data['contactPhone'];
-        
-        $contactPhone = $client_info['contact_phone']; 
-        
+
+        $contactPhone = $client_info['contact_phone'];
+
         $client_info['description'] = $this->data['description'];
-        
+
         $status = FunctionsV3::sendEmailOrderReport($email, $client_info);
-        if($status){
+        if ($status) {
             $this->code = 1;
             $this->msg = mt("Email send successfully");
             $this->details = array(
                 'status' => $status
-            );            
+            );
             $this->output();
-        }
-        else{
+        } else {
             $this->msg = mt("Email not send contact admin");
             $this->output();
         }
-        
+
     }
 
-    public function actiongetMerchantUsersForOmnitech() {
+    public function actiongetMerchantUsersForOmnitech()
+    {
         if (isset($this->merchant_id) && $this->merchant_id != '') {
             $users_info = array();
             $users_info = FunctionsV3::getMerchantUsers($this->merchant_id);
-            if($users_info){
+            if ($users_info) {
                 $this->code = 1;
                 $this->msg = "ok";
                 $this->details = $users_info;
-            } else{
-                 $this->details = $users_info;
+            } else {
+                $this->details = $users_info;
                 $this->code = 1;
                 $this->msg = mt("no results");
             }
-        } else{ 
+        } else {
             exit('irout');
             $this->msg = mt("invalid merchant id");
-            }
-        $this->output();        
+        }
+        $this->output();
     }
-    
-    public function actiongetSubscribedMerchantUsersForOmnitech() {
+
+    public function actiongetSubscribedMerchantUsersForOmnitech()
+    {
         if (isset($this->merchant_id) && $this->merchant_id != '') {
             $users_info = array();
             $users_info = FunctionsV3::getSubscribedMerchantUsers($this->merchant_id);
-            if($users_info){
+            if ($users_info) {
                 $this->code = 1;
                 $this->msg = "ok";
                 $this->details = $users_info;
-            } else{
-                 $this->details = $users_info;
+            } else {
+                $this->details = $users_info;
                 $this->code = 1;
                 $this->msg = mt("no results");
             }
-        } else{ 
+        } else {
             exit('irout');
             $this->msg = mt("invalid merchant id");
-            }
-        $this->output();        
+        }
+        $this->output();
     }
-    
-    public function actionUnsubscribeUserFromOmnitech() {
+
+    public function actionUnsubscribeUserFromOmnitech()
+    {
         if (isset($this->client_id) && $this->client_id != '') {
             $user_info = array();
             $user_info = FunctionsV3::updateMerchantUsersUnsub($this->client_id);
-            if($user_info){
+            if ($user_info) {
                 $this->code = 1;
                 $this->msg = "ok";
                 $this->details = $user_info;
-            } else{
-                 $this->details = $user_info;
+            } else {
+                $this->details = $user_info;
                 $this->code = 1;
                 $this->msg = mt("failed");
             }
-        } else{ 
+        } else {
             exit('iroutunsubscribe');
             $this->msg = mt("error updating subscribe status");
-            }
-        $this->output();        
+        }
+        $this->output();
     }
-    
+
 
     public function actionGetActiveCustomers()
-    { 
-        
+    {
+
         if (isset($this->merchant_id) && $this->merchant_id != '') {
-          
-                  if($mres = FunctionsV3::getCustomerList($this->merchant_id)){
-                     $this->code = 1;
-                     $this->msg = "ok";
-                     $this->details = array(
+
+            if ($mres = FunctionsV3::getCustomerList($this->merchant_id)) {
+                $this->code = 1;
+                $this->msg = "ok";
+                $this->details = array(
                     'data' => $mres
                 );
-                     $this->output(); 
+                $this->output();
             }
 
-        }else
-        {
+        } else {
             $this->msg = mt("invalid merchant id");
-            $this->output();        
+            $this->output();
         }
     }
-    
-     public function actionGetCustomerSendEmail($id ='') {
-           if (isset($this->data['user_id']) && $this->data['user_id'] != '') {
-                    if($mres = FunctionsV3::getCustomerEmailList($this->data['user_id'])){
-                     $this->code = 1;
-                     $this->msg = "ok";
-                     $this->details = array(
+
+    public function actionGetCustomerSendEmail($id = '')
+    {
+        if (isset($this->data['user_id']) && $this->data['user_id'] != '') {
+            if ($mres = FunctionsV3::getCustomerEmailList($this->data['user_id'])) {
+                $this->code = 1;
+                $this->msg = "ok";
+                $this->details = array(
                     'data' => $mres
                 );
-                $this->output(); 
+                $this->output();
 
-           }
-         }else{
-                $this->msg = mt("invalid user id");
-                $this->output();  
-         }
-     }
-     
-     public function actionsubscribeOrUnsubscribeEmail()
+            }
+        } else {
+            $this->msg = mt("invalid user id");
+            $this->output();
+        }
+    }
+
+    
+    public function actionsubscribeOrUnsubscribeEmail()
     {
 
         if (isset($this->data['client_token']) && $this->data['client_token'] !='') {
@@ -23451,15 +14073,10 @@ $this->code = 1;
                    $db = new DbExt();
                     $res = $db->getClient("{{client}}",$client_token);
                     $client_id=$res['client_id'];
-                    
-                //   print_r($res); exit('asd');  okay
-                    
                     if ($client_id !='') {
                      $result = $db->updateData("{{client}}", array(
                                     'email_notification' => $this->data['email_notification']
                                         ), 'client_id', $res['client_id']);
-                    
-                                        
                 unset($db);
                 if($result){
                         $this->details = array('description' => 'notification update');
@@ -23490,64 +14107,1365 @@ $this->code = 1;
                 $this->output(); 
          
             }
-    } 
+    }
     
-    public function actionsubscribeOrUnsubscribeEmailTest()
-    {
+    private function UpdateStatusPrepTime($order_id, $confirmed, $time_in_select){
+        // exit('hello');
+        if ( $data=Yii::app()->functions->getOrder2($order_id)){ 
+				    if (is_array($data) && count($data)>=1){
+							$merchant_id=$data['merchant_id'];
+							$json_details=!empty($data['json_details'])?json_decode($data['json_details'],true):false;
+							
+							if ( $json_details !=false){
+								Yii::app()->functions->displayOrderHTML(array(
+								  'merchant_id'=>$data['merchant_id'],
+								  'delivery_type'=>$data['trans_type'],
+								  'delivery_charge'=>$data['delivery_charge'],
+								  'packaging'=>$data['packaging'],
+								  'cart_tip_value'=>$data['cart_tip_value'],
+								  'cart_tip_percentage'=>$data['cart_tip_percentage']/100,
+								  'card_fee'=>$data['card_fee'],
+								  'tax'=>$data['tax'],
+								  'points_discount'=>isset($data['points_discount'])?$data['points_discount']:'' /*POINTS PROGRAM*/,
+								  'voucher_amount'=>$data['voucher_amount'],
+								  'voucher_type'=>$data['voucher_type'],
+								  'tax_set'=>$data['tax'],
+								  ),$json_details,true);
+								if ( Yii::app()->functions->code==1){
+									$ok=true;
+								}
+								
+								/*ITEM TAXABLE*/
+								$mtid = $merchant_id;
+								$apply_tax = $data['apply_food_tax'];
+								$tax_set = $data['tax'];	         	 
+								if ( $apply_tax==1 && $tax_set>0){							    
+									Yii::app()->functions->details['html']=Yii::app()->controller->renderPartial('/front/cart-with-tax',array(
+									   'data'=>Yii::app()->functions->details['raw'],
+									   'tax'=>$tax_set,
+									   'receipt'=>true,    		
+									   'merchant_id'=>$mtid   
+									),true);
+								}
+							}
+				// 			$data['confirmed'] = 0 ;
+						    if($data['confirmed'] == 0){
+							$time_in_selected = $time_in_selected;
+							$order_id = $order_id;
+							$confirmed = $confirmed;
+							if($data['delivery_asap'] == 1){
+							   // exit('hello-asap');
+							    $merchant_auto_prep_time = getOption($this->merchant_id,'merchant_auto_prep_time');
+							    //before
+								// $delivery_time = date('G:i',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
+								// $delivery_timee = date('h:i A',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
+								//After
+								$delivery_time = date('G:i',strtotime('+'.$merchant_auto_prep_time.' minutes',strtotime(date('G:i'))));
+								//$delivery_time =  date('H:i A', strtotime(' +'.$merchant_auto_prep_time.' minutes '));
+								$delivery_timee = date('h:i A',strtotime('+'.$merchant_auto_prep_time.' minutes',strtotime(date('G:i'))));
+							}else{
+								$delivery_time = $data['delivery_time'];
+								//$delivery_time = date('h:i A',strtotime( $data['delivery_time']));
+								$delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
+							}
+							
+                            $merchant_info=Yii::app()->functions->getMerchant(isset($merchant_id)?$merchant_id:'');
+                            if($merchant_info['service'] == 8 && $data['trans_type'] == 'delivery'){
+
+                                $the_date = strtotime($data['delivery_date']." ".$delivery_time);
+                                date_default_timezone_set('UTC');
+                                $doordash_date = date('Y-m-d',$the_date);
+                                $doordash_time = date('G:i:s',$the_date);
+                                $delivery_date = $doordash_date."T".$doordash_time.'Z';
+                                //here we need to pass $merchant_auto_prep_time to doordash API instead of $time_in_selected.
+                                $doordash_result = FunctionsV3::createDoordashDelivery($delivery_date,$data,$merchant_info,$time_in_selected,$confirmed);
+                                if($doordash_result['code'] == 2){
+                                    $this->code=3;
+                                    $this->msg=$doordash_result['msg'];
+                                    $this->output();
+                                }
+                                $timezone=Yii::app()->functions->getOption("merchant_timezone",$merchant_id);
+                                if (!empty($timezone)){
+                                    date_default_timezone_set($timezone);
+                                }
+                                $data=Yii::app()->functions->getOrder2($order_id);
+                                $delivery_time = $data['delivery_time'];
+                                $date['doordash_drive_pickup_time'] = date('h:i A',strtotime( $data['doordash_drive_pickup_time']));
+                                $delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
+                            }else {
+                                $params = array(
+                                    'confirmed' => $confirmed,
+                                    'pickup_in' => $time_in_selected,
+                                    'delivery_time' => $delivery_time,
+                                );
+                                
+                                $params['delivery_time'] = FunctionsV3::prettyTime( date("h:i:s", strtotime("+".$time_in_select." minutes",  strtotime( date("Y-m-d h:i:s") )  ))  ,true);
+                                //change 12-05-2023
+                                // $merchant_auto_prep_time = getOption($this->merchant_id,'merchant_auto_prep_time');
+                                // $params['delivery_time'] = FunctionsV3::prettyTime( date("h:i:s A", strtotime("+".$merchant_auto_prep_time." min",  strtotime( date("Y-m-d h:i:s A") )  ))  ,true);
+                                //new code 12-05-2023
+                                if($data['trans_type'] == 'pickup' && $data['delivery_asap'] == 1){
+                                    $merchant_auto_prep_time = getOption($this->merchant_id,'merchant_auto_prep_time');
+                                    $params['delivery_time'] = FunctionsV3::prettyTime( date("h:i:s A", strtotime("+".$merchant_auto_prep_time." minutes",  strtotime( date("Y-m-d h:i:s A") )  ))  ,true);
+                                }
+                                if($data['trans_type'] == 'pickup' && $data['delivery_asap'] != 1){
+                                    $params['delivery_time'] = FunctionsV3::prettyTime( date("h:i:s", strtotime("+".$time_in_select." minutes",  strtotime( date("Y-m-d h:i:s") )  ))  ,true);
+                                }
+                                //new code end
+                                $DbExt = new DbExt;
+                                $DbExt->updateData("{{order}}", $params, 'order_id', $order_id);
+                            }
+						$this->code=1;
+						$this->msg="OK";
+
+                        if($data['doordash_drive_tracking_link'] != ''){
+                            $print[]=array( 'label'=>Yii::t("default","Tracking Link"), 'value'=>$data['doordash_drive_tracking_link'] );
+                        }
+						$print[]=array( 'label'=>Yii::t("default","Customer Name"), 'value'=>$data['full_name'] );
+						$print[]=array( 'label'=>Yii::t("default","Merchant Name"), 'value'=>$data['merchant_name']);
+						$print[]=array(
+							'label'=>Yii::t("default","ABN"),
+							'value'=>$data['abn']
+						  );
+						  $print[]=array(
+							'label'=>Yii::t("default","Telephone"),
+							'value'=>$data['merchant_contact_phone']
+						  );
+						  $print[]=array(
+							'label'=>Yii::t("default","Address"),
+							'value'=>$full_merchant_address
+						  );
+						  $print[]=array(
+							'label'=>Yii::t("default","Tax number"),
+							'value'=>$merchant_tax_number
+						  );
+						  $print[]=array(
+							'label'=>Yii::t("default","TRN Type"),
+							'value'=>t($data['trans_type'])
+						  );	  	
+						  $print[]=array(
+							'label'=>Yii::t("default","Payment Type"),
+							'value'=>FunctionsV3::prettyPaymentType('payment_order',$data['payment_type'],$order_id,$data['trans_type'])
+						  );	
+
+						  if ( $data['payment_provider_name']):
+						  $print[]=array(
+							'label'=>Yii::t("default","Card#"),
+							'value'=>strtoupper($data['payment_provider_name'])
+						  );
+						 endif;
+						 $print[]=array(
+							'label'=>Yii::t("default","Reference #"),
+							'value'=>Yii::app()->functions->formatOrderNumber($data['order_id'])
+						  );
+						if ( !empty($data['payment_reference'])):
+							$print[]=array(
+								'label'=>Yii::t("default","Payment Ref"),
+								'value'=>$data['payment_reference']
+							);
+						endif;
+	       	       
+						 if ( $data['payment_type'] =="pyp"):
+							$paypal_info=Yii::app()->functions->getPaypalOrderPayment($data['order_id']);
+							$print[]=array(
+								'label'=>Yii::t("default","Paypal Transaction ID"),
+								'value'=>isset($paypal_info['TRANSACTIONID'])?$paypal_info['TRANSACTIONID']:''
+							);
+	       				endif;
+						if ( $data['payment_type']=="ccr" || $data['payment_type']=="ocr"):	       
+							$print[]=array(
+								'label'=>Yii::t("default","Card #"),
+								'value'=>$card
+							); 
+						endif;
+						
+						$trn_date = FunctionsV3::prettyDate($data['date_created'])." ".FunctionsV3::prettyTime($data['date_created']);
+	         
+						$print[]=array(
+							'label'=>Yii::t("default","TRN Date"),
+							'value'=>$trn_date
+						  );
+						  if ($data['trans_type']=="delivery"):
+						   if (isset($data['delivery_date'])):
+							$deliver_date=FunctionsV3::prettyDate($data['delivery_date']);
+							$print[]=array(
+								'label'=>Yii::t("default","Delivery Date"),
+								'value'=>$deliver_date
+							);
+							endif;
+		       		        $preptime = Yii::app()->functions->getOption("merchant_auto_prep_time",$merchant_id);
+							if($data['delivery_asap']!=1):
+								if (isset($data['delivery_time'])):
+									if ( !empty($data['delivery_time'])): 	       
+									$print[]=array(
+										'label'=>Yii::t("default","Delivery Time"),
+								// 		'value'=>$delivery_timee
+								        'value'=>FunctionsV3::prettyTime( date("h:i:s", strtotime("+". $preptime ." min",  strtotime( date("Y-m-d h:i:s") )  ))  ,true)
+									);
+									endif; 
+								endif; 
+							endif;
+		       
+		       
+		       if($data['delivery_asap']==1): 
+					if (isset($data['delivery_asap'])):
+			   			if ( !empty($data['delivery_asap'])):
+							$print[]=array(
+							'label'=>Yii::t("default","Deliver ASAP"),
+								'value'=>$delivery_timee
+							); 
+						endif;
+					endif;
+				endif;	 
+				if (!empty($data['client_full_address'])){		         	
+					$delivery_address=$data['client_full_address'];
+				} $delivery_address=$data['full_address'];
+				$delivery_address = $data['client_street']." ".$data['client_city']." ".$data['client_state']." ".$data['client_zipcode'];
+				$print[]=array(
+				  'label'=>Yii::t("default","Deliver to"),
+				  'value'=>$delivery_address
+				);
+				$print[]=array(
+				  'label'=>Yii::t("default","Delivery Instruction"),
+				  'value'=>$data['delivery_instruction']
+				); 	       
+				$print[]=array(
+				  'label'=>Yii::t("default","Location Name"),
+				  'value'=>$data['location_name']
+				);
+
+		         if ( !empty($data['contact_phone1'])){
+		         	$data['contact_phone']=$data['contact_phone1'];
+		         } 	       
+				$print[]=array(
+				  'label'=>Yii::t("default","Contact Number"),
+				  'value'=>$data['contact_phone']
+				);
+				if ($data['order_change']>=0.1):
+				$print[]=array(
+				  'label'=>Yii::t("default","Change"),
+				  'value'=>normalPrettyPrice($data['order_change'])
+				);
+			endif;
+			else :
+		      $label_date=t("Pickup Date");
+		      $label_time=t("Pickup Time");
+		      if ($transaction_type=="dinein"){
+		      	  $label_date=t("Dine in Date");
+		          $label_time=t("Dine in Time");
+		      }
+
+				if (isset($data['contact_phone1'])){
+					if (!empty($data['contact_phone1'])){
+						$data['contact_phone']=$data['contact_phone1'];
+					}
+				} 	       		       
+				$print[]=array(
+				  'label'=>Yii::t("default","Contact Number"),
+				  'value'=>$data['contact_phone']
+				);
+				if (isset($data['delivery_date'])):
+					$print[]=array(
+					'label'=>$label_date,
+					'value'=>FunctionsV3::prettyDate($data['delivery_date'])
+					);
+				endif;
+			 $show_time = true;  
+			    if (isset($delivery_time ) && $show_time):
+			    if ( !empty($delivery_time )):       
+				$print[]=array(
+				 'label'=>$label_time,
+				//  'value'=>FunctionsV3::prettyTime($delivery_time ,true)
+				 'value'=>FunctionsV3::prettyTime( date("h:i:s", strtotime("+". $time_in_select ." min",  strtotime( date("Y-m-d h:i:s") )  ))  ,true)
+				);
+				 endif;
+			   endif;
+		       if ($transaction_type=="dinein"):
+		       if ($data['order_change']>=0.1): 	       
+				$print[]=array(
+				  'label'=>Yii::t("default","Change"),
+				  'value'=>$data['order_change']
+				);
+				endif;
+
+				$print[]=array(
+				  'label'=>t("Number of guest"),
+				  'value'=>$data['dinein_number_of_guest']
+				);
+				$print[]=array(
+				  'label'=>t("Table number"),
+				  'value'=>$data['dinein_table_number']>0?$data['dinein_table_number']:''
+				);
+				$print[]=array(
+				  'label'=>t("Special instructions"),
+				  'value'=>$data['dinein_special_instruction']
+				);
+			endif;
+		endif;
+		
+		$item_details=Yii::app()->functions->details['html'];
+ 
+        			if($data['delivery_service_type'] == 'dindin'){
+        				$data_raw=Yii::app()->functions->details['raw'];
+        				if ( $apply_tax==1 && $tax_set>0){
+        				    //recept generation in td-amount
+        					$receipt=EmailTPL::salesReceiptTax($print,Yii::app()->functions->details['raw']); 
+        				} else $receipt=EmailTPL::salesReceipt($print,Yii::app()->functions->details['raw']);
+        				$to=isset($data['email_address'])?$data['email_address']:'';
+        				
+        		// 		$to="zeeshananweraziz@gmail.com";
+        				
+        				/*SEND EMAIL TO CUSTOMER*/ 
+        				
+        		 	// 	FunctionsV3::notifyCustomer($data,Yii::app()->functions->additional_details,$receipt, $to);
+        				
+        		// 		print_r($receipt); print_r($data); exit('stop'); 
+        				
+        				FunctionsV3::notifyMerchant($data,Yii::app()->functions->additional_details,$receipt);
+        				FunctionsV3::notifyAdmin($data,Yii::app()->functions->additional_details,$receipt);
+        			
+        				FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl("cron/processemail"));
+        				FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl("cron/processsms"));
+        			}
+    		    }
+    	    }
+    	    return true;
+	    }else { 
+	        
+	        //echo 'UpdateStatusPrepTime Else';
+	        //exit;
+	        return false ; 
+	        
+	    }
+					
+    }
+
+    public function actionpayNow2() {
         
-        if (isset($this->data['client_token']) && $this->data['client_token'] !='') {
+        
+        $db = new DbExt();
+        $this->setMerchantTimezone();
+        $lang_code = Yii::app()->language;
+
+        $search_resp = mobileWrapper::searchMode();
+        $search_mode = $search_resp['search_mode'];
+        $location_mode = $search_resp['location_mode'];
+
+        $token = isset($this->data['user_token']) ? $this->data['user_token'] : '';
+        if (!$client_info = mobileWrapper::getCustomerByToken($token)) {
+            $this->msg = $this->t("Invalid token, please relogin again");
+            $this->output();
+        }
+
+        if (!$merchant_info = FunctionsV3::getMerchantInfo($this->merchant_id)) {
+            $this->msg = $this->t("invalid merchant id");
+            $this->output();
+        }
+
+        $client_id = $client_info['client_id'];
+        $email_address = $client_info['email_address'];
+
+        if (FunctionsK::emailBlockedCheck($email_address)) {
+            $this->msg = $this->t("Sorry but your email address is blocked by website admin");
+            $this->output();
+        }
+
+        $transaction_type = isset($this->data['transaction_type']) ? $this->data['transaction_type'] : '';
+        $delivery_date = isset($this->data['delivery_date']) ? $this->data['delivery_date'] : '';
+        $delivery_time = isset($this->data['delivery_time']) ? $this->data['delivery_time'] : '';
+        
+        $payment_provider = isset($this->data['payment_provider']) ? $this->data['payment_provider'] : '';
+
+        if (empty($delivery_date)) {
+            $this->msg = $this->t("Delivery date is required");
+            $this->output();
+        }
+
+        if (empty($payment_provider)) {
+            $this->msg = $this->t("Payment provider is empty. please go back and try again");
+            $this->output();
+        }
+
+        $full_delivery = "$delivery_date $delivery_time";
+        $delivery_day = strtolower(date("D", strtotime($full_delivery)));
+
+        $delivery_time_formated = '';
+        if (!empty($delivery_time)) {
+            $delivery_time_formated = date('h:i A', strtotime($delivery_time));
+        } else{
+            $delivery_time_formated = date('h:i A');
+            $delivery_time = date('h:i A');
+            //12-05-2023
+            $delivery_time = date('h:i A', strtotime($delivery_time));
             
-            if (isset($this->data['email_notification']) && $this->data['email_notification'] !='') {
-                $client_token=$this->data['client_token'];
+        }
             
-                  $db = new DbExt();
-                    $res = $db->getClient("{{client}}",$client_token);
-                    // $client_id=$res['client_id'];
-                    $client_id='';
-                  
-                    if ($client_id !='') {
+        
+        if (!Yii::app()->functions->isMerchantOpenTimes($this->merchant_id, $delivery_day, $delivery_time_formated)) {
+            $date_close = date("F,d l Y h:ia", strtotime($full_delivery));
+            $this->msg = Yii::t("mobile2", "Sorry but we are closed on [date_close]. Please check merchant opening hours.", array(
+                        '[date_close]' => $date_close
+            ));
+            $this->output();
+        }
+
+        /* CHECK IF DATE IS HOLIDAY */
+        if ($res_holiday = Yii::app()->functions->getMerchantHoliday($this->merchant_id)) {
+            if (in_array($delivery_date, $res_holiday)) {
+                $this->msg = Yii::t("mobile2", "were close on [date]", array(
+                            '[date]' => FunctionsV3::prettyDate($delivery_date)
+                ));
+
+                $close_msg = getOption($this->merchant_id, 'merchant_close_msg_holiday');
+                if (!empty($close_msg)) {
+                    $this->msg = Yii::t("default", $close_msg, array(
+                                '[date]' => FunctionsV3::prettyDate($delivery_date)
+                    ));
+                }
+                $this->output();
+            }
+        }
+
+        /* CHECK DELIVERY TIME PAST */
+        if (!empty($delivery_date) && !empty($delivery_time)) {
+            $time_1 = date('Y-m-d g:i:s a');
+            $time_2 = "$delivery_date $delivery_time";
+            $time_2 = date("Y-m-d g:i:s a", strtotime($time_2));
+            $time_diff = Yii::app()->functions->dateDifference($time_2, $time_1);
+            if (is_array($time_diff) && count($time_diff) >= 1) {
+                if ($time_diff['hours'] > 0) {
+                    $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
+                    $this->output();
+                }
+                if ($time_diff['minutes'] > 0) {
+                    $this->msg = mobileWrapper::timePastByTransaction($transaction_type);
+                    $this->output();
+                }
+            }
+        }
+    
+        if ($res = mobileWrapper::getCart($this->device_uiid)) {
+         
+            $cart = json_decode($res['cart'], true);
+            $card_fee = 0;
+
+            /* CARD FEE */
+            switch ($payment_provider) {
+                case "pyp":
+                    if (FunctionsV3::isMerchantPaymentToUseAdmin($this->merchant_id)) {
+                        $card_fee = getOptionA('admin_paypal_fee');
+                    } else {
+                        $card_fee = getOption($this->merchant_id, 'merchant_paypal_fee');
+                    }
+                    break;
+
+                case "paypal_v2":
+                    if ($credentials = PaypalWrapper::getCredentials($this->merchant_id)) {
+                        if ($credentials['card_fee'] > 0.0001) {
+                            $card_fee = $credentials['card_fee'];
+                        }
+                    }
+                    break;
+
+                case "stp":
+                    if ($credentials = StripeWrapper::getCredentials($this->merchant_id)) {
+                        if ($credentials['card_fee'] > 0.0001) {
+                            $card_fee = $credentials['card_fee'];
+                        }
+                    }
+                    break;
+
+                case "mercadopago":
+                    if ($credentials = mercadopagoWrapper::getCredentials($this->merchant_id)) {
+                        if ($credentials['card_fee'] > 0.0001) {
+                            $card_fee = $credentials['card_fee'];
+                        }
+                    }
+                    break;
+
+                case "mollie":
+                    if ($credentials = MollieWrapper::getCredentials($this->merchant_id)) {
+                        if ($credentials['card_fee'] > 0.0001) {
+                            $card_fee = $credentials['card_fee'];
+                        }
+                    }
+                    break;
+
+                case "pagseguro":
+                    if ($credentials = pagseguroWrapper::getCredentials($this->merchant_id)) {
+                        if ($credentials['card_fee'] > 0.0001) {
+                            $card_fee = $credentials['card_fee'];
+                        }
+                    }
+                    break;
+
+
+                default:
+                    break;
+            }
+
+            $data = array(
+                'delivery_type' => $transaction_type,
+                'merchant_id' => $this->merchant_id,
+                'card_fee' => $card_fee
+            );
+
+            $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
+            if (is_array($voucher_details) && count($voucher_details) >= 1) {
+                $data['promo_name'] = 'Promo by Dindin';
+                $data['voucher_name'] = $voucher_details['voucher_name'];
+                $data['voucher_amount'] = $voucher_details['amount'];
+                $data['voucher_type'] = $voucher_details['voucher_type'];
+            }
+
+            if ($res['tips'] > 0.0001) {
+                $data['cart_tip_percentage'] = $res['tips'];
+                $data['tip_enabled'] = 2;
+                $data['tip_percent'] = $res['tips'];
+            }
+
+            /* POINTS */
+            if ($res['points_amount'] > 0.0001) {
+                $data['points_amount'] = $res['points_amount'];
+            }
+            //dump($data);die();
+
+            /* DELIVERY FEE */
+            unset($_SESSION['shipping_fee']);
+            if ($res['delivery_fee'] > 0.0001) {
+                $data['delivery_charge'] = $res['delivery_fee'];
+            }
+            
+            Yii::app()->functions->displayOrderHTML($data, $cart);
+            $code = Yii::app()->functions->code;
+            $msg = Yii::app()->functions->msg;
+            if ($code == 1) {
+                $raw = Yii::app()->functions->details['raw'];
+
+                /* EURO TAX */
+                $is_apply_tax = 0;
+                if (EuroTax::isApplyTax($this->merchant_id)) {
+                    $new_total = EuroTax::computeWithTax($raw, $this->merchant_id);
+                    $raw['total'] = $new_total;
+                    $is_apply_tax = 1;
+                }
+                /* EURO TAX */
+
+                $donot_apply_tax_delivery = getOption($this->merchant_id, 'merchant_tax_charges');
+                if (empty($donot_apply_tax_delivery)) {
+                    $donot_apply_tax_delivery = 1;
+                }
+                
+                // echo $delivery_time;
+                // exit('123');
+                $params = array(
+                    'merchant_id' => $this->merchant_id,
+                    'client_id' => $client_id,
+                    'json_details' => $res['cart'],
+                    'trans_type' => $transaction_type,
+                    'payment_type' => $this->data['payment_provider'],
+                    'sub_total' => $raw['total']['subtotal'],
+                    'tax' => $raw['total']['tax'],
+                    'taxable_total' => $raw['total']['taxable_total'],
+                    'total_w_tax' => isset($raw['total']['total']) ? $raw['total']['total'] : 0,
+                    'delivery_charge' => isset($raw['total']['delivery_charges']) ? $raw['total']['delivery_charges'] : 0,
+                    'delivery_date' => $delivery_date,
+                    'delivery_time' => $delivery_time,
+                    // 'delivery_time' => date('h:i A'),
+                    'delivery_asap' => isset($this->data['delivery_asap']) ? $this->data['delivery_asap'] : '',
+                    'date_created' => FunctionsV3::dateNow(),
+                    'ip_address' => $_SERVER['REMOTE_ADDR'],
+                    'delivery_instruction' => isset($res['delivery_instruction']) ? $res['delivery_instruction'] : '',
+                    'cc_id' => isset($this->data['cc_id']) ? $this->data['cc_id'] : '',
+                    'order_change' => isset($this->data['order_change']) ? $this->data['order_change'] : 0,
+                    'payment_provider_name' => '',
+                    'card_fee' => $card_fee,
+                    'packaging' => $raw['total']['merchant_packaging_charge'],
+                    'donot_apply_tax_delivery' => $donot_apply_tax_delivery,
+                    'order_id_token' => FunctionsV3::generateOrderToken(),
+                    'request_from' => "mobileapp2",
+                    'apply_food_tax' => $is_apply_tax,
+                );
+            // print_r($params);
+            // exit;
+                $order_id_token = $params['order_id_token'];
+
+                /* TIPS */
+                if (isset($raw['total']['tips'])) {
+                    if ($raw['total']['tips'] > 0.0001) {
+                        $params['cart_tip_percentage'] = $raw['total']['cart_tip_percentage'];
+                        $params['cart_tip_value'] = $raw['total']['tips'];
+                    }
+                }
+
+                switch ($transaction_type) {
+                    case "dinein":
+                        $params['dinein_number_of_guest'] = isset($this->data['dinein_number_of_guest']) ? $this->data['dinein_number_of_guest'] : '';
+                        $params['dinein_special_instruction'] = isset($this->data['dinein_special_instruction']) ? $this->data['dinein_special_instruction'] : '';
+
+                        $params['dinein_table_number'] = isset($this->data['dinein_table_number']) ? $this->data['dinein_table_number'] : '';
+
+                        if (isset($this->data['contact_phone'])) {
+                            if (!empty($this->data['contact_phone'])) {
+                                $db->updateData("{{client}}", array(
+                                    'contact_phone' => $this->data['contact_phone']
+                                        ), 'client_id', $client_id);
+                            }
+                        }
+                        break;
+
+                    case "delivery":
+                        $delivery_asap = '';
                         
-                     $result = $db->updateData("{{client}}", array(
-                                    'email_notification' => $this->data['email_notification']
-                                        ), 'client_id', $res['client_id']);
+                        if (isset($this->data['delivery_asap'])) {
+                            //changes 11-27-2023, when auto confirm is off, type is delievery and ASAP, the value was not assigning properly.
+                            //before
+                            //$delivery_asap = $this->data['delivery_asap'] == "true" ? 1 : '';
+                            //after fix
+                            $delivery_asap = $this->data['delivery_asap'] == 1 ? 1 : '';
+                             
+                            $params['delivery_asap'] = $delivery_asap;
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+                
+                //exit('outside');
+                /* DEFAULT ORDER STATUS */
+                $default_order_status = getOption($this->merchant_id, 'default_order_status');
+                switch ($payment_provider) {
+                    case "cod":
+                    case "obd":
+                        $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
+                        break;
+                    case "ccr":
+                    case "ocr":
+                        $params['cc_id'] = isset($this->data['cc_id']) ? $this->data['cc_id'] : '';
+                        $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
+                        break;
+
+                    case "pyr":
+                        $params['payment_provider_name'] = isset($this->data['selected_card']) ? $this->data['selected_card'] : '';
+                        $params['status'] = !empty($default_order_status) ? $default_order_status : 'pending';
+                        break;
+
+                    default:
+                        $params['status'] = initialStatus();
+                        break;
+                }
+
+                /* PROMO */
+                //dump($raw);
+                if (isset($raw['total']['discounted_amount'])) {
+                    if ($raw['total']['discounted_amount'] >= 0.0001) {
+                        $params['discounted_amount'] = $raw['total']['discounted_amount'];
+                        $params['discount_percentage'] = $raw['total']['merchant_discount_amount'];
+                    }
+                }
+
+                /* VOUCHER */
+                if (!empty($res['voucher_details'])) {
+                    $voucher_details = !empty($res['voucher_details']) ? json_decode($res['voucher_details'], true) : false;
+                    if (is_array($voucher_details) && count($voucher_details) >= 1) {
+                        $params['voucher_amount'] = $voucher_details['amount'];
+                        $params['voucher_code'] = $voucher_details['voucher_name'];
+                        $params['voucher_type'] = $voucher_details['voucher_type'];
+                    }
+                }
+
+                /* POINTS */
+                if ($res['points_amount'] > 0.0001) {
+                    $params['points_discount'] = $res['points_amount'];
+                }
+
+                /* SET COMMISSION */
+                if (Yii::app()->functions->isMerchantCommission($this->merchant_id)) {
+                    $admin_commision_ontop = Yii::app()->functions->getOptionAdmin('admin_commision_ontop');
+                    if ($com = Yii::app()->functions->getMerchantCommission($this->merchant_id)) {
+                        $params['percent_commision'] = $com;
+                        $params['total_commission'] = ($com / 100) * $params['total_w_tax'];
+                        $params['merchant_earnings'] = $params['total_w_tax'] - $params['total_commission'];
+                        if ($admin_commision_ontop == 1) {
+                            $params['total_commission'] = ($com / 100) * $params['sub_total'];
+                            $params['commision_ontop'] = $admin_commision_ontop;
+                            $params['merchant_earnings'] = $params['sub_total'] - $params['total_commission'];
+                        }
+                    }
+
+                    /** check if merchant commission is fixed  */
+                    $merchant_com_details = Yii::app()->functions->getMerchantCommissionDetails($this->merchant_id);
+                    if ($merchant_com_details['commision_type'] == "fixed") {
+                        $params['percent_commision'] = $merchant_com_details['percent_commision'];
+                        $params['total_commission'] = $merchant_com_details['percent_commision'];
+                        $params['merchant_earnings'] = $params['total_w_tax'] - $merchant_com_details['percent_commision'];
+                        $params['commision_type'] = 'fixed';
+
+                        if ($admin_commision_ontop == 1) {
+                            $params['merchant_earnings'] = $params['sub_total'] - $merchant_com_details['percent_commision'];
+                        }
+                    }
+                }
+                /* END COMMISSION */
+
+                if (!is_numeric($params['cc_id'])) {
+                    unset($params['cc_id']);
+                }
+                if (!is_numeric($params['order_change'])) {
+                    unset($params['order_change']);
+                }
+
+                /* BEGIN INSERT ORDER */
+                if (!is_numeric($params['sub_total'])) {
+                    $params['sub_total'] = 0;
+                }
+                if (!is_numeric($params['tax'])) {
+                    $params['tax'] = 0;
+                }
+                if (!is_numeric($params['taxable_total'])) {
+                    $params['taxable_total'] = 0;
+                }
+                if (!is_numeric($params['total_w_tax'])) {
+                    $params['total_w_tax'] = 0;
+                }
+
+                if (isset($params['order_change'])) {
+                    if (!is_numeric($params['order_change'])) {
+                        $params['order_change'] = 0;
+                    }
+                }
+                if (!is_numeric($params['card_fee'])) {
+                    $params['card_fee'] = 0;
+                }
+                if (!is_numeric($params['packaging'])) {
+                    $params['packaging'] = 0;
+                }
+                if (!is_numeric($params['donot_apply_tax_delivery'])) {
+                    unset($params['donot_apply_tax_delivery']);
+                }
+                if (!is_numeric($params['apply_food_tax'])) {
+                    unset($params['apply_food_tax']);
+                }
+
+                if (isset($params['percent_commision'])) {
+                    if (!is_numeric($params['percent_commision'])) {
+                        $params['percent_commision'] = 0;
+                    }
+                }
+
+                if (isset($params['total_commission'])) {
+                    if (!is_numeric($params['total_commission'])) {
+                        $params['total_commission'] = 0;
+                    }
+                }
+
+                if (isset($params['merchant_earnings'])) {
+                    if (!is_numeric($params['merchant_earnings'])) {
+                        $params['merchant_earnings'] = 0;
+                    }
+                }
+                
+                
+
+                if ($db->insertData("{{order}}", $params)) {
+                    $order_id = Yii::app()->db->getLastInsertID();
+
+                    $params_history = array(
+                        'order_id' => $order_id,
+                        'status' => initialStatus(),
+                        'remarks' => '',
+                        'date_created' => FunctionsV3::dateNow(),
+                        'ip_address' => $_SERVER['REMOTE_ADDR']
+                    );
+                    $db->insertData("{{order_history}}", $params_history);
+
+                    $next_step = "receipt";
+                    /* SAVE ITEM */
+                    foreach ($raw['item'] as $val) {
+                        $params_order_details = array(
+                            'order_id' => isset($order_id) ? $order_id : '',
+                            'client_id' => $client_id,
+                            'item_id' => isset($val['item_id']) ? $val['item_id'] : '',
+                            'item_name' => isset($val['item_name']) ? $val['item_name'] : '',
+                            'order_notes' => isset($val['order_notes']) ? $val['order_notes'] : '',
+                            'normal_price' => isset($val['normal_price']) ? $val['normal_price'] : '',
+                            'discounted_price' => isset($val['discounted_price']) ? $val['discounted_price'] : '',
+                            'size' => isset($val['size_words']) ? $val['size_words'] : '',
+                            'qty' => isset($val['qty']) ? $val['qty'] : '',
+                            'addon' => isset($val['sub_item']) ? json_encode($val['sub_item']) : '',
+                            'cooking_ref' => isset($val['cooking_ref']) ? $val['cooking_ref'] : '',
+                            'ingredients' => isset($val['ingredients']) ? json_encode($val['ingredients']) : '',
+                            'non_taxable' => isset($val['non_taxable']) ? $val['non_taxable'] : 1
+                        );
+                        $db->insertData("{{order_details}}", $params_order_details);
+                    }
                     
-                     
-                unset($db);
-                
-                if($result){
-                        $this->details = array('description' => 'notification update');
-                      
-                }else{
-                        $this->details = array('description' => 'notification update');
+                    /* SAVE DELIVERY ADDRESS */
+                    if ($transaction_type == "delivery") {
+                        $res['zipcode'] = $this->data['zipcode'];
+                        $res['street'] = $this->data['street'];
+                        $res['city'] = $this->data['city'];
+                        $res['state'] = $this->data['state'];
+                        $res['delivery_contact'] = $this->data['delivery_contact'];
+                        $res['delivery_instructions'] = $this->data['delivery_instructions'];
+                        $res['delivery_appartment'] = $this->data['delivery_appartment'];
+                        $params_address = array(
+                            'order_id' => $order_id,
+                            'client_id' => $client_id,
+                            'street' => isset($res['street']) ? $res['street'] : '',
+                            'city' => isset($res['city']) ? $res['city'] : '',
+                            'state' => isset($res['state']) ? $res['state'] : '',
+                            'zipcode' => isset($res['zipcode']) ? $res['zipcode'] : '',
+                            'location_name' => isset($res['location_name']) ? $res['location_name'] : '',
+                            'contact_phone' => isset($res['contact_phone']) ? $res['contact_phone'] : '',
+                            'country' => Yii::app()->functions->adminCountry(),
+                            'date_created' => FunctionsV3::dateNow(),
+                            'ip_address' => $_SERVER['REMOTE_ADDR'],
+                            'google_lat' => isset($res['delivery_lat']) ? $res['delivery_lat'] : '',
+                            'google_lng' => isset($res['delivery_long']) ? $res['delivery_long'] : '',
+                            'contact_phone' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
+                            'delivery_instructions' => isset($res['delivery_instructions']) ? $res['delivery_instructions'] : '',
+                            'delivery_appartment' => isset($res['delivery_appartment']) ? $res['delivery_appartment'] : '',
+                            'delivery_contact' => isset($res['delivery_contact']) ? $res['delivery_contact'] : '',
+                        );
+                        if ($search_mode == "location") {
+                            $db->insertData("{{order_delivery_address}}", $params_address);
+                        } else {
+                            $db->insertData("{{order_delivery_address}}", $params_address);
+                        }
+                    }
 
-                }
+                    /* SAVE ADDRESS */
+                    if (isset($res['save_address'])) {
+                        if ($res['save_address'] == 1) {
+                            if ($search_mode == "location") {
+                                if (!LocationWrapper::isAddressBookExist(
+                                                $client_id,
+                                                $res['state_id'],
+                                                $res['city_id'],
+                                                $res['area_id']
+                                        )) {
+                                    $params_address_book = array(
+                                        'client_id' => $client_id,
+                                        'street' => $res['street'],
+                                        'location_name' => $res['location_name'],
+                                        'state_id' => $res['state_id'],
+                                        'city_id' => $res['city_id'],
+                                        'area_id' => $res['area_id'],
+                                        'date_created' => FunctionsV3::dateNow(),
+                                        'latitude' => $res['delivery_lat'],
+                                        'longitude' => $res['delivery_long'],
+                                        'ip_address' => $_SERVER['REMOTE_ADDR']
+                                    );
+                                    $db->insertData("{{address_book_location}}", $params_address_book);
+                                }
+                            } else {
+                                if (!mobileWrapper::getBookAddress($client_id, $res['street'], $res['city'], $res['state'])) {
+                                    if (!empty($res['street'])) {
+                                        $params_address_book = array(
+                                            'client_id' => $client_id,
+                                            'street' => $res['street'],
+                                            'city' => $res['city'],
+                                            'state' => $res['state'],
+                                            'zipcode' => $res['zipcode'],
+                                            'location_name' => $res['location_name'],
+                                            'country_code' => getOptionA('admin_country_set'),
+                                            'as_default' => 1,
+                                            'date_created' => FunctionsV3::dateNow(),
+                                            'latitude' => $res['delivery_lat'],
+                                            'longitude' => $res['delivery_long'],
+                                            'ip_address' => $_SERVER['REMOTE_ADDR']
+                                        );
+                                        $db->insertData("{{address_book}}", $params_address_book);
+                                    }
+                                } //else echo 'd1';
+                            }
+                        } //else echo 'd2';
+                    } //else echo 'd3';
 
+                    $this->code = 1;
+                    $this->msg = Yii::t("mobile2", "Your this order has been placed. Reference # [order_id]", array(
+                                '[order_id]' => $order_id
+                    ));
 
+                    //auto prep time 
+			             $merchant_enabled_auto_confirm_prep_time = getOption($this->merchant_id,'merchant_enabled_auto_confirm_prep_time');
+	                     $merchant_auto_prep_time = getOption($this->merchant_id,'merchant_auto_prep_time'); 
+                    // !called by 1) 1 (a) & (b) , 2) (a)
+                    //
+			        if( ($merchant_enabled_auto_confirm_prep_time != '' && $merchant_enabled_auto_confirm_prep_time == 1) && ($merchant_auto_prep_time != '') && 
+			            ( isset($this->data['delivery_asap'])  && $this->data['delivery_asap']==1 ) ){
+			                
+			                $this->UpdateStatusPrepTime2( $order_id, 0, $merchant_auto_prep_time ); 
+			                
+			        } 
+			        
+			        
+                    // auto prep time end
+                    $provider_credentials = array();
+                    $redirect_url = '';
 
-                }
-                else{
-                     $this->details = array('description' => 'Client Id does not exist.');
-                }
+                    /* SAVE POINTS */
+                    switch ($payment_provider) {
 
-                     $this->code = 1;
-                    $this->msg = "ok";
-                    $this->output(); 
-                
-            }else{
-                    $this->msg = mt("invalid email notification status");
-                    $this->output(); 
-            }
-           
-        }else{
-                $this->msg = mt("invalid client id");
-                $this->output(); 
-         
-            }
-    }    
-    
-    
+                        default:
+                            mobileWrapper::savePoints(
+                                    $this->device_uiid,
+                                    $client_id,
+                                    $this->merchant_id,
+                                    $order_id,
+                                    'initial_order'
+                            );
+                            break;
+                    }
+
+                    /* PAYMENT DATA */
+                    switch ($payment_provider) {
+                        case "cod":
+                        case "ccr":
+                        case "ocr":
+                        case "pyr":
+                            
+                            mobileWrapper::sendNotification($order_id);
+                            mobileWrapper::clearCart($this->device_uiid);
+                            mobileWrapper::executeAddons($order_id);
+
+                            break;
+
+                        case "obd":
+                            FunctionsV3::sendBankInstructionPurchase(
+                                    $this->merchant_id,
+                                    $order_id,
+                                    isset($params['total_w_tax']) ? $params['total_w_tax'] : 0,
+                                    $client_id
+                            );
+
+                            mobileWrapper::sendNotification($order_id);
+                            mobileWrapper::clearCart($this->device_uiid);
+                            mobileWrapper::executeAddons($order_id);
+
+                            break;
+
+                        case "rzr":
+                            $next_step = "init_" . $payment_provider;
+                            $provider_credentials = FunctionsV3::razorPaymentCredentials($this->merchant_id);
+                            if (!$provider_credentials) {
+                                $this->code = 2;
+                                $this->msg = $this->t("Merchant payment credentials not properly set");
+                            }
+                            break;
+
+                        case "btr":
+                            $next_step = 'init_webview';
+                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/braintree?id=" . urlencode($order_id) . "&lang=$lang_code";
+                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
+                            break;
+
+                        case "paypal_v2":
+                            $next_step = 'init_webview';
+                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/paypal?id=" . urlencode($order_id) . "&lang=$lang_code";
+                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
+                            break;
+
+                        case "stp":
+                            $next_step = 'init_stp';
+                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/stripe?id=" . urlencode($order_id) . "&lang=$lang_code";
+                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
+                            if($this->data['delivery_time'] != ''){
+                                // mobileWrapper::sendNotification($order_id);
+                            }
+                            break;
+
+                        case "mercadopago":
+                            $next_step = 'init_webview';
+                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mercadopago?id=" . urlencode($order_id) . "&lang=$lang_code";
+                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
+                            break;
+
+                        case "vog":
+                            $next_step = 'init_webview';
+                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/voguepay?id=" . urlencode($order_id) . "&lang=$lang_code";
+                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
+                            break;
+
+                        case "mollie":
+                            $next_step = 'init_webview';
+                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/mollie?id=" . urlencode($order_id) . "&lang=$lang_code";
+                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
+                            break;
+
+                        case "pagseguro":
+                            $next_step = 'init_webview';
+                            $redirect_url = websiteUrl() . "/" . APP_FOLDER . "/pagseguro?id=" . urlencode($order_id) . "&lang=$lang_code";
+                            $redirect_url .= "&device_uiid=" . urlencode($this->device_uiid);
+                            break;
+
+                        default:
+                            $next_step = "init_" . $payment_provider;
+                            break;
+                    }
+
+                    $client_info = array(
+                        'first_name' => $client_info['first_name'],
+                        'last_name' => $client_info['last_name'],
+                        'email_address' => $client_info['email_address'],
+                        'contact_phone' => $client_info['contact_phone'],
+                    );
+
+                    $payment_description = Yii::t("mobile2", "Payment to merchant [merchant_name]. Order ID#[order]", array(
+                                '[merchant_name]' => clearString($merchant_info['restaurant_name']),
+                                '[order]' => $order_id
+                    ));
+
+                    $total = number_format($params['total_w_tax'], 2, '.', '');
+
+                    $this->details = array(
+                        'order_id' => $order_id,
+                        'total_amount' => $params['total_w_tax'],
+                        'total_amount_by_100' => $total * 100,
+                        'total_amount_formatted' => $total,
+                        'card_fee' => (float) $params['card_fee'],
+                        'sub_less_card_fee' => (float) $params['total_w_tax'] - (float) $params['card_fee'],
+                        'payment_provider' => $payment_provider,
+                        'next_step' => $next_step,
+                        'currency_code' => Yii::app()->functions->adminCurrencyCode(),
+                        'payment_description' => $payment_description,
+                        'merchant_name' => clearString($merchant_info['restaurant_name']),
+                        'provider_credentials' => $provider_credentials,
+                        'redirect_url' => $redirect_url,
+                        'client_info' => $client_info
+                    );
+                } else
+                    $this->msg = $this->t("Something went wrong cannot insert records. please try again later");
+            } else
+                $this->msg = $msg;
+        } else
+            $this->msg = $this->t("Cart is empty");
+
+        $this->output();
+    }
+
+    private function UpdateStatusPrepTime2($order_id, $confirmed, $time_in_select){
         
-    
+        if ( $data=Yii::app()->functions->getOrder2($order_id)){
+            
+				    if (is_array($data) && count($data)>=1){
+							$merchant_id=$data['merchant_id'];
+							$json_details=!empty($data['json_details'])?json_decode($data['json_details'],true):false;
+							
+							if ( $json_details !=false){
+								Yii::app()->functions->displayOrderHTML(array(
+								  'merchant_id'=>$data['merchant_id'],
+								  'delivery_type'=>$data['trans_type'],
+								  'delivery_charge'=>$data['delivery_charge'],
+								  'packaging'=>$data['packaging'],
+								  'cart_tip_value'=>$data['cart_tip_value'],
+								  'cart_tip_percentage'=>$data['cart_tip_percentage']/100,
+								  'card_fee'=>$data['card_fee'],
+								  'tax'=>$data['tax'],
+								  'points_discount'=>isset($data['points_discount'])?$data['points_discount']:'' /*POINTS PROGRAM*/,
+								  'voucher_amount'=>$data['voucher_amount'],
+								  'voucher_type'=>$data['voucher_type'],
+								  'tax_set'=>$data['tax'],
+								  ),$json_details,true);
+								if ( Yii::app()->functions->code==1){
+									$ok=true;
+								}
+								
+								/*ITEM TAXABLE*/
+								$mtid = $merchant_id;
+								$apply_tax = $data['apply_food_tax'];
+								$tax_set = $data['tax'];	         	 
+								if ( $apply_tax==1 && $tax_set>0){							    
+									Yii::app()->functions->details['html']=Yii::app()->controller->renderPartial('/front/cart-with-tax',array(
+									   'data'=>Yii::app()->functions->details['raw'],
+									   'tax'=>$tax_set,
+									   'receipt'=>true,    		
+									   'merchant_id'=>$mtid   
+									),true);
+								}
+							}
+				// 			$data['confirmed'] = 0 ;
+						    if($data['confirmed'] == 0){
+							$time_in_selected = $time_in_selected;
+							$order_id = $order_id;
+							$confirmed = $confirmed;
+							if($data['delivery_asap'] == 1){
+							   // exit('hello-asap');
+							    $merchant_auto_prep_time = getOption($this->merchant_id,'merchant_auto_prep_time');
+							    //before
+								// $delivery_time = date('G:i',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
+								// $delivery_timee = date('h:i A',strtotime('+'.$time_in_selected.' minutes',strtotime(date('G:i'))));
+								//After
+								// $delivery_time = date('G:i',strtotime('+'.$merchant_auto_prep_time.' minutes',strtotime(date('G:i'))));
+								$delivery_time =  date('H:i A', strtotime(' +'.$merchant_auto_prep_time.' minutes '));
+								$delivery_timee = date('h:i A',strtotime('+'.$merchant_auto_prep_time.' minutes',strtotime(date('G:i'))));
+							}else{
+								$delivery_time = $data['delivery_time'];
+								$delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
+							}
+							
+                            $merchant_info=Yii::app()->functions->getMerchant(isset($merchant_id)?$merchant_id:'');
+                            if($merchant_info['service'] == 8 && $data['trans_type'] == 'delivery'){
+
+                                $the_date = strtotime($data['delivery_date']." ".$delivery_time);
+                                date_default_timezone_set('UTC');
+                                $doordash_date = date('Y-m-d',$the_date);
+                                $doordash_time = date('G:i:s',$the_date);
+                                $delivery_date = $doordash_date."T".$doordash_time.'Z';
+                                //pass auto prep time params as well.
+                                $doordash_result = FunctionsV3::createDoordashDelivery($delivery_date,$data,$merchant_info,$time_in_selected,$confirmed);
+                                if($doordash_result['code'] == 2){
+                                    $this->code=3;
+                                    $this->msg=$doordash_result['msg'];
+                                    $this->output();
+                                }
+                                $timezone=Yii::app()->functions->getOption("merchant_timezone",$merchant_id);
+                                if (!empty($timezone)){
+                                    date_default_timezone_set($timezone);
+                                }
+                                $data=Yii::app()->functions->getOrder2($order_id);
+                                $delivery_time = $data['delivery_time'];
+                                $date['doordash_drive_pickup_time'] = date('h:i A',strtotime( $data['doordash_drive_pickup_time']));
+                                $delivery_timee = date('h:i A',strtotime( $data['delivery_time']));
+                            }else {
+                                $params = array(
+                                    'confirmed' => $confirmed,
+                                    'pickup_in' => $time_in_selected,
+                                    'delivery_time' => $delivery_time,
+                                );
+                                
+                                $params['delivery_time'] = FunctionsV3::prettyTime( date("h:i:s", strtotime("+".$time_in_select." min",  strtotime( date("Y-m-d h:i:s") )  ))  ,true);
+                                
+                                $DbExt = new DbExt;
+                                $DbExt->updateData("{{order}}", $params, 'order_id', $order_id);
+                            }
+						$this->code=1;
+						$this->msg="OK";
+
+                        if($data['doordash_drive_tracking_link'] != ''){
+                            $print[]=array( 'label'=>Yii::t("default","Tracking Link"), 'value'=>$data['doordash_drive_tracking_link'] );
+                        }
+						$print[]=array( 'label'=>Yii::t("default","Customer Name"), 'value'=>$data['full_name'] );
+						$print[]=array( 'label'=>Yii::t("default","Merchant Name"), 'value'=>$data['merchant_name']);
+						$print[]=array(
+							'label'=>Yii::t("default","ABN"),
+							'value'=>$data['abn']
+						  );
+						  $print[]=array(
+							'label'=>Yii::t("default","Telephone"),
+							'value'=>$data['merchant_contact_phone']
+						  );
+						  $print[]=array(
+							'label'=>Yii::t("default","Address"),
+							'value'=>$full_merchant_address
+						  );
+						  $print[]=array(
+							'label'=>Yii::t("default","Tax number"),
+							'value'=>$merchant_tax_number
+						  );
+						  $print[]=array(
+							'label'=>Yii::t("default","TRN Type"),
+							'value'=>t($data['trans_type'])
+						  );	  	
+						  $print[]=array(
+							'label'=>Yii::t("default","Payment Type"),
+							'value'=>FunctionsV3::prettyPaymentType('payment_order',$data['payment_type'],$order_id,$data['trans_type'])
+						  );	
+
+						  if ( $data['payment_provider_name']):
+						  $print[]=array(
+							'label'=>Yii::t("default","Card#"),
+							'value'=>strtoupper($data['payment_provider_name'])
+						  );
+						 endif;
+						 $print[]=array(
+							'label'=>Yii::t("default","Reference #"),
+							'value'=>Yii::app()->functions->formatOrderNumber($data['order_id'])
+						  );
+						if ( !empty($data['payment_reference'])):
+							$print[]=array(
+								'label'=>Yii::t("default","Payment Ref"),
+								'value'=>$data['payment_reference']
+							);
+						endif;
+	       	       
+						 if ( $data['payment_type'] =="pyp"):
+							$paypal_info=Yii::app()->functions->getPaypalOrderPayment($data['order_id']);
+							$print[]=array(
+								'label'=>Yii::t("default","Paypal Transaction ID"),
+								'value'=>isset($paypal_info['TRANSACTIONID'])?$paypal_info['TRANSACTIONID']:''
+							);
+	       				endif;
+						if ( $data['payment_type']=="ccr" || $data['payment_type']=="ocr"):	       
+							$print[]=array(
+								'label'=>Yii::t("default","Card #"),
+								'value'=>$card
+							); 
+						endif;
+						
+						$trn_date = FunctionsV3::prettyDate($data['date_created'])." ".FunctionsV3::prettyTime($data['date_created']);
+	         
+						$print[]=array(
+							'label'=>Yii::t("default","TRN Date"),
+							'value'=>$trn_date
+						  );
+						  if ($data['trans_type']=="delivery"):
+						   if (isset($data['delivery_date'])):
+							$deliver_date=FunctionsV3::prettyDate($data['delivery_date']);
+							$print[]=array(
+								'label'=>Yii::t("default","Delivery Date"),
+								'value'=>$deliver_date
+							);
+							endif;
+		       		        $preptime = Yii::app()->functions->getOption("merchant_auto_prep_time",$merchant_id);
+							if($data['delivery_asap']!=1):
+								if (isset($data['delivery_time'])):
+									if ( !empty($data['delivery_time'])): 	       
+									$print[]=array(
+										'label'=>Yii::t("default","Delivery Time"),
+								// 		'value'=>$delivery_timee
+								        'value'=>FunctionsV3::prettyTime( date("h:i:s", strtotime("+". $preptime ." min",  strtotime( date("Y-m-d h:i:s") )  ))  ,true)
+									);
+									endif; 
+								endif; 
+							endif;
+		       
+		       
+		       if($data['delivery_asap']==1): 
+					if (isset($data['delivery_asap'])):
+			   			if ( !empty($data['delivery_asap'])):
+							$print[]=array(
+							'label'=>Yii::t("default","Deliver ASAP"),
+								'value'=>$delivery_timee
+							); 
+						endif;
+					endif;
+				endif;	 
+				if (!empty($data['client_full_address'])){		         	
+					$delivery_address=$data['client_full_address'];
+				} $delivery_address=$data['full_address'];
+				$delivery_address = $data['client_street']." ".$data['client_city']." ".$data['client_state']." ".$data['client_zipcode'];
+				$print[]=array(
+				  'label'=>Yii::t("default","Deliver to"),
+				  'value'=>$delivery_address
+				);
+				$print[]=array(
+				  'label'=>Yii::t("default","Delivery Instruction"),
+				  'value'=>$data['delivery_instruction']
+				); 	       
+				$print[]=array(
+				  'label'=>Yii::t("default","Location Name"),
+				  'value'=>$data['location_name']
+				);
+
+		         if ( !empty($data['contact_phone1'])){
+		         	$data['contact_phone']=$data['contact_phone1'];
+		         } 	       
+				$print[]=array(
+				  'label'=>Yii::t("default","Contact Number"),
+				  'value'=>$data['contact_phone']
+				);
+				if ($data['order_change']>=0.1):
+				$print[]=array(
+				  'label'=>Yii::t("default","Change"),
+				  'value'=>normalPrettyPrice($data['order_change'])
+				);
+			endif;
+			else :
+		      $label_date=t("Pickup Date");
+		      $label_time=t("Pickup Time");
+		      if ($transaction_type=="dinein"){
+		      	  $label_date=t("Dine in Date");
+		          $label_time=t("Dine in Time");
+		      }
+
+				if (isset($data['contact_phone1'])){
+					if (!empty($data['contact_phone1'])){
+						$data['contact_phone']=$data['contact_phone1'];
+					}
+				} 	       		       
+				$print[]=array(
+				  'label'=>Yii::t("default","Contact Number"),
+				  'value'=>$data['contact_phone']
+				);
+				if (isset($data['delivery_date'])):
+					$print[]=array(
+					'label'=>$label_date,
+					'value'=>FunctionsV3::prettyDate($data['delivery_date'])
+					);
+				endif;
+			 $show_time = true;  
+			    if (isset($delivery_time ) && $show_time):
+			    if ( !empty($delivery_time )):       
+				$print[]=array(
+				 'label'=>$label_time,
+				//  'value'=>FunctionsV3::prettyTime($delivery_time ,true)
+				 'value'=>FunctionsV3::prettyTime( date("h:i:s", strtotime("+". $time_in_select ." min",  strtotime( date("Y-m-d h:i:s") )  ))  ,true)
+				);
+				 endif;
+			   endif;
+		       if ($transaction_type=="dinein"):
+		       if ($data['order_change']>=0.1): 	       
+				$print[]=array(
+				  'label'=>Yii::t("default","Change"),
+				  'value'=>$data['order_change']
+				);
+				endif;
+
+				$print[]=array(
+				  'label'=>t("Number of guest"),
+				  'value'=>$data['dinein_number_of_guest']
+				);
+				$print[]=array(
+				  'label'=>t("Table number"),
+				  'value'=>$data['dinein_table_number']>0?$data['dinein_table_number']:''
+				);
+				$print[]=array(
+				  'label'=>t("Special instructions"),
+				  'value'=>$data['dinein_special_instruction']
+				);
+			endif;
+		endif;
+		
+		$item_details=Yii::app()->functions->details['html'];
+ 
+        			if($data['delivery_service_type'] == 'dindin'){
+        				$data_raw=Yii::app()->functions->details['raw'];
+        				if ( $apply_tax==1 && $tax_set>0){
+        				    //recept generation in td-amount
+        					$receipt=EmailTPL::salesReceiptTax($print,Yii::app()->functions->details['raw']);
+        				} else $receipt=EmailTPL::salesReceipt($print,Yii::app()->functions->details['raw']);
+        				$to=isset($data['email_address'])?$data['email_address']:'';
+        				
+        		// 		$to="zeeshananweraziz@gmail.com";
+        				
+        				/*SEND EMAIL TO CUSTOMER*/
+        				
+        		 	// 	FunctionsV3::notifyCustomer($data,Yii::app()->functions->additional_details,$receipt, $to);
+        				
+        		// 		print_r($receipt); print_r($data); exit('stop'); 
+        				
+        				FunctionsV3::notifyMerchant($data,Yii::app()->functions->additional_details,$receipt);
+        				FunctionsV3::notifyAdmin($data,Yii::app()->functions->additional_details,$receipt);
+        			
+        				FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl("cron/processemail"));
+        				FunctionsV3::fastRequest(FunctionsV3::getHostURL().Yii::app()->createUrl("cron/processsms"));
+        			}
+    		    }
+    	    }
+    	    return true;
+	    }else { 
+	        
+	        echo 'UpdateStatusPrepTime2 Else';
+	        return false ; 
+	        
+	    }
+					
+    }
+
+
 
 }
 

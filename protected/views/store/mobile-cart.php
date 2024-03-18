@@ -14,8 +14,13 @@ $min_fees=FunctionsV3::getMinOrderByTableRates($merchant_id,
 echo CHtml::hiddenField('merchant_id',$merchant_id);
 echo CHtml::hiddenField('currentController','store');
 
-$now=date('Y-m-d');
-$now_time='';
+
+// $now=date('Y-m-d');
+// $now_time='';
+
+$now=isset($_SESSION['kr_delivery_options']['delivery_date'])?$_SESSION['kr_delivery_options']['delivery_date']:date('Y-m-d');
+$now_time=isset($_SESSION['kr_delivery_options']['delivery_time'])?date('G:i A',strtotime($_SESSION['kr_delivery_options']['delivery_time'])):'';
+
 $checkout=FunctionsV3::isMerchantcanCheckout($merchant_id); 
 
 
@@ -123,9 +128,13 @@ if ($merchant_info=Yii::app()->functions->getMerchant($s['kr_merchant_id'])){
     $merchant_address.=" "	. $merchant_info['post_code'];
 }
 
-$client_info='';
+$client_info=array();
 
 if ($is_guest_checkout){
+    $client_info['street']=$_SESSION['kr_delivery_options']['street'];
+    $client_info['city']=$_SESSION['kr_delivery_options']['city'];
+    $client_info['state']=$_SESSION['kr_delivery_options']['state'];
+    $client_info['zipcode'] = $_SESSION['kr_delivery_options']['zipcode'];
     $continue=true;
 } else {
     $client_info = Yii::app()->functions->getClientInfo(Yii::app()->functions->getClientId());
@@ -526,23 +535,32 @@ if ($is_guest_checkout){
             <!-- ENDIF DELIVERY-->
             <?php
            if($website_use_date_picker==2){
-           	  echo CHtml::dropDownList('delivery_date','',
-            	(array)FunctionsV3::getDateList($merchant_id)
-            	,array(
-            	  'class'=>'grey-fields date_list'
-            	));
-           } else {
-	           echo CHtml::hiddenField('delivery_date',$now);
-	           echo CHtml::textField('delivery_date1',
-	            FormatDateTime($now,false),array('class'=>"j_date grey-fields",'data-id'=>'delivery_date'));
-           }
+            //   echo CHtml::dropDownList('delivery_date','',
+            // 	(array)FunctionsV3::getDateList($merchant_id)
+            // 	,array(
+            // 	  'class'=>'grey-fields date_list'
+            // 	));
+            
+                echo CHtml::hiddenField('delivery_date',$now);
+                echo CHtml::hiddenField('delivery_date1',$now);
+            } else {
+                echo CHtml::hiddenField('delivery_date',$now);
+                echo CHtml::hiddenField('delivery_date1',$now);
+                //echo CHtml::textField('delivery_date1',
+                // FormatDateTime($now,false),array('class'=>"j_date grey-fields",'data-id'=>'delivery_date'));
+            }
             ?>
 
             <div style="clear: both"></div>
            <div class="delivery_asap_wrap delivery_time" style="display: none;">
-             <?php
+           <?php
              $options_al = array();
-             $options_al['ASAP'] = 'ASAP';
+             $merchant_time_interval = Yii::app()->functions->getOption($merchant_id,'merchant_time_interval');
+             $merchant_time_interval = ($merchant_time_interval == 0 || $merchant_time_interval == '')?15:$merchant_time_interval;
+             $merchant_time_interval_end = $merchant_time_interval+20;
+             $now_time_start = date('h:i A',strtotime("+ ".$merchant_time_interval." minutes"));
+             $now_time_end = date('h:i A',strtotime("+ ".$merchant_time_interval_end." minutes"));
+             $options_al['ASAP'] = $now_time_start." - ".$now_time_end;
              echo CHtml::dropDownList('delivery_time',$now_time,
              (array)$options_al
              ,array(

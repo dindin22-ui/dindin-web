@@ -257,12 +257,14 @@ class StoreController extends CController {
     }
 
     public function actionIndex() {
+        
         /* $this->redirect(Yii::app()->request->baseUrl."/menu-mcdo");
           Yii::app()->end(); */
         $this->actionHome();
     }
 
     public function actionCuisine() {
+        
         /* update merchant if expired and sponsored */
         Yii::app()->functions->updateMerchantSponsored();
         Yii::app()->functions->updateMerchantExpired();
@@ -575,12 +577,8 @@ class StoreController extends CController {
     }
 
     public function actionSearchArea() {
-
+        
         $res = '';
-        
-        // dump($_SESSION);
-        
-        
 
         unset($_SESSION['confirm_order_data']);
         unset($_SESSION['kr_delivery_options']);
@@ -1198,6 +1196,7 @@ class StoreController extends CController {
 
     public function actionPaymentOption() {
 
+          
         unset($_SESSION['confirm_order_data']);
 
         /* POINTS PROGRAM */
@@ -1291,9 +1290,10 @@ class StoreController extends CController {
     }
 
     public function actionReceipt() {
-		
+        // print_r($_SESSION['kr_delivery_options']);
+        // exit;
         if ($data = Yii::app()->functions->getOrder2($_GET['id'])) {
-           /*	dump($data);
+            /* dump($data);
               die(); */
             $this->render('receipt', array(
                 'data' => $data
@@ -1922,6 +1922,10 @@ class StoreController extends CController {
     }
 
     public function actionGuestCheckout() {
+       
+        // echo '<pre>';
+        // print_r($_REQUEST);
+        // exit;
         unset($_SESSION['confirm_order_data']);
 
         /* POINTS PROGRAM */
@@ -1943,6 +1947,7 @@ class StoreController extends CController {
             if ($info = Yii::app()->functions->getMerchant($current_merchant)) {
                 $seo_title = smarty('merchant_name', ucwords($info['restaurant_name']), $seo_title);
             }
+            
             $this->pageTitle = $seo_title;
             Yii::app()->functions->setSEO($seo_title, $seo_meta, $seo_key);
         }
@@ -2491,8 +2496,9 @@ class StoreController extends CController {
     }
 
     public function actionConfirmOrder() {
-
+       
         if (!isset($_GET['isguest'])) {
+            //exit('not guest');
             if (!Yii::app()->functions->isClientLogin()) {
                 $this->redirect(Yii::app()->createUrl('/store/index'));
                 Yii::app()->end();
@@ -2500,12 +2506,18 @@ class StoreController extends CController {
         }
 
         $data = isset($_SESSION['confirm_order_data']) ? $_SESSION['confirm_order_data'] : '';
-
+        // echo '<pre>';
+        // print_r($_SESSION);
+        // exit('ttt');
         if (isset($data['is_search_by_location'])) {
             unset($data['is_search_by_location']);
         }
 
         if (is_array($data) && count($data) >= 1) {
+        //echo '<pre>';
+        //print_r($data);
+        //echo FunctionsV3::prettyTime($_SESSION['kr_delivery_options']['delivery_time']);
+        //exit('ttt');
             $this->render('confirm-order-new', array(
                 'data' => $data,
                 'merchant_info' => Yii::app()->functions->getMerchant($data['merchant_id']),
@@ -2517,6 +2529,8 @@ class StoreController extends CController {
             $this->render('error', array(
                 'message' => t("Something went wrong during processing your request. Please try again later.")
             ));
+            
+        
     }
 
     public function actionrzrinit() {
@@ -2840,11 +2854,12 @@ class StoreController extends CController {
     }
 
     public function actionCart() {
+        
         $this->layout = 'mobile_tpl';
 
         $merchant_id = $_SESSION['kr_merchant_id'];
         if ($data = FunctionsV3::getMerchantInfo($merchant_id)) {
-
+            
             $minimum_order_dinein = getOption($merchant_id, 'merchant_minimum_order_dinein');
             $maximum_order_dinein = getOption($merchant_id, 'merchant_maximum_order_dinein');
 

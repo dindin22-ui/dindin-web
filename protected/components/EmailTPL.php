@@ -99,9 +99,6 @@ HTML;
 		}
 		
 		$mid=isset($item_details['total']['mid'])?$item_details['total']['mid']:'';
-		//dump($mid);
-		
-		//dump($item_details);
 		
 		$tr.="<tr>";
 		$tr.="<td colspan=\"2\">&nbsp;</td>";
@@ -218,7 +215,7 @@ HTML;
 		$tr.="<tr>";
 		$tr.="<td colspan=\"2\">&nbsp;</td>";
 		$tr.="</tr>";
-		
+// 		print_r($item_details); exit(' ii');
 		//dump($item_details);
 		
 		Yii::app()->functions->additional_details=$sms_details;
@@ -238,9 +235,15 @@ HTML;
 			if ($item_details['total']['less_voucher']>0.001){
 				$tr.="<tr>";
 				$tr.="<td>".Yii::t("default","Less Voucher")." " .$item_details['total']['voucher_type'] . ":</td>";
-				$tr.="<td>(".FunctionsV3::prettyPrice($item_details['total']['less_voucher']).")</td>";
+				$tr.="<td>(".FunctionsV3::prettyPrice($item_details['total']['voucher_value']).")</td>";
 				$tr.="</tr>";
 			}
+// 			if ($item_details['total']['voucher_value']>0.001){
+// 				$tr.="<tr>";
+// 				$tr.="<td>".Yii::t("default","Voucher")." " .$item_details['total']['voucher_value'] . ":</td>";
+// 				$tr.="<td>(".FunctionsV3::prettyPrice($item_details['total']['voucher_value']).")</td>";
+// 				$tr.="</tr>";
+// 			}
 			
 			if ($item_details['total']['pts_redeem_amt']>0.001){
 				$tr.="<tr>";

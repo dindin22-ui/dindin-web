@@ -211,7 +211,18 @@ if($asap != '3'){
   ))
   ?>  
 </div>
-	
+
+<div class="uk-form-row">
+  <label class="uk-form-label"><?php echo t("Time Interval")?></label>
+  <?php 
+  echo CHtml::dropDownList('merchant_time_interval',
+  getOption($merchant_id,'merchant_time_interval'),array(
+    15=>t("15 min"),
+    20=>t("20 min"),
+    25=>t("25 min")
+  ));
+  ?> 
+</div>	
 <?php
 $order_special_notes =  Yii::app()->functions->getOption('order_special_notes',$merchant_id);
 if($order_special_notes != '3'){

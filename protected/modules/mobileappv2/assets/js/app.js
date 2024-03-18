@@ -162,6 +162,15 @@ jQuery(document).ready(function() {
    		}
    	});
    	   	
+
+	$( document ).on( "click", ".delete_broadcast", function() {
+		broadcast_id = $(this).data("broadcast_id");
+		ans = confirm( t("Are you sure?") );
+		if(ans){
+			processAjax("delete_broadcast","broadcast_id="+ broadcast_id + addCSRF() );
+		}
+	});
+
    	$( document ).on( "click", ".edit_page", function() {
    		page_id = $(this).data("page_id");   		
    		$('#pageNewModal').modal('show');   		
@@ -419,7 +428,7 @@ function initAutocomplete() {
     fields: ["address_components", "geometry"],
     types: ["address"],
   });
-  address1Field.focus();
+//   address1Field.focus();
   // When the user selects an address from the drop-down, populate the
   // address fields in the form.
 //   autocomplete.addListener("place_changed", fillInAddress);

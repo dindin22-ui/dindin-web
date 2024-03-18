@@ -561,7 +561,8 @@ class Functions extends CApplicationComponent
 		}
 		return false;
     }		    
-    /**
+    
+	/**
 	 * Get Popup Message by ID
 	 */
 	public function getPopUpMessage($id='')
@@ -620,7 +621,7 @@ class Functions extends CApplicationComponent
 		}
 		return false;
     }
-    
+
     public function getCategoryList($merchant_id='')
 	{
 		$data_feed=array();
@@ -978,7 +979,6 @@ class Functions extends CApplicationComponent
     	
 	public function merchantMenu()
 	{
-	  
 		$user_access = (array)FunctionsV3::getMerchantUserAccess();
 		
 		$payment_list=array('visible'=>FunctionsV3::hasMerchantAccessToMenu($user_access,"payment-gateway"),'tag'=>'payment-gateway','label'=>'<i class="fa fa-usd"></i>'.Yii::t("default",'Payment Gateway'),
@@ -1122,7 +1122,7 @@ class Functions extends CApplicationComponent
                 
                 array('visible'=>FunctionsV3::hasMerchantAccessToMenu($user_access,"tablebooking"),'tag'=>"tablebooking",'label'=>'<i class="fa fa-list-alt"></i>'.Yii::t("default","Table Booking"),
                 'url'=>array('/merchant/tablebooking')),
-                                                 
+                                                
                 array('visible'=>FunctionsV3::hasMerchantAccessToMenu($user_access,"orderStatus"),'tag'=>"orderStatus",'label'=>'<i class="fa fa-list-alt"></i>'.Yii::t("default","Order Status"),
                 'url'=>array('/merchant/orderStatus')),
                                                                                
@@ -1437,18 +1437,18 @@ class Functions extends CApplicationComponent
                 array('visible'=>$this->AA('merchant'),
                 'tag'=>"merchant",'label'=>'<i class="fa fa-cutlery"></i>'.Yii::t("default","Merchant List"),
                 'url'=>array('/admin/merchant')),
-                 
+                
                 
                 array('visible'=>$this->AA('sponsoredMerchantList'),
                 'tag'=>"sponsoredMerchantList",
                 'label'=>'<i class="fa fa-list-alt"></i>'.Yii::t("default","Sponsored Listing"),                
                 'url'=>array('/admin/sponsoredMerchantList')),
                 
-                array('visible'=>$this->AA('AdminPopupMessages'),
+				array('visible'=>$this->AA('AdminPopupMessages'),
                 'tag'=>"AdminPopupMessages",
                 'label'=>'<i class="fa fa-envelope-o"></i>'.Yii::t("default","Popup Messages"),                
                 'url'=>array('/admin/AdminPopupMessages')),
-                
+
                 array('visible'=>$this->AA('packages'),
                 'tag'=>"packages",'label'=>'<i class="fa fa-list-alt"></i>'.Yii::t("default","Packages"),
                 'url'=>array('/admin/packages')),                
@@ -1962,14 +1962,10 @@ class Functions extends CApplicationComponent
 	
 	public function socialMenu()
 	{
-	    
-	    
 		$social_flag=yii::app()->functions->getOptionAdmin('social_flag');
 		$admin_fb_page=yii::app()->functions->getOptionAdmin('admin_fb_page');
 		$admin_twitter_page=yii::app()->functions->getOptionAdmin('admin_twitter_page');
 		$admin_google_page=yii::app()->functions->getOptionAdmin('admin_google_page');
-		
-		print_r($social_flag); exit('dfvdf');
 				
 		if ( $social_flag==1){
 			return array(  		    		    
@@ -3466,7 +3462,7 @@ class Functions extends CApplicationComponent
 		return false;
 	}	
 	
-    private function convertHours($time){
+        private function convertHours($time){
             $time = explode(' ',$time);
             $am_pm = $time[1];
             $hour = explode(':',$time[0]);
@@ -3474,13 +3470,12 @@ class Functions extends CApplicationComponent
                 return $hour[0]+12;
             else
                 return $hour[0];
-    }
+        }
 	public function getMerchantMenu($merchant_id='',$food_name='', $todays_day='')
 	{		
 		$data=array();
 		$this->data='list';
-		if ( $res=$this->getCategoryList2($merchant_id , $food_name , $todays_day )){	
-		   
+		if ( $res=$this->getCategoryList2($merchant_id , $food_name , $todays_day )){						
 			foreach ($res as $cat_i=>$cat_name) {	
 				$data[]=array(
 				  'category_id'=>$cat_i,
@@ -3589,6 +3584,7 @@ class Functions extends CApplicationComponent
     	if (isset($cart_item)){
     		if (is_array($cart_item) && count($cart_item)>=1){
     			$x=0;
+				$htm .= '<div class="food_item">';
     			foreach ($cart_item as $key=>$val) {	    
     				
 //    				dump($val);				
@@ -3923,8 +3919,8 @@ $htm.='<div class="b uk-text-muted">'."$addon_raw_price ".qTranslate($val_subs[2
 			          $added_item[]=$val['item_id'];  /** fixed addon qty */
 			          
     			} /*END LOOP FOOD ITEM*/	  
-    			
-    			    			
+    			$htm .= '</div>';
+
     			$taxable_subtotal=0;	    			
     			$tax_amt=0;
     			
@@ -4641,8 +4637,7 @@ $htm.='<div class="b uk-text-muted">'."$addon_raw_price ".qTranslate($val_subs[2
 
                             $order_items = json_decode($data['delivery_service_order_details'],true);
                             $item_html = '';
-							
-							   foreach($order_items as $order_item){
+                            foreach($order_items as $order_item){
                                 $item_html .= '<div class="item-order-list item-row" id="test-print">'
                                         . '<div class="a">'.$order_item['quantity'].'</div>'
                                         . '<div class="b">'
@@ -4651,8 +4646,6 @@ $htm.='<div class="b uk-text-muted">'."$addon_raw_price ".qTranslate($val_subs[2
                                         . '<div class="c"></div>'
                                         . '<div class="d">$'.$order_item['price'].'</div></div><div class="clear"></div></div>';
                             }
-
-                         
                         }else{
                             $item_html = $htm;
                         }  
@@ -5654,14 +5647,14 @@ $htm.='<div class="b uk-text-muted">'."$addon_raw_price ".qTranslate($val_subs[2
     	      SELECT * FROM
     	      {{order}}
     	      WHERE    	          	      
-    	      date_created like '".date('Y-m-d')."%'
+    	      delivery_date like '".date('Y-m-d')."%'
     	      AND
     	      merchant_id = ".FunctionsV3::q($merchant_id)."
     	      AND
     	      viewed='1'
     	      AND LOWER(status) NOT IN ('".initialStatus()."','rejected')
     	      AND request_cancel='2'
-    	      ORDER BY date_created DESC
+    	      ORDER BY delivery_date DESC
     	";    	
     	//dump($stmt);
     	if ($res=$db_ext->rst($stmt)){    		
@@ -5831,6 +5824,7 @@ $htm.='<div class="b uk-text-muted">'."$addon_raw_price ".qTranslate($val_subs[2
         }
         return $randomString;
     }    
+    
     public function validateUsername($username='',$merchant_id='')
     {
     	$db_ext=new DbExt;
@@ -8548,6 +8542,7 @@ $menu_html.="</li>";
 		return false;
 	}
 	
+	
 	public function getMerchantHolidayTimeFrom($merchant_id='')
 	{
 		$stores_time_from=Yii::app()->functions->getOption("stores_time_from",$merchant_id);
@@ -8572,7 +8567,7 @@ $menu_html.="</li>";
 		}		
 		return false;
 	}
-	
+
 	public function isAdminExist($contact_email='')
 	{
 		$DbExt=new DbExt;
@@ -9126,9 +9121,10 @@ $menu_html.="</li>";
 		}
 		return false;
 	}
+	
 	public function getMerchantCommissionCalculated($merchant_id='')
 	{				
-		$stmt=" 
+		$stmt="
 		SELECT * FROM
 		{{merchant}}
 		WHERE
@@ -9145,6 +9141,7 @@ $menu_html.="</li>";
 		}
 		return false;
 	}
+	
 	public function getMerchantAnyFee($merchant_id='')
 	{				
 		$stmt="
@@ -10200,6 +10197,7 @@ $menu_html.="</li>";
 	
     public function getCategoryList2($merchant_id='', $food_name='', $todays_day='')
 	{		
+		
 		$todays_day = !empty($todays_day)?strtolower($todays_day):'';
 		
 		$data_feed=array();
@@ -10246,7 +10244,8 @@ $menu_html.="</li>";
 		$and
 		ORDER BY sequence ASC
 		";		
-
+//		dump($stmt);
+				
 		$connection=Yii::app()->db;
 		$rows=$connection->createCommand($stmt)->queryAll(); 				
 		if (is_array($rows) && count($rows)>=1){
@@ -10254,7 +10253,6 @@ $menu_html.="</li>";
 				foreach ($rows as $val) {
                                     $start_date = 0;
                                     $end_date = 24;
-                                    
                                     if($enabled_category_sked == 1){
                                         if(isset($val[$todays_day.'_start_time']))
                                                 $start_date = $this->convertHours($val[$todays_day.'_start_time']);
